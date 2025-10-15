@@ -57,7 +57,7 @@ pub fn Table(props: TableProps) -> Element {
     }
 
     if let Some(ref class) = props.class {
-        classes.push(class.as_str());
+        classes.push(class);
     }
 
     let class_attr = combine_classes(&classes);

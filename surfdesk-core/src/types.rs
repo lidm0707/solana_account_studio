@@ -157,6 +157,12 @@ impl SolanaNetwork {
     }
 }
 
+impl std::fmt::Display for SolanaNetwork {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.display_name())
+    }
+}
+
 /// Environment configuration for different deployment contexts
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Environment {
@@ -533,6 +539,18 @@ pub struct UIState {
     pub notifications: Vec<Notification>,
 }
 
+impl Default for UIState {
+    fn default() -> Self {
+        Self {
+            theme: Theme::Auto,
+            sidebar: SidebarState::default(),
+            main_content: MainContentState::default(),
+            modal: None,
+            notifications: Vec::new(),
+        }
+    }
+}
+
 /// Theme configuration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Theme {
@@ -555,9 +573,21 @@ pub struct SidebarState {
     pub collapsed_sections: Vec<SidebarSection>,
 }
 
+impl Default for SidebarState {
+    fn default() -> Self {
+        Self {
+            expanded: true,
+            active_section: SidebarSection::Projects,
+            collapsed_sections: Vec::new(),
+        }
+    }
+}
+
 /// Sidebar sections
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SidebarSection {
+    /// Dashboard
+    Dashboard,
     /// Projects
     Projects,
     /// Environments
@@ -579,6 +609,15 @@ pub struct MainContentState {
     pub current_view: ContentView,
     /// View-specific state
     pub view_state: serde_json::Value,
+}
+
+impl Default for MainContentState {
+    fn default() -> Self {
+        Self {
+            current_view: ContentView::Dashboard,
+            view_state: serde_json::Value::Object(serde_json::Map::new()),
+        }
+    }
 }
 
 /// Content view types

@@ -6,9 +6,18 @@
 
 use crate::error::{Result, SurfDeskError};
 use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
+
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+/// Result structure for count queries
+#[derive(Debug, QueryableByName)]
+pub struct CountResult {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    pub count: i64,
+}
 
 /// Database service for data persistence
 pub struct DatabaseService {
@@ -37,7 +46,7 @@ pub struct DatabaseConfig {
 
 impl DatabaseService {
     /// Create a new database service
-    pub async fn new(config_service: &crate::services::config::ConfigService) -> Result<Self> {
+    pub async fn new(_config_service: &crate::services::config::ConfigService) -> Result<Self> {
         let config = DatabaseConfig::from_platform();
 
         log::info!(
@@ -55,7 +64,7 @@ impl DatabaseService {
         let pool = Pool::builder()
             .max_size(config.pool_size)
             .build(manager)
-            .map_err(|e| SurfDeskError::database_connection(e))?;
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         let service = Self {
             pool: Arc::new(pool),
@@ -65,6 +74,10 @@ impl DatabaseService {
 
         // Run migrations
         service.run_migrations().await?;
+
+        // Configure database
+        let mut conn = service.get_connection().await?;
+        service.configure_database(&mut conn)?;
 
         log::info!("Database service initialized successfully");
         Ok(service)
@@ -80,7 +93,7 @@ impl DatabaseService {
         let mut conn = self
             .pool
             .get()
-            .map_err(|e| SurfDeskError::database_connection(e))?;
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         // Run embedded migrations
         self.run_embedded_migrations(&mut conn)?;
@@ -95,10 +108,9 @@ impl DatabaseService {
 
     /// Run embedded migrations
     fn run_embedded_migrations(&self, conn: &mut SqliteConnection) -> Result<()> {
-        // Create projects table
-        conn.execute(
-            r#"
-            CREATE TABLE IF NOT EXISTS projects (
+        // Use raw SQL for table creation - simpler approach
+        let migrations = vec![
+            "CREATE TABLE IF NOT EXISTS projects (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 description TEXT,
@@ -106,15 +118,8 @@ impl DatabaseService {
                 settings TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
-            )
-            "#,
-        )
-        .map_err(|e| SurfDeskError::database(e))?;
-
-        // Create environments table
-        conn.execute(
-            r#"
-            CREATE TABLE IF NOT EXISTS environments (
+            )",
+            "CREATE TABLE IF NOT EXISTS environments (
                 id TEXT PRIMARY KEY,
                 project_id TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -123,74 +128,40 @@ impl DatabaseService {
                 rpc_url TEXT,
                 config TEXT NOT NULL,
                 created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
-            )
-            "#,
-        )
-        .map_err(|e| SurfDeskError::database(e))?;
-
-        // Create accounts table
-        conn.execute(
-            r#"
-            CREATE TABLE IF NOT EXISTS accounts (
+                updated_at TEXT NOT NULL
+            )",
+            "CREATE TABLE IF NOT EXISTS accounts (
                 id TEXT PRIMARY KEY,
                 environment_id TEXT NOT NULL,
                 pubkey TEXT NOT NULL,
                 owner TEXT NOT NULL,
-                balance INTEGER NOT NULL,
-                data TEXT NOT NULL,
-                executable BOOLEAN NOT NULL,
-                rent_epoch INTEGER NOT NULL,
-                updated_at TEXT NOT NULL,
-                FOREIGN KEY (environment_id) REFERENCES environments (id) ON DELETE CASCADE
-            )
-            "#,
-        )
-        .map_err(|e| SurfDeskError::database(e))?;
-
-        // Create transactions table
-        conn.execute(
-            r#"
-            CREATE TABLE IF NOT EXISTS transactions (
+                balance TEXT,
+                data TEXT,
+                executable INTEGER NOT NULL DEFAULT 0,
+                rent_epoch INTEGER,
+                updated_at TEXT NOT NULL
+            )",
+            "CREATE TABLE IF NOT EXISTS transactions (
                 id TEXT PRIMARY KEY,
                 environment_id TEXT NOT NULL,
                 signature TEXT NOT NULL,
                 status TEXT NOT NULL,
-                details TEXT NOT NULL,
+                details TEXT,
                 simulation TEXT,
                 created_at TEXT NOT NULL,
-                confirmed_at TEXT,
-                FOREIGN KEY (environment_id) REFERENCES environments (id) ON DELETE CASCADE
-            )
-            "#,
-        )
-        .map_err(|e| SurfDeskError::database(e))?;
+                confirmed_at TEXT
+            )",
+            "CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects (owner)",
+            "CREATE INDEX IF NOT EXISTS idx_environments_project_id ON environments (project_id)",
+            "CREATE INDEX IF NOT EXISTS idx_accounts_environment_id ON accounts (environment_id)",
+            "CREATE INDEX IF NOT EXISTS idx_transactions_environment_id ON transactions (environment_id)",
+        ];
 
-        // Create indexes
-        conn.execute(
-            r#"
-            CREATE INDEX IF NOT EXISTS idx_environments_project_id
-            ON environments (project_id)
-            "#,
-        )
-        .map_err(|e| SurfDeskError::database(e))?;
-
-        conn.execute(
-            r#"
-            CREATE INDEX IF NOT EXISTS idx_accounts_environment_id
-            ON accounts (environment_id)
-            "#,
-        )
-        .map_err(|e| SurfDeskError::database(e))?;
-
-        conn.execute(
-            r#"
-            CREATE INDEX IF NOT EXISTS idx_transactions_environment_id
-            ON transactions (environment_id)
-            "#,
-        )
-        .map_err(|e| SurfDeskError::database(e))?;
+        for migration in migrations {
+            diesel::sql_query(migration)
+                .execute(conn)
+                .map_err(|e| SurfDeskError::database(e.to_string()))?;
+        }
 
         Ok(())
     }
@@ -199,29 +170,32 @@ impl DatabaseService {
     fn configure_database(&self, conn: &mut SqliteConnection) -> Result<()> {
         // Enable foreign key constraints
         if self.config.foreign_keys {
-            conn.execute("PRAGMA foreign_keys = ON")
-                .map_err(|e| SurfDeskError::database(e))?;
+            diesel::sql_query("PRAGMA foreign_keys = ON")
+                .execute(conn)
+                .map_err(|e| SurfDeskError::database(e.to_string()))?;
         }
 
         // Enable WAL mode
         if self.config.wal_mode {
-            conn.execute("PRAGMA journal_mode = WAL")
-                .map_err(|e| SurfDeskError::database(e))?;
+            diesel::sql_query("PRAGMA journal_mode = WAL")
+                .execute(conn)
+                .map_err(|e| SurfDeskError::database(e.to_string()))?;
         }
 
         // Set connection timeout
-        conn.execute(&format!(
-            "PRAGMA busy_timeout = {}",
-            self.config.timeout * 1000
-        ))
-        .map_err(|e| SurfDeskError::database(e))?;
+        let timeout_sql = format!("PRAGMA busy_timeout = {}", self.config.timeout * 1000);
+        diesel::sql_query(&timeout_sql)
+            .execute(conn)
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         // Optimize for performance
-        conn.execute("PRAGMA synchronous = NORMAL")
-            .map_err(|e| SurfDeskError::database(e))?;
+        diesel::sql_query("PRAGMA synchronous = NORMAL")
+            .execute(conn)
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
-        conn.execute("PRAGMA cache_size = 10000")
-            .map_err(|e| SurfDeskError::database(e))?;
+        diesel::sql_query("PRAGMA cache_size = 10000")
+            .execute(conn)
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         Ok(())
     }
@@ -232,7 +206,7 @@ impl DatabaseService {
     ) -> Result<PooledConnection<ConnectionManager<SqliteConnection>>> {
         self.pool
             .get()
-            .map_err(|e| SurfDeskError::database_connection(e))
+            .map_err(|e| SurfDeskError::database(e.to_string()))
     }
 
     /// Get database statistics
@@ -292,8 +266,9 @@ impl DatabaseService {
             std::fs::create_dir_all(parent)?;
         }
 
-        conn.execute(&format!("VACUUM INTO '{}'", backup_path.display()))
-            .map_err(|e| SurfDeskError::database(e))?;
+        diesel::sql_query(&format!("VACUUM INTO '{}'", backup_path.display()))
+            .execute(&mut conn)
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         log::info!("Database backed up to: {}", backup_path.display());
         Ok(())
@@ -322,8 +297,9 @@ impl DatabaseService {
     /// Vacuum database to reclaim space
     pub async fn vacuum(&self) -> Result<()> {
         let mut conn = self.get_connection().await?;
-        conn.execute("VACUUM")
-            .map_err(|e| SurfDeskError::database(e))?;
+        diesel::sql_query("VACUUM")
+            .execute(&mut conn)
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         log::info!("Database vacuumed");
         Ok(())
@@ -332,8 +308,9 @@ impl DatabaseService {
     /// Analyze database for query optimization
     pub async fn analyze(&self) -> Result<()> {
         let mut conn = self.get_connection().await?;
-        conn.execute("ANALYZE")
-            .map_err(|e| SurfDeskError::database(e))?;
+        diesel::sql_query("ANALYZE")
+            .execute(&mut conn)
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         log::info!("Database analyzed");
         Ok(())
@@ -344,7 +321,9 @@ impl DatabaseService {
         log::info!("Shutting down database service");
 
         // Close all connections
-        self.pool.clone().close();
+        // Note: r2d2 Pool doesn't have a close() method in this version
+        // The pool will be cleaned up when dropped
+        log::info!("Database service shutdown");
 
         Ok(())
     }
@@ -369,11 +348,7 @@ pub struct DatabaseStats {
     pub pool_idle_connections: u32,
 }
 
-/// Result for count queries
-#[derive(Debug, Queryable)]
-struct CountResult {
-    count: i64,
-}
+// CountResult is already defined above line 15
 
 impl DatabaseConfig {
     /// Create database configuration for current platform
@@ -382,9 +357,7 @@ impl DatabaseConfig {
 
         let database_path = match platform {
             crate::platform::Platform::Desktop => {
-                let mut path = dirs::data_local_dir()
-                    .unwrap_or_else(|| std::path::PathBuf::from("."))
-                    .join("surfdesk");
+                let mut path = PathBuf::from("./data/surfdesk");
                 path.push("data");
                 path.push("surfdesk.db");
                 path.to_string_lossy().to_string()

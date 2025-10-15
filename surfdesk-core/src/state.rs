@@ -4,7 +4,7 @@
 //! It uses Dioxus signals for reactive state management across all platforms and
 //! provides a centralized store for application data.
 
-use crate::{error::Result, types::*};
+use crate::{error::Result, services::solana::SolanaService, types::*};
 use dioxus::prelude::*;
 use std::sync::Arc;
 
@@ -37,7 +37,7 @@ pub struct AppState {
     /// Transactions in the active environment
     pub transactions: Signal<Vec<Transaction>>,
     /// Solana service instance
-    pub solana_service: Signal<Option<Arc<crate::services::solana::SolanaService>>>,
+    pub solana_service: Signal<Option<Arc<SolanaService>>>,
     /// Connection status
     pub connection_status: Signal<ConnectionStatus>,
     /// Current network
@@ -161,14 +161,14 @@ impl AppState {
     }
 
     /// Initialize the application state
-    pub async fn initialize(&self) -> Result<()> {
+    pub async fn initialize(&mut self) -> Result<()> {
         // Initialize default state
         self.initialize_defaults().await?;
         Ok(())
     }
 
     /// Initialize default application state
-    async fn initialize_defaults(&self) -> Result<()> {
+    async fn initialize_defaults(&mut self) -> Result<()> {
         // Set initial connection status
         self.connection_status.set(ConnectionStatus::Disconnected);
 
@@ -204,7 +204,7 @@ impl AppState {
     }
 
     /// Set the active project
-    pub fn set_active_project(&self, project_id: Option<ProjectId>) {
+    pub fn set_active_project(&mut self, project_id: Option<ProjectId>) {
         self.active_project_id.set(project_id);
         log::debug!("Active project changed to: {:?}", project_id);
 
@@ -213,13 +213,13 @@ impl AppState {
     }
 
     /// Set the active environment
-    pub fn set_active_environment(&self, environment_id: Option<EnvironmentId>) {
+    pub fn set_active_environment(&mut self, environment_id: Option<EnvironmentId>) {
         self.active_environment_id.set(environment_id);
         log::debug!("Active environment changed to: {:?}", environment_id);
     }
 
     /// Add a project
-    pub fn add_project(&self, project: Project) {
+    pub fn add_project(&mut self, project: Project) {
         let mut projects = self.projects.read().clone();
         projects.push(project);
         self.projects.set(projects);
@@ -227,7 +227,7 @@ impl AppState {
     }
 
     /// Update an existing project
-    pub fn update_project(&self, project_id: ProjectId, updated_project: Project) {
+    pub fn update_project(&mut self, project_id: ProjectId, updated_project: Project) {
         let mut projects = self.projects.read().clone();
         if let Some(project) = projects.iter_mut().find(|p| p.id == project_id) {
             *project = updated_project;
@@ -237,13 +237,13 @@ impl AppState {
     }
 
     /// Remove a project
-    pub fn remove_project(&self, project_id: ProjectId) {
+    pub fn remove_project(&mut self, project_id: ProjectId) {
         let mut projects = self.projects.read().clone();
         projects.retain(|p| p.id != project_id);
         self.projects.set(projects);
 
         // Clear active project if it was removed
-        if self.active_project_id.read() == Some(project_id) {
+        if *self.active_project_id.read() == Some(project_id) {
             self.active_project_id.set(None);
         }
 
@@ -251,7 +251,7 @@ impl AppState {
     }
 
     /// Add an environment
-    pub fn add_environment(&self, environment: Environment) {
+    pub fn add_environment(&mut self, environment: Environment) {
         let mut environments = self.environments.read().clone();
         environments.push(environment);
         self.environments.set(environments);
@@ -260,7 +260,7 @@ impl AppState {
 
     /// Update an existing environment
     pub fn update_environment(
-        &self,
+        &mut self,
         environment_id: EnvironmentId,
         updated_environment: Environment,
     ) {
@@ -273,13 +273,13 @@ impl AppState {
     }
 
     /// Remove an environment
-    pub fn remove_environment(&self, environment_id: EnvironmentId) {
+    pub fn remove_environment(&mut self, environment_id: EnvironmentId) {
         let mut environments = self.environments.read().clone();
         environments.retain(|e| e.id != environment_id);
         self.environments.set(environments);
 
         // Clear active environment if it was removed
-        if self.active_environment_id.read() == Some(environment_id) {
+        if *self.active_environment_id.read() == Some(environment_id) {
             self.active_environment_id.set(None);
         }
 
@@ -287,7 +287,7 @@ impl AppState {
     }
 
     /// Add an account
-    pub fn add_account(&self, account: Account) {
+    pub fn add_account(&mut self, account: Account) {
         let mut accounts = self.accounts.read().clone();
         accounts.push(account);
         self.accounts.set(accounts);
@@ -295,7 +295,7 @@ impl AppState {
     }
 
     /// Update an existing account
-    pub fn update_account(&self, account_id: AccountId, updated_account: Account) {
+    pub fn update_account(&mut self, account_id: AccountId, updated_account: Account) {
         let mut accounts = self.accounts.read().clone();
         if let Some(account) = accounts.iter_mut().find(|a| a.id == account_id) {
             *account = updated_account;
@@ -305,7 +305,7 @@ impl AppState {
     }
 
     /// Remove an account
-    pub fn remove_account(&self, account_id: AccountId) {
+    pub fn remove_account(&mut self, account_id: AccountId) {
         let mut accounts = self.accounts.read().clone();
         accounts.retain(|a| a.id != account_id);
         self.accounts.set(accounts);
@@ -313,7 +313,7 @@ impl AppState {
     }
 
     /// Add a transaction
-    pub fn add_transaction(&self, transaction: Transaction) {
+    pub fn add_transaction(&mut self, transaction: Transaction) {
         let mut transactions = self.transactions.read().clone();
         transactions.push(transaction);
         self.transactions.set(transactions);
@@ -322,7 +322,7 @@ impl AppState {
 
     /// Update an existing transaction
     pub fn update_transaction(
-        &self,
+        &mut self,
         transaction_id: TransactionId,
         updated_transaction: Transaction,
     ) {
@@ -335,7 +335,7 @@ impl AppState {
     }
 
     /// Set loading state for a specific operation
-    pub fn set_loading(&self, operation: LoadingOperation, loading: bool) {
+    pub fn set_loading(&mut self, operation: LoadingOperation, loading: bool) {
         let mut loading_state = self.loading.read().clone();
         match operation {
             LoadingOperation::Projects => loading_state.projects = loading,
@@ -365,7 +365,7 @@ impl AppState {
     }
 
     /// Set error state
-    pub fn set_error(&self, error: Option<crate::error::SurfDeskError>) {
+    pub fn set_error(&mut self, error: Option<crate::error::SurfDeskError>) {
         self.error.set(error.clone());
         if let Some(ref err) = error {
             log::error!("Application error: {}", err);
@@ -373,24 +373,24 @@ impl AppState {
     }
 
     /// Clear error state
-    pub fn clear_error(&self) {
+    pub fn clear_error(&mut self) {
         self.error.set(None);
     }
 
     /// Set connection status
-    pub fn set_connection_status(&self, status: ConnectionStatus) {
+    pub fn set_connection_status(&mut self, status: ConnectionStatus) {
         self.connection_status.set(status);
         log::info!("Connection status changed to: {}", status.display_name());
     }
 
     /// Set current network
-    pub fn set_current_network(&self, network: SolanaNetwork) {
+    pub fn set_current_network(&mut self, network: SolanaNetwork) {
         self.current_network.set(network);
         log::info!("Current network changed to: {}", network.display_name());
     }
 
     /// Initialize Solana service
-    pub async fn initialize_solana_service(&self, rpc_url: String) -> Result<()> {
+    pub async fn initialize_solana_service(&mut self, rpc_url: String) -> Result<()> {
         #[cfg(feature = "solana")]
         {
             use crate::services::solana::SolanaService;
@@ -424,7 +424,7 @@ impl AppState {
     }
 
     /// Refresh the active environment
-    pub async fn refresh_active_environment(&self) -> Result<()> {
+    pub async fn refresh_active_environment(&mut self) -> Result<()> {
         let active_environment = match self.active_environment() {
             Some(env) => env,
             None => return Ok(()),
@@ -466,7 +466,7 @@ impl Default for UIState {
             },
             main_content: MainContentState {
                 current_view: ContentView::Dashboard,
-                view_state: std::collections::HashMap::new(),
+                view_state: serde_json::Value::Object(serde_json::Map::new()),
             },
             modal: None,
             notifications: Vec::new(),
@@ -485,7 +485,7 @@ impl UIState {
     }
 
     /// Remove a notification by ID
-    pub fn remove_notification(&mut self, notification_id: uuid::Uuid) {
+    pub fn remove_notification(&mut self, notification_id: String) {
         self.notifications.retain(|n| n.id != notification_id);
     }
 
@@ -567,7 +567,7 @@ mod tests {
     fn test_ui_state_notifications() {
         let mut state = UIState::default();
         let notification = Notification {
-            id: uuid::Uuid::new_v4(),
+            id: uuid::Uuid::new_v4().to_string(),
             notification_type: NotificationType::Info,
             title: "Test".to_string(),
             message: "Test message".to_string(),

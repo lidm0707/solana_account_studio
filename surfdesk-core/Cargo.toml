@@ -48,6 +48,8 @@ log = { workspace = true }
 console_log = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true, optional = true }
 web-sys = { workspace = true, optional = true }
+dirs = "6.0.0"
+solana-transaction-status = "3.0.6"
 
 [dev-dependencies]
 proptest = { workspace = true }
@@ -59,3 +61,4 @@ database = ["diesel", "diesel_migrations"]
 solana = ["solana-sdk", "solana-client", "solana-account-decoder", "anchor-lang", "anchor-client"]
 web = ["dioxus/web", "console_log", "wasm-bindgen", "web-sys"]
 desktop = ["dioxus/desktop"]
+tui = []

@@ -5,8 +5,8 @@
 //! subscription management across all platforms.
 
 use crate::error::{Result, SurfDeskError};
+use serde_json::json;
 use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 
 /// Event service for managing application-wide events
@@ -148,12 +148,18 @@ impl EventService {
             log::debug!("New subscription to event type: {}", event_type);
             Ok(receiver)
         } else {
-            Err(SurfDeskError::validation(format!("Unknown event type: {}", event_type)))
+            Err(SurfDeskError::validation(format!(
+                "Unknown event type: {}",
+                event_type
+            )))
         }
     }
 
     /// Subscribe to multiple event types
-    pub async fn subscribe_multiple(&self, event_types: Vec<String>) -> Result<Vec<broadcast::Receiver<Event>>> {
+    pub async fn subscribe_multiple(
+        &self,
+        event_types: Vec<String>,
+    ) -> Result<Vec<broadcast::Receiver<Event>>> {
         let mut receivers = Vec::new();
 
         for event_type in event_types {
@@ -167,7 +173,7 @@ impl EventService {
     pub async fn unsubscribe(&self, subscription_id: &str) -> Result<()> {
         let mut subscriptions = self.subscriptions.write().await;
 
-        for (event_type, subs) in subscriptions.iter_mut() {
+        for (_event_type, subs) in subscriptions.iter_mut() {
             subs.retain(|sub| sub.id != subscription_id);
         }
 
@@ -196,7 +202,11 @@ impl EventService {
         let history = self.history.read().await;
 
         if let Some(limit) = limit {
-            let start = if history.len() > limit { history.len() - limit } else { 0 };
+            let start = if history.len() > limit {
+                history.len() - limit
+            } else {
+                0
+            };
             history[start..].to_vec()
         } else {
             history.clone()
@@ -204,7 +214,11 @@ impl EventService {
     }
 
     /// Get events by type
-    pub async fn get_events_by_type(&self, event_type: &str, limit: Option<usize>) -> Vec<EventHistoryEntry> {
+    pub async fn get_events_by_type(
+        &self,
+        event_type: &str,
+        limit: Option<usize>,
+    ) -> Vec<EventHistoryEntry> {
         let history = self.get_history(limit).await;
         history
             .into_iter()
@@ -288,7 +302,10 @@ impl Event {
 
     /// Get a summary of the event
     pub fn summary(&self) -> String {
-        format!("{} from {} at {}", self.event_type, self.source, self.timestamp)
+        format!(
+            "{} from {} at {}",
+            self.event_type, self.source, self.timestamp
+        )
     }
 
     /// Get event data as specific type
@@ -297,7 +314,7 @@ impl Event {
         T: serde::de::DeserializeOwned,
     {
         serde_json::from_value(self.data.clone())
-            .map_err(|e| SurfDeskError::serialization(e))
+            .map_err(|e| SurfDeskError::Serialization(e.to_string()))
     }
 }
 
@@ -448,7 +465,6 @@ pub mod events {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::time::{sleep, Duration};
 
     #[tokio::test]
     async fn test_event_service_creation() {
@@ -513,7 +529,10 @@ mod tests {
             "test.3".to_string(),
         ];
 
-        let mut receivers = service.subscribe_multiple(event_types.clone()).await.unwrap();
+        let mut receivers = service
+            .subscribe_multiple(event_types.clone())
+            .await
+            .unwrap();
         assert_eq!(receivers.len(), 3);
 
         // Emit events

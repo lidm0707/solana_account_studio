@@ -74,8 +74,8 @@ impl ConfigService {
             crate::platform::Platform::Desktop | crate::platform::Platform::Terminal => {
                 if path.exists() {
                     let content = std::fs::read_to_string(path)?;
-                    let config: Config =
-                        toml::from_str(&content).map_err(|e| SurfDeskError::Config(e))?;
+                    let config: Config = toml::from_str(&content)
+                        .map_err(|e| SurfDeskError::TomlDeserialization(e))?;
                     log::info!("Configuration loaded from: {}", path.display());
                     Ok(config)
                 } else {
@@ -113,7 +113,7 @@ impl ConfigService {
         match platform {
             crate::platform::Platform::Desktop | crate::platform::Platform::Terminal => {
                 let content = toml::to_string_pretty(&self.config)
-                    .map_err(|e| SurfDeskError::serialization(e))?;
+                    .map_err(|e| SurfDeskError::TomlSerialization(e))?;
                 std::fs::write(&self.config_path, content)?;
                 log::info!("Configuration saved to: {}", self.config_path.display());
             }
@@ -154,7 +154,7 @@ impl ConfigService {
     pub async fn get_solana_rpc_url(&self) -> Result<String> {
         let network = self.config.solana.default_network;
         Ok(
-            if let Some(ref url) = self
+            if let Some(url) = self
                 .config
                 .solana
                 .custom_endpoints

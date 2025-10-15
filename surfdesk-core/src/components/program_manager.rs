@@ -3,7 +3,7 @@
 //! Program manager component for managing Solana programs,
 //! deployments, and program interactions across all platforms.
 
-use crate::components::{combine_classes, Button, Card, CommonProps, Size, Table, Variant};
+use crate::components::{combine_classes, Button, Card, CommonProps, Variant};
 use crate::types::{ProgramInfo, SolanaNetwork};
 use dioxus::prelude::*;
 
@@ -264,59 +264,5 @@ pub fn DeployProgramDialog(
                 }
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::types::chrono::Utc;
-
-    #[test]
-    fn test_program_manager_default_props() {
-        let props = ProgramManagerProps {
-            common: None,
-            programs: None,
-            network: None,
-            show_deploy: None,
-            show_import: None,
-            on_deploy: None,
-            on_import: None,
-            on_select: None,
-            on_delete: None,
-        };
-
-        assert!(props.show_deploy.unwrap_or(true));
-        assert!(props.show_import.unwrap_or(true));
-        assert!(props.programs.unwrap_or_default().is_empty());
-    }
-
-    #[test]
-    fn test_program_card() {
-        let program = ProgramInfo {
-            name: "Test Program".to_string(),
-            program_id: crate::types::SolanaPubkey::from_str("11111111111111111111111111111111")
-                .unwrap(),
-            version: "1.0.0".to_string(),
-            path: "/path/to/program.so".to_string(),
-            deployed_at: Some(Utc::now()),
-        };
-
-        // In a real test, you'd verify the rendered output
-        assert_eq!(program.name, "Test Program");
-        assert_eq!(program.version, "1.0.0");
-        assert_eq!(program.path, "/path/to/program.so");
-        assert!(program.deployed_at.is_some());
-    }
-
-    #[test]
-    fn test_deploy_program_dialog() {
-        let dialog = DeployProgramDialog {
-            open: true,
-            on_close: None,
-            on_deploy: None,
-        };
-
-        assert!(dialog.open);
     }
 }

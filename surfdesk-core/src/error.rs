@@ -14,19 +14,19 @@ pub type Result<T> = std::result::Result<T, SurfDeskError>;
 pub enum SurfDeskError {
     /// Configuration related errors
     #[error("Configuration error: {0}")]
-    Config(#[from] config::ConfigError),
+    Config(String),
 
     /// Database related errors
     #[error("Database error: {0}")]
-    Database(#[from] diesel::result::Error),
+    Database(String),
 
     /// Database connection errors
     #[error("Database connection error: {0}")]
-    DatabaseConnection(#[from] diesel::ConnectionError),
+    DatabaseConnection(String),
 
     /// Solana RPC errors
     #[error("Solana RPC error: {0}")]
-    SolanaRpc(#[from] solana_client::client_error::ClientError),
+    SolanaRpc(String),
 
     /// Solana SDK errors
     #[error("Solana SDK error: {0}")]
@@ -38,11 +38,19 @@ pub enum SurfDeskError {
 
     /// Serialization/deserialization errors
     #[error("Serialization error: {0}")]
-    Serialization(#[from] serde_json::Error),
+    Serialization(String),
+
+    /// TOML serialization/deserialization errors
+    #[error("TOML serialization error: {0}")]
+    TomlSerialization(#[from] toml::ser::Error),
+
+    /// TOML deserialization errors
+    #[error("TOML deserialization error: {0}")]
+    TomlDeserialization(#[from] toml::de::Error),
 
     /// I/O errors
     #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
+    Io(String),
 
     /// Network errors
     #[error("Network error: {0}")]
@@ -98,7 +106,7 @@ pub enum SurfDeskError {
 
     /// Anyhow errors (for compatibility)
     #[error("Error: {0}")]
-    Anyhow(#[from] anyhow::Error),
+    Anyhow(String),
 
     /// UUID parsing errors
     #[error("Invalid UUID: {0}")]
@@ -192,6 +200,16 @@ impl SurfDeskError {
         Self::Unsupported(message.into())
     }
 
+    /// Create a new config error
+    pub fn config(message: impl Into<String>) -> Self {
+        Self::Config(message.into())
+    }
+
+    /// Create a new database error
+    pub fn database(message: impl Into<String>) -> Self {
+        Self::Database(message.into())
+    }
+
     /// Add context to an existing error
     pub fn with_context(self, message: impl Into<String>) -> Self {
         Self::WithContext {
@@ -242,6 +260,7 @@ impl SurfDeskError {
             Self::Database(_) | Self::DatabaseConnection(_) => "database",
             Self::SolanaRpc(_) | Self::SolanaSdk(_) | Self::Anchor(_) => "solana",
             Self::Serialization(_) => "serialization",
+            Self::TomlSerialization(_) | Self::TomlDeserialization(_) => "toml",
             Self::Io(_) => "io",
             Self::Network(_) => "network",
             Self::Validation(_) => "validation",
@@ -292,6 +311,86 @@ impl SurfDeskError {
             Self::Internal(msg) => format!("Internal error: {}. Please report this issue.", msg),
             _ => self.to_string(),
         }
+    }
+}
+
+impl Clone for SurfDeskError {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Config(msg) => Self::Config(msg.clone()),
+            Self::Database(msg) => Self::Database(msg.clone()),
+            Self::DatabaseConnection(msg) => Self::DatabaseConnection(msg.clone()),
+            Self::SolanaRpc(msg) => Self::SolanaRpc(msg.clone()),
+            Self::SolanaSdk(msg) => Self::SolanaSdk(msg.clone()),
+            Self::Anchor(msg) => Self::Anchor(msg.clone()),
+            Self::Serialization(msg) => Self::Serialization(msg.clone()),
+            Self::TomlSerialization(msg) => Self::TomlSerialization(msg.clone()),
+            Self::TomlDeserialization(msg) => Self::TomlDeserialization(msg.clone()),
+            Self::Io(msg) => Self::Io(msg.clone()),
+            Self::Network(msg) => Self::Network(msg.clone()),
+            Self::Validation(msg) => Self::Validation(msg.clone()),
+            Self::Platform(msg) => Self::Platform(msg.clone()),
+            Self::Component(msg) => Self::Component(msg.clone()),
+            Self::Service(msg) => Self::Service(msg.clone()),
+            Self::State(msg) => Self::State(msg.clone()),
+            Self::Authentication(msg) => Self::Authentication(msg.clone()),
+            Self::Permission(msg) => Self::Permission(msg.clone()),
+            Self::Timeout(msg) => Self::Timeout(msg.clone()),
+            Self::NotFound(msg) => Self::NotFound(msg.clone()),
+            Self::AlreadyExists(msg) => Self::AlreadyExists(msg.clone()),
+            Self::Unsupported(msg) => Self::Unsupported(msg.clone()),
+            Self::Internal(msg) => Self::Internal(msg.clone()),
+            Self::Anyhow(msg) => Self::Anyhow(msg.clone()),
+            Self::Uuid(err) => Self::Uuid(err.clone()),
+            Self::Chrono(err) => Self::Chrono(err.clone()),
+            Self::WithContext { message, source } => Self::WithContext {
+                message: message.clone(),
+                source: source.clone(),
+            },
+        }
+    }
+}
+
+// Conversion from external error types
+impl From<config::ConfigError> for SurfDeskError {
+    fn from(err: config::ConfigError) -> Self {
+        Self::Config(err.to_string())
+    }
+}
+
+impl From<diesel::result::Error> for SurfDeskError {
+    fn from(err: diesel::result::Error) -> Self {
+        Self::Database(err.to_string())
+    }
+}
+
+impl From<diesel::ConnectionError> for SurfDeskError {
+    fn from(err: diesel::ConnectionError) -> Self {
+        Self::DatabaseConnection(err.to_string())
+    }
+}
+
+impl From<solana_client::client_error::ClientError> for SurfDeskError {
+    fn from(err: solana_client::client_error::ClientError) -> Self {
+        Self::SolanaRpc(err.to_string())
+    }
+}
+
+impl From<serde_json::Error> for SurfDeskError {
+    fn from(err: serde_json::Error) -> Self {
+        Self::Serialization(err.to_string())
+    }
+}
+
+impl From<std::io::Error> for SurfDeskError {
+    fn from(err: std::io::Error) -> Self {
+        Self::Io(err.to_string())
+    }
+}
+
+impl From<anyhow::Error> for SurfDeskError {
+    fn from(err: anyhow::Error) -> Self {
+        Self::Anyhow(err.to_string())
     }
 }
 

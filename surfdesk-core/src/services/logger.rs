@@ -315,6 +315,19 @@ pub enum LogLevel {
 }
 
 impl LogLevel {
+    /// Convert log level to env_logger filter string
+    pub fn as_filter(&self) -> &'static str {
+        match self {
+            Self::Error => "error",
+            Self::Warn => "warn",
+            Self::Info => "info",
+            Self::Debug => "debug",
+            Self::Trace => "trace",
+        }
+    }
+}
+
+impl LogLevel {
     /// Convert to env_logger LevelFilter
     pub fn to_level_filter(self) -> log::LevelFilter {
         match self {

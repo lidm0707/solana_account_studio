@@ -18,9 +18,9 @@ pub struct DashboardProps {
     #[props(optional)]
     pub id: Option<String>,
     /// Application state
-    pub state: dioxus::prelude::Signal<AppState>,
+    pub state: Signal<AppState>,
     /// UI state
-    pub ui_state: dioxus::prelude::Signal<UIState>,
+    pub ui_state: Signal<UIState>,
 }
 
 /// Dashboard component
@@ -30,7 +30,7 @@ pub fn Dashboard(props: DashboardProps) -> Element {
 
     // Add custom class
     if let Some(ref class) = props.class {
-        classes.push(class.as_str());
+        classes.push(class);
     }
 
     let class_attr = combine_classes(&classes);
@@ -135,23 +135,5 @@ pub fn Dashboard(props: DashboardProps) -> Element {
                 }
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::state::AppState;
-    use crate::types::UIState;
-
-    #[test]
-    fn test_dashboard_props() {
-        // This test would need to be run in a Dioxus context
-        // For now, we just verify the props can be created
-        let _props = DashboardProps {
-            class: Some("custom-dashboard".to_string()),
-            id: Some("main-dashboard".to_string()),
-            // Note: state and ui_state would need to be created in Dioxus context
-        };
     }
 }

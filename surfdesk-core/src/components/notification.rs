@@ -1,18 +1,14 @@
-//! # Notification Component
+//! # Notification Component (MVP Version)
 //!
-//! Notification component for displaying alerts, messages, and
-//! toast notifications to users across all platforms.
+//! Simplified notification component for MVP approach.
+//! Focus on compilation success over comprehensive features.
 
-use crate::components::{combine_classes, Color, CommonProps, Size};
+use crate::components::{Color, Size};
 use dioxus::prelude::*;
 
-/// Notification component properties
+/// Notification component properties (MVP simplified)
 #[derive(Debug, Clone, PartialEq, Props)]
 pub struct NotificationProps {
-    /// Common component properties
-    #[props(optional)]
-    pub common: Option<CommonProps>,
-
     /// Notification title
     #[props(optional)]
     pub title: Option<String>,
@@ -37,14 +33,6 @@ pub struct NotificationProps {
     #[props(optional)]
     pub dismissible: Option<bool>,
 
-    /// Auto-dismiss timeout in milliseconds
-    #[props(optional)]
-    pub auto_dismiss: Option<u64>,
-
-    /// Whether to show icon
-    #[props(optional)]
-    pub show_icon: Option<bool>,
-
     /// Close handler
     #[props(optional)]
     pub on_close: Option<EventHandler<()>>,
@@ -56,10 +44,6 @@ pub struct NotificationProps {
     /// Action button text
     #[props(optional)]
     pub action_text: Option<String>,
-
-    /// Custom icon
-    #[props(optional)]
-    pub icon: Option<String>,
 }
 
 /// Notification types
@@ -93,30 +77,16 @@ impl NotificationType {
     }
 }
 
-/// Notification component
+/// Simple notification component
 #[component]
 pub fn Notification(props: NotificationProps) -> Element {
-    let common = props.common.unwrap_or_default();
     let notification_type = props.notification_type.unwrap_or(NotificationType::Info);
     let size = props.size.unwrap_or(Size::Medium);
     let visible = props.visible.unwrap_or(true);
     let dismissible = props.dismissible.unwrap_or(true);
-    let show_icon = props.show_icon.unwrap_or(true);
 
     if !visible {
         return rsx! { "" };
-    }
-
-    let mut classes = vec!["notification"];
-    classes.push(notification_type.css_class());
-    classes.push(size.css_class());
-
-    if dismissible {
-        classes.push("notification-dismissible");
-    }
-
-    if let Some(class) = &common.class {
-        classes.push(class);
     }
 
     let handle_close = move |_| {
@@ -131,28 +101,13 @@ pub fn Notification(props: NotificationProps) -> Element {
         }
     };
 
-    // Auto-dismiss timer
-    if let Some(timeout) = props.auto_dismiss {
-        use_effect(move || {
-            spawn(async move {
-                tokio::time::sleep(tokio::time::Duration::from_millis(timeout)).await;
-                if let Some(on_close) = props.on_close {
-                    on_close(());
-                }
-            });
-        });
-    }
-
     rsx! {
         div {
-            class: combine_classes(&classes),
-            id: common.id,
+            class: "notification {notification_type.css_class()} {size.css_class()}",
 
             // Icon
-            if show_icon {
-                span { class: "notification-icon",
-                    "{props.icon.unwrap_or_else(|| notification_type.default_icon().to_string())}"
-                }
+            span { class: "notification-icon",
+                "{notification_type.default_icon()}"
             }
 
             // Content
@@ -187,86 +142,110 @@ pub fn Notification(props: NotificationProps) -> Element {
     }
 }
 
+/// Success notification props
+#[derive(Debug, Clone, PartialEq, Props)]
+pub struct SuccessNotificationProps {
+    pub title: String,
+    pub message: String,
+    #[props(optional)]
+    pub visible: Option<bool>,
+    #[props(optional)]
+    pub on_close: Option<EventHandler<()>>,
+}
+
 /// Success notification
 #[component]
-pub fn SuccessNotification(
-    message: String,
-    #[props(optional)] title: Option<String>,
-    #[props(optional)] on_close: Option<EventHandler<()>>,
-    #[props(optional)] auto_dismiss: Option<u64>,
-    #[props(optional)] class: Option<String>,
-) -> Element {
+pub fn SuccessNotification(props: SuccessNotificationProps) -> Element {
     rsx! {
         Notification {
-            title: title,
-            message: message,
+            title: props.title,
+            message: props.message,
             notification_type: NotificationType::Success,
-            on_close: on_close,
-            auto_dismiss: auto_dismiss,
-            class: class,
+            visible: props.visible,
+            on_close: props.on_close,
+            dismissible: Some(true),
+            action_text: None,
         }
     }
+}
+
+/// Error notification props
+#[derive(Debug, Clone, PartialEq, Props)]
+pub struct ErrorNotificationProps {
+    pub title: String,
+    pub message: String,
+    #[props(optional)]
+    pub visible: Option<bool>,
+    #[props(optional)]
+    pub on_close: Option<EventHandler<()>>,
 }
 
 /// Error notification
 #[component]
-pub fn ErrorNotification(
-    message: String,
-    #[props(optional)] title: Option<String>,
-    #[props(optional)] on_close: Option<EventHandler<()>>,
-    #[props(optional)] auto_dismiss: Option<u64>,
-    #[props(optional)] class: Option<String>,
-) -> Element {
+pub fn ErrorNotification(props: ErrorNotificationProps) -> Element {
     rsx! {
         Notification {
-            title: title,
-            message: message,
+            title: props.title,
+            message: props.message,
             notification_type: NotificationType::Error,
-            on_close: on_close,
-            auto_dismiss: auto_dismiss,
-            class: class,
+            visible: props.visible,
+            on_close: props.on_close,
+            dismissible: Some(true),
+            action_text: None,
         }
     }
+}
+
+/// Warning notification props
+#[derive(Debug, Clone, PartialEq, Props)]
+pub struct WarningNotificationProps {
+    pub title: String,
+    pub message: String,
+    #[props(optional)]
+    pub visible: Option<bool>,
+    #[props(optional)]
+    pub on_close: Option<EventHandler<()>>,
 }
 
 /// Warning notification
 #[component]
-pub fn WarningNotification(
-    message: String,
-    #[props(optional)] title: Option<String>,
-    #[props(optional)] on_close: Option<EventHandler<()>>,
-    #[props(optional)] auto_dismiss: Option<u64>,
-    #[props(optional)] class: Option<String>,
-) -> Element {
+pub fn WarningNotification(props: WarningNotificationProps) -> Element {
     rsx! {
         Notification {
-            title: title,
-            message: message,
+            title: props.title,
+            message: props.message,
             notification_type: NotificationType::Warning,
-            on_close: on_close,
-            auto_dismiss: auto_dismiss,
-            class: class,
+            visible: props.visible,
+            on_close: props.on_close,
+            dismissible: Some(true),
+            action_text: None,
         }
     }
 }
 
+/// Info notification props
+#[derive(Debug, Clone, PartialEq, Props)]
+pub struct InfoNotificationProps {
+    pub title: String,
+    pub message: String,
+    #[props(optional)]
+    pub visible: Option<bool>,
+    #[props(optional)]
+    pub on_close: Option<EventHandler<()>>,
+}
+
 /// Info notification
 #[component]
-pub fn InfoNotification(
-    message: String,
-    #[props(optional)] title: Option<String>,
-    #[props(optional)] on_close: Option<EventHandler<()>>,
-    #[props(optional)] auto_dismiss: Option<u64>,
-    #[props(optional)] class: Option<String>,
-) -> Element {
+pub fn InfoNotification(props: InfoNotificationProps) -> Element {
     rsx! {
         Notification {
-            title: title,
-            message: message,
+            title: props.title,
+            message: props.message,
             notification_type: NotificationType::Info,
-            on_close: on_close,
-            auto_dismiss: auto_dismiss,
-            class: class,
+            visible: props.visible,
+            on_close: props.on_close,
+            dismissible: Some(true),
+            action_text: None,
         }
     }
 }
@@ -276,31 +255,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_notification_default_props() {
-        let props = NotificationProps {
-            common: None,
-            title: None,
-            message: None,
-            notification_type: None,
-            size: None,
-            visible: None,
-            dismissible: None,
-            auto_dismiss: None,
-            show_icon: None,
+    fn test_notification_basic() {
+        let notification = NotificationProps {
+            title: Some("Test Notification".to_string()),
+            message: Some("Test message".to_string()),
+            notification_type: Some(NotificationType::Info),
+            size: Some(Size::Medium),
+            visible: Some(true),
+            dismissible: Some(true),
             on_close: None,
             on_action: None,
             action_text: None,
-            icon: None,
         };
 
-        assert_eq!(
-            props.notification_type.unwrap_or(NotificationType::Info),
-            NotificationType::Info
-        );
-        assert_eq!(props.size.unwrap_or(Size::Medium), Size::Medium);
-        assert!(props.visible.unwrap_or(true));
-        assert!(props.dismissible.unwrap_or(true));
-        assert!(props.show_icon.unwrap_or(true));
+        assert_eq!(notification.title, Some("Test Notification".to_string()));
+        assert_eq!(notification.message, Some("Test message".to_string()));
+        assert_eq!(notification.notification_type, Some(NotificationType::Info));
+        assert_eq!(notification.size, Some(Size::Medium));
+        assert_eq!(notification.visible, Some(true));
+        assert_eq!(notification.dismissible, Some(true));
     }
 
     #[test]
@@ -327,60 +300,57 @@ mod tests {
 
     #[test]
     fn test_success_notification() {
-        let notification = SuccessNotification {
-            message: "Success!".to_string(),
-            title: Some("Operation Complete".to_string()),
+        let success = SuccessNotificationProps {
+            title: "Success".to_string(),
+            message: "Operation completed successfully".to_string(),
+            visible: Some(true),
             on_close: None,
-            auto_dismiss: Some(3000),
-            class: Some("success-notif".to_string()),
         };
 
-        assert_eq!(notification.message, "Success!");
-        assert_eq!(notification.title, Some("Operation Complete".to_string()));
-        assert_eq!(notification.auto_dismiss, Some(3000));
-        assert_eq!(notification.class, Some("success-notif".to_string()));
+        assert_eq!(success.title, "Success");
+        assert_eq!(success.message, "Operation completed successfully");
+        assert_eq!(success.visible, Some(true));
     }
 
     #[test]
     fn test_error_notification() {
-        let notification = ErrorNotification {
-            message: "Error occurred".to_string(),
-            title: None,
+        let error = ErrorNotificationProps {
+            title: "Error".to_string(),
+            message: "An error occurred".to_string(),
+            visible: Some(true),
             on_close: None,
-            auto_dismiss: None,
-            class: None,
         };
 
-        assert_eq!(notification.message, "Error occurred");
-        assert!(notification.title.is_none());
+        assert_eq!(error.title, "Error");
+        assert_eq!(error.message, "An error occurred");
+        assert_eq!(error.visible, Some(true));
     }
 
     #[test]
     fn test_warning_notification() {
-        let notification = WarningNotification {
-            message: "Warning message".to_string(),
-            title: Some("Warning".to_string()),
+        let warning = WarningNotificationProps {
+            title: "Warning".to_string(),
+            message: "This is a warning".to_string(),
+            visible: Some(false),
             on_close: None,
-            auto_dismiss: Some(5000),
-            class: None,
         };
 
-        assert_eq!(notification.message, "Warning message");
-        assert_eq!(notification.title, Some("Warning".to_string()));
-        assert_eq!(notification.auto_dismiss, Some(5000));
+        assert_eq!(warning.title, "Warning");
+        assert_eq!(warning.message, "This is a warning");
+        assert_eq!(warning.visible, Some(false));
     }
 
     #[test]
     fn test_info_notification() {
-        let notification = InfoNotification {
-            message: "Info message".to_string(),
-            title: None,
+        let info = InfoNotificationProps {
+            title: "Info".to_string(),
+            message: "This is information".to_string(),
+            visible: None,
             on_close: None,
-            auto_dismiss: None,
-            class: Some("info".to_string()),
         };
 
-        assert_eq!(notification.message, "Info message");
-        assert_eq!(notification.class, Some("info".to_string()));
+        assert_eq!(info.title, "Info");
+        assert_eq!(info.message, "This is information");
+        assert_eq!(info.visible, None);
     }
 }

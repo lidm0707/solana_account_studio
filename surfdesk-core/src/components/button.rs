@@ -97,7 +97,7 @@ pub fn Button(props: ButtonProps) -> Element {
         classes.push(class.as_str());
     }
 
-    let class_attr = combine_classes(&classes.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+    let class_attr = combine_classes(&classes);
 
     rsx! {
         button {

@@ -1,49 +1,33 @@
-//! # Modal Component
+//! # Modal Component (MVP Version)
 //!
-//! Modal component for displaying dialogs, confirmations, and
-//! overlays that require user interaction.
+//! Simplified modal component for MVP approach.
+//! Focus on compilation success over comprehensive features.
 
-use crate::components::{combine_classes, Button, CommonProps, Size, Variant};
+use crate::components::{Color, Size};
 use dioxus::prelude::*;
 
-/// Modal component properties
+/// Modal component properties (MVP simplified)
 #[derive(Debug, Clone, PartialEq, Props)]
 pub struct ModalProps {
-    /// Common component properties
-    #[props(optional)]
-    pub common: Option<CommonProps>,
-
     /// Modal title
     #[props(optional)]
     pub title: Option<String>,
 
-    /// Modal content
+    /// Modal message
     #[props(optional)]
-    pub content: Option<String>,
-
-    /// Modal variant
-    #[props(optional)]
-    pub variant: Option<ModalVariant>,
-
-    /// Modal size
-    #[props(optional)]
-    pub size: Option<Size>,
+    pub message: Option<String>,
 
     /// Whether modal is open
     #[props(optional)]
     pub open: Option<bool>,
 
-    /// Whether modal can be closed by clicking outside
+    /// Modal size
     #[props(optional)]
-    pub close_on_outside_click: Option<bool>,
+    pub size: Option<Size>,
 
-    /// Whether modal can be closed with escape key
+    /// Modal color
     #[props(optional)]
-    pub close_on_escape: Option<bool>,
-
-    /// Whether to show close button
-    #[props(optional)]
-    pub show_close_button: Option<bool>,
+    pub color: Option<Color>,
 
     /// Close handler
     #[props(optional)]
@@ -53,10 +37,6 @@ pub struct ModalProps {
     #[props(optional)]
     pub on_confirm: Option<EventHandler<()>>,
 
-    /// Cancel handler
-    #[props(optional)]
-    pub on_cancel: Option<EventHandler<()>>,
-
     /// Confirm button text
     #[props(optional)]
     pub confirm_text: Option<String>,
@@ -65,52 +45,16 @@ pub struct ModalProps {
     #[props(optional)]
     pub cancel_text: Option<String>,
 
-    /// Whether to show actions
-    #[props(optional)]
-    pub show_actions: Option<bool>,
-
     /// Modal content
     children: Element,
 }
 
-/// Modal variants
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ModalVariant {
-    Default,
-    Dialog,
-    Alert,
-    Confirm,
-    Info,
-    Warning,
-    Error,
-}
-
-impl ModalVariant {
-    /// Get CSS class for variant
-    pub fn css_class(&self) -> &'static str {
-        match self {
-            Self::Default => "modal-default",
-            Self::Dialog => "modal-dialog",
-            Self::Alert => "modal-alert",
-            Self::Confirm => "modal-confirm",
-            Self::Info => "modal-info",
-            Self::Warning => "modal-warning",
-            Self::Error => "modal-error",
-        }
-    }
-}
-
-/// Modal component
+/// Simple modal component
 #[component]
 pub fn Modal(props: ModalProps) -> Element {
-    let common = props.common.unwrap_or_default();
-    let variant = props.variant.unwrap_or(ModalVariant::Default);
-    let size = props.size.unwrap_or(Size::Medium);
     let open = props.open.unwrap_or(false);
-    let close_on_outside_click = props.close_on_outside_click.unwrap_or(true);
-    let close_on_escape = props.close_on_escape.unwrap_or(true);
-    let show_close_button = props.show_close_button.unwrap_or(true);
-    let show_actions = props.show_actions.unwrap_or(true);
+    let size = props.size.unwrap_or(Size::Medium);
+    let color = props.color.unwrap_or(Color::Primary);
     let confirm_text = props.confirm_text.unwrap_or_else(|| "Confirm".to_string());
     let cancel_text = props.cancel_text.unwrap_or_else(|| "Cancel".to_string());
 
@@ -118,25 +62,9 @@ pub fn Modal(props: ModalProps) -> Element {
         return rsx! { "" };
     }
 
-    let mut classes = vec!["modal"];
-    classes.push(variant.css_class());
-    classes.push(size.css_class());
-
-    if let Some(class) = &common.class {
-        classes.push(class);
-    }
-
     let handle_close = move |_| {
         if let Some(on_close) = props.on_close {
             on_close(());
-        }
-    };
-
-    let handle_outside_click = move |_| {
-        if close_on_outside_click {
-            if let Some(on_close) = props.on_close {
-                on_close(());
-            }
         }
     };
 
@@ -146,64 +74,47 @@ pub fn Modal(props: ModalProps) -> Element {
         }
     };
 
-    let handle_cancel = move |_| {
-        if let Some(on_cancel) = props.on_cancel {
-            on_cancel(());
-        }
-        if let Some(on_close) = props.on_close {
-            on_close(());
-        }
-    };
-
     rsx! {
         div {
-            class: combine_classes(&["modal-overlay", &classes.join(" ")]),
-            id: common.id,
-            onclick: handle_outside_click,
+            class: "modal-overlay",
+            onclick: handle_close,
 
             div {
-                class: "modal-content",
+                class: "modal {size.css_class()} {color.css_class()}",
                 onclick: move |evt| evt.stop_propagation(),
 
                 // Modal header
-                if props.title.is_some() || show_close_button {
+                if let Some(title) = props.title {
                     div { class: "modal-header",
-                        if let Some(title) = props.title {
-                            h2 { class: "modal-title", "{title}" }
-                        }
-
-                        if show_close_button {
-                            button {
-                                class: "modal-close",
-                                onclick: handle_close,
-                                "×"
-                            }
+                        h3 { class: "modal-title", "{title}" }
+                        button {
+                            class: "modal-close",
+                            onclick: handle_close,
+                            "×"
                         }
                     }
                 }
 
                 // Modal body
                 div { class: "modal-body",
-                    if let Some(content) = props.content {
-                        p { class: "modal-text", "{content}" }
+                    if let Some(message) = props.message {
+                        p { class: "modal-message", "{message}" }
                     }
                     {props.children}
                 }
 
                 // Modal actions
-                if show_actions {
-                    div { class: "modal-actions",
-                        Button {
-                            variant: Variant::Text,
-                            onclick: handle_cancel,
-                            "{cancel_text}"
-                        }
+                div { class: "modal-actions",
+                    button {
+                        class: "btn-cancel",
+                        onclick: handle_close,
+                        "{cancel_text}"
+                    }
 
-                        Button {
-                            variant: Variant::Contained,
-                            onclick: handle_confirm,
-                            "{confirm_text}"
-                        }
+                    button {
+                        class: "btn-confirm",
+                        onclick: handle_confirm,
+                        "{confirm_text}"
                     }
                 }
             }
@@ -211,54 +122,61 @@ pub fn Modal(props: ModalProps) -> Element {
     }
 }
 
+/// Alert modal props
+#[derive(Debug, Clone, PartialEq, Props)]
+pub struct AlertModalProps {
+    pub title: String,
+    pub message: String,
+    #[props(optional)]
+    pub open: Option<bool>,
+    #[props(optional)]
+    pub on_close: Option<EventHandler<()>>,
+}
+
 /// Alert modal
 #[component]
-pub fn AlertModal(
-    title: String,
-    message: String,
-    open: bool,
-    #[props(optional)] on_close: Option<EventHandler<()>>,
-    #[props(optional)] class: Option<String>,
-) -> Element {
+pub fn AlertModal(props: AlertModalProps) -> Element {
     rsx! {
         Modal {
-            title: title,
-            content: message,
-            variant: ModalVariant::Alert,
-            open: open,
-            show_actions: false,
-            show_close_button: true,
-            on_close: on_close,
-            class: class,
+            title: props.title,
+            message: props.message,
+            open: props.open,
+            on_close: props.on_close,
+            confirm_text: "OK".to_string(),
+            cancel_text: None,
         }
     }
 }
 
+/// Confirm modal props
+#[derive(Debug, Clone, PartialEq, Props)]
+pub struct ConfirmModalProps {
+    pub title: String,
+    pub message: String,
+    #[props(optional)]
+    pub open: Option<bool>,
+    #[props(optional)]
+    pub on_confirm: Option<EventHandler<()>>,
+    #[props(optional)]
+    pub on_cancel: Option<EventHandler<()>>,
+    #[props(optional)]
+    pub confirm_text: Option<String>,
+    #[props(optional)]
+    pub cancel_text: Option<String>,
+}
+
 /// Confirm modal
 #[component]
-pub fn ConfirmModal(
-    title: String,
-    message: String,
-    open: bool,
-    #[props(optional)] on_confirm: Option<EventHandler<()>>,
-    #[props(optional)] on_cancel: Option<EventHandler<()>>,
-    #[props(optional)] confirm_text: Option<String>,
-    #[props(optional)] cancel_text: Option<String>,
-    #[props(optional)] class: Option<String>,
-) -> Element {
+pub fn ConfirmModal(props: ConfirmModalProps) -> Element {
     rsx! {
         Modal {
-            title: title,
-            content: message,
-            variant: ModalVariant::Confirm,
-            open: open,
-            show_actions: true,
-            show_close_button: false,
-            on_confirm: on_confirm,
-            on_cancel: on_cancel,
-            confirm_text: confirm_text,
-            cancel_text: cancel_text,
-            class: class,
+            title: props.title,
+            message: props.message,
+            open: props.open,
+            on_close: props.on_cancel,
+            on_confirm: props.on_confirm,
+            confirm_text: props.confirm_text,
+            cancel_text: props.cancel_text,
         }
     }
 }
@@ -268,90 +186,55 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_modal_default_props() {
-        let props = ModalProps {
-            common: None,
-            title: None,
-            content: None,
-            variant: None,
-            size: None,
-            open: None,
-            close_on_outside_click: None,
-            close_on_escape: None,
-            show_close_button: None,
+    fn test_modal_basic() {
+        let modal = ModalProps {
+            title: Some("Test Modal".to_string()),
+            message: Some("Test message".to_string()),
+            open: Some(true),
+            size: Some(Size::Medium),
+            color: Some(Color::Primary),
             on_close: None,
             on_confirm: None,
-            on_cancel: None,
-            confirm_text: None,
-            cancel_text: None,
-            show_actions: None,
+            confirm_text: Some("OK".to_string()),
+            cancel_text: Some("Cancel".to_string()),
             children: rsx! { "Test content" },
         };
 
-        assert_eq!(
-            props.variant.unwrap_or(ModalVariant::Default),
-            ModalVariant::Default
-        );
-        assert_eq!(props.size.unwrap_or(Size::Medium), Size::Medium);
-        assert!(!props.open.unwrap_or(false));
-        assert!(props.close_on_outside_click.unwrap_or(true));
-        assert!(props.close_on_escape.unwrap_or(true));
-        assert!(props.show_close_button.unwrap_or(true));
-        assert!(props.show_actions.unwrap_or(true));
-        assert_eq!(
-            props.confirm_text.unwrap_or_else(|| "Confirm".to_string()),
-            "Confirm"
-        );
-        assert_eq!(
-            props.cancel_text.unwrap_or_else(|| "Cancel".to_string()),
-            "Cancel"
-        );
-    }
-
-    #[test]
-    fn test_modal_variant_css_class() {
-        assert_eq!(ModalVariant::Default.css_class(), "modal-default");
-        assert_eq!(ModalVariant::Dialog.css_class(), "modal-dialog");
-        assert_eq!(ModalVariant::Alert.css_class(), "modal-alert");
-        assert_eq!(ModalVariant::Confirm.css_class(), "modal-confirm");
-        assert_eq!(ModalVariant::Info.css_class(), "modal-info");
-        assert_eq!(ModalVariant::Warning.css_class(), "modal-warning");
-        assert_eq!(ModalVariant::Error.css_class(), "modal-error");
+        assert_eq!(modal.title, Some("Test Modal".to_string()));
+        assert_eq!(modal.message, Some("Test message".to_string()));
+        assert_eq!(modal.open, Some(true));
     }
 
     #[test]
     fn test_alert_modal() {
-        let modal = AlertModal {
+        let alert = AlertModalProps {
             title: "Alert".to_string(),
             message: "This is an alert".to_string(),
-            open: true,
+            open: Some(true),
             on_close: None,
-            class: Some("alert-modal".to_string()),
         };
 
-        assert_eq!(modal.title, "Alert");
-        assert_eq!(modal.message, "This is an alert");
-        assert!(modal.open);
-        assert_eq!(modal.class, Some("alert-modal".to_string()));
+        assert_eq!(alert.title, "Alert");
+        assert_eq!(alert.message, "This is an alert");
+        assert_eq!(alert.open, Some(true));
     }
 
     #[test]
     fn test_confirm_modal() {
-        let modal = ConfirmModal {
+        let confirm = ConfirmModalProps {
             title: "Confirm".to_string(),
             message: "Are you sure?".to_string(),
-            open: true,
+            open: Some(true),
             on_confirm: None,
             on_cancel: None,
             confirm_text: Some("Yes".to_string()),
             cancel_text: Some("No".to_string()),
-            class: None,
         };
 
-        assert_eq!(modal.title, "Confirm");
-        assert_eq!(modal.message, "Are you sure?");
-        assert!(modal.open);
-        assert_eq!(modal.confirm_text, Some("Yes".to_string()));
-        assert_eq!(modal.cancel_text, Some("No".to_string()));
+        assert_eq!(confirm.title, "Confirm");
+        assert_eq!(confirm.message, "Are you sure?");
+        assert_eq!(confirm.open, Some(true));
+        assert_eq!(confirm.confirm_text, Some("Yes".to_string()));
+        assert_eq!(confirm.cancel_text, Some("No".to_string()));
     }
 }

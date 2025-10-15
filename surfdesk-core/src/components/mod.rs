@@ -4,6 +4,17 @@
 //! Components are built with Dioxus 0.6+ and designed to be reusable across
 //! all platforms (desktop, web, and terminal).
 
+/// Macro for generating Default implementations for enum types
+macro_rules! impl_default_enum {
+    ($enum_type:ty, $default_variant:ident) => {
+        impl Default for $enum_type {
+            fn default() -> Self {
+                Self::$default_variant
+            }
+        }
+    };
+}
+
 pub mod account_explorer;
 pub mod app_shell;
 pub mod button;
@@ -42,6 +53,7 @@ pub use modal::Modal;
 pub use notification::Notification;
 pub use program_manager::ProgramManager;
 // pub use settings::Settings;  // Temporarily commented out
+// Sidebar and StatusBar will be implemented later
 // pub use sidebar::Sidebar;  // TODO: Implement
 // pub use status_bar::StatusBar;  // TODO: Implement
 pub use table::Table; // TODO: Implement
@@ -82,6 +94,8 @@ pub enum Size {
     Large,
 }
 
+impl_default_enum!(Size, Medium);
+
 impl Size {
     /// Get CSS class for size
     pub fn css_class(&self) -> &'static str {
@@ -103,6 +117,8 @@ pub enum Color {
     Error,
     Info,
 }
+
+impl_default_enum!(Color, Primary);
 
 impl Color {
     /// Get CSS class for color
@@ -126,6 +142,8 @@ pub enum Variant {
     Text,
     Contained,
 }
+
+impl_default_enum!(Variant, Default);
 
 impl Variant {
     /// Get CSS class for variant
@@ -205,6 +223,7 @@ impl Spacing {
 }
 
 /// Helper function to combine CSS classes
+/// Combine CSS classes into a single string
 pub fn combine_classes(classes: &[&str]) -> String {
     classes
         .iter()
@@ -214,12 +233,17 @@ pub fn combine_classes(classes: &[&str]) -> String {
         .join(" ")
 }
 
+/// Safe function to convert String to &str for CSS classes
+fn safe_class(class: &str) -> &str {
+    class
+}
+
 /// Helper function to create conditional class
-pub fn conditional_class(condition: bool, class_name: &str) -> &'static str {
+pub fn conditional_class(condition: bool, class_name: &str) -> String {
     if condition {
-        class_name
+        class_name.to_string()
     } else {
-        ""
+        "".to_string()
     }
 }
 
