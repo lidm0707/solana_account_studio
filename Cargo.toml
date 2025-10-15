@@ -1,0 +1,70 @@
+[workspace]
+members = [
+    "surfdesk-core",
+    "surfdesk-desktop",
+    "surfdesk-web",
+    "surfdesk-tui",
+    "surfdesk-cli"
+]
+resolver = "2"
+
+[workspace.dependencies]
+# Dioxus 0.6+ framework
+dioxus = { version = "0.6", features = ["desktop", "web"] }
+dioxus-router = "0.6"
+dioxus-signals = "0.6"
+
+# Solana ecosystem
+solana-sdk = "1.18"
+solana-client = "1.18"
+solana-account-decoder = "1.18"
+anchor-lang = "0.30"
+anchor-client = "0.30"
+
+# Async runtime and utilities
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Database
+diesel = { version = "2.1", features = ["sqlite", "r2d2", "chrono"] }
+diesel_migrations = "2.1"
+chrono = { version = "0.4", features = ["serde"] }
+
+# Web platform dependencies
+console_log = { version = "1.0" }
+wasm-bindgen = { version = "0.2" }
+web-sys = { version = "0.3" }
+
+# Logging
+log = "0.4"
+
+# Terminal UI dependencies
+crossterm = "0.27"
+ratatui = "0.26"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Configuration
+clap = { version = "4.4", features = ["derive"] }
+config = "0.14"
+
+# Testing
+proptest = "1.4"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.release.package."*"]
+opt-level = 3
+
+[profile.wasm-release]
+inherits = "release"
+opt-level = "s"
+lto = true

@@ -1,0 +1,21 @@
+# =============================================================================
+# Rust Toolchain Configuration for SurfDesk
+# =============================================================================
+
+[toolchain]
+channel = "stable"
+components = ["rust-src", "rustfmt", "clippy"]
+targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
+
+# =============================================================================
+# Project Metadata
+# =============================================================================
+
+[metadata]
+name = "surfdesk"
+description = "Multi-platform Solana Account Studio"
+version = "0.1.0"
+repository = "https://github.com/your-org/surfdesk"
+license = "MIT"
+edition = "2021"
+rust-version = ">=1.75.0"

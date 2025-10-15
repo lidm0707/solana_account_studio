@@ -1,0 +1,53 @@
+[package]
+name = "surfdesk-desktop"
+version = "0.1.0"
+edition = "2021"
+description = "Desktop application for SurfDesk - Multi-platform Solana Account Studio"
+license = "MIT"
+repository = "https://github.com/your-org/surfdesk"
+
+[[bin]]
+name = "surfdesk-desktop"
+path = "src/main.rs"
+
+[dependencies]
+# Core library
+surfdesk-core = { path = "../surfdesk-core", features = ["desktop", "solana", "database"] }
+
+# Dioxus desktop
+dioxus = { workspace = true, features = ["desktop"] }
+
+# Async runtime
+tokio = { workspace = true, features = ["full"] }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging
+log = { workspace = true }
+env_logger = "0.11"
+
+# Configuration
+clap = { workspace = true, features = ["derive"] }
+
+# GUI libraries (optional, depending on platform)
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+winit = "0.29"
+webbrowser = "0.8"
+
+# Platform-specific dependencies
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winuser"] }
+
+[target.'cfg(macos)'.dependencies]
+cocoa = "0.25"
+objc = "0.2"
+
+[target.'cfg(unix)'.dependencies]
+gtk = { version = "0.18", optional = true }
+
+[features]
+default = ["desktop"]
+desktop = ["dioxus/desktop"]
+gui = ["gtk"]

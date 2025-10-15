@@ -1,0 +1,47 @@
+[package]
+name = "surfdesk-tui"
+version = "0.1.0"
+edition = "2021"
+description = "Terminal UI application for SurfDesk - Multi-platform Solana Account Studio"
+license = "MIT"
+repository = "https://github.com/your-org/surfdesk"
+
+[[bin]]
+name = "surfdesk-tui"
+path = "src/main.rs"
+
+[dependencies]
+# Core library
+surfdesk-core = { path = "../surfdesk-core", features = ["solana", "database"] }
+
+# Terminal UI framework
+crossterm = { workspace = true }
+ratatui = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true, features = ["full"] }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging
+log = { workspace = true }
+env_logger = "0.11"
+
+# Configuration
+clap = { workspace = true, features = ["derive"] }
+
+# Terminal utilities
+unicode-width = "0.1"
+tui-input = "0.8"
+tui-textarea = "0.4"
+
+# Time utilities
+chrono = { workspace = true }
+
+# Key events
+arboard = "3.2"
+
+[features]
+default = []

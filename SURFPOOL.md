@@ -1,613 +1,1476 @@
-# Surfpool: Local Solana Development Controller
+# SurfPool: Multi-Platform Solana Development Controller
 
 ## Overview
 
-Surfpool is the core local development controller component of SurfDesk that manages and orchestrates Solana development environments. It provides a unified interface for running local test validators, managing network configurations, and controlling the development lifecycle for Solana programs.
+SurfPool is the core local development controller component of SurfDesk that provides **cross-platform** Solana development environment management. Built with **Dioxus 0.6+**, SurfPool offers unified interfaces across desktop, web, and terminal platforms for running local test validators, managing network configurations, and controlling the complete Solana development lifecycle.
+
+## Multi-Platform Architecture
+
+### 🖥️ **Desktop Integration**
+- Native process control with system tray integration
+- File system integration for program deployment
+- OS-specific notifications and dialogs
+- Multi-monitor support with detachable panels
+
+### 🌐 **Web Platform**
+- WebSocket bridge to SurfPool server
+- Browser-based validator control
+- Cloud storage integration for projects
+- Collaborative development features
+
+### 💻 **Terminal Interface**
+- ASCII-based status monitoring
+- Keyboard-first workflow
+- Low resource usage for server environments
+- SSH-friendly operation
 
 ## Core Capabilities
 
 ### 🏊 **Local Test Validator Management**
 
-Surfpool manages Solana's `solana-test-validator` process, providing developers with a complete local blockchain environment that mirrors mainnet behavior without requiring external connections.
+SurfPool provides sophisticated management of Solana's `solana-test-validator` process across all platforms, delivering a complete local blockchain environment that mirrors mainnet behavior.
 
-#### **Key Features:**
-- **One-Click Validator Startup**: Instantly launch a local Solana validator with pre-configured settings
-- **Multi-Environment Support**: Run multiple validator instances simultaneously (devnet, fork, custom)
-- **Automatic Port Management**: Handles port allocation and conflict resolution
-- **Resource Monitoring**: Tracks CPU, memory, and disk usage of validator processes
-- **Health Checks**: Continuous monitoring of validator status and connectivity
+#### **Cross-Platform Process Control**
+```rust
+// surfdesk-core/src/services/surfpool/controller.rs
+pub struct SurfPoolController {
+    platform: Box<dyn PlatformAdapter>,
+    process: Option<ProcessHandle>,
+    config: SurfPoolConfig,
+    status: ValidatorStatus,
+}
 
-#### **Validator Configurations:**
-```bash
-# Standard Devnet
-solana-test-validator --reset --quiet
-
-# Mainnet Fork
-solfana-test-validator --url https://api.mainnet-beta.solana.com --rpc-port 8899
-
-# Custom Genesis
-solana-test-validator --clone-upgradeable-program <PROGRAM_ID> --bpf-program <PATH>
-
-# Time-Controlled
-solana-test-validator --warp-slot <SLOT_NUMBER>
+impl SurfPoolController {
+    pub async fn start(&mut self) -> Result<(), SurfPoolError> {
+        match self.platform.get_platform_type() {
+            PlatformType::Desktop => {
+                // Native process spawning
+                self.spawn_native_process().await
+            }
+            PlatformType::Web => {
+                // WebSocket bridge to server
+                self.connect_websocket_bridge().await
+            }
+            PlatformType::Terminal => {
+                // Background service management
+                self.start_background_service().await
+            }
+        }
+    }
+}
 ```
+
+#### **Platform-Specific Features**
+
+**Desktop:**
+- Native process management with `tokio::process::Command`
+- System tray integration for quick status access
+- Native file dialogs for program selection
+- Auto-start with system boot option
+
+**Web:**
+- WebSocket-based communication with SurfPool server
+- Real-time status updates via Server-Sent Events
+- Drag-and-drop program deployment
+- Browser notifications for validator events
+
+**Terminal:**
+- Background process management with `daemonize`
+- ASCII status dashboard with live updates
+- Keyboard shortcuts for all operations
+- Log streaming with color coding
 
 ### 🌐 **Network Environment Control**
 
-Surfpool provides sophisticated network management capabilities that enable developers to create and switch between different development environments seamlessly.
+SurfPool provides sophisticated network management with platform-optimized interfaces for creating and switching between development environments.
 
-#### **Environment Types:**
+#### **Environment Types**
 
 **1. Local Devnet**
-- Fresh validator instance with default genesis
-- Pre-funded accounts for testing
-- Built-in program library (System, Token, etc.)
-- Ideal for new program development
+```yaml
+# Environment configuration
+local_devnet:
+  type: "local"
+  rpc_port: 8899
+  ws_port: 8900
+  ledger_path: "~/.surfdesk/ledgers/devnet"
+  accounts_path: "~/.surfdesk/accounts/devnet"
+  preset_accounts:
+    - pubkey: "11111111111111111111111111111111"
+      lamports: 1000000000000
+    - pubkey: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      lamports: 1000000000000
+```
 
 **2. Mainnet Fork**
-- Real-time fork of mainnet state
-- Access to live programs and accounts
-- Historical data preservation
-- Perfect for testing against production conditions
+```yaml
+mainnet_fork:
+  type: "fork"
+  fork_url: "https://api.mainnet-beta.solana.com"
+  fork_slot: 123456789
+  rpc_port: 8899
+  ws_port: 8900
+  ledger_path: "~/.surfdesk/ledgers/mainnet-fork"
+  accounts_path: "~/.surfdesk/accounts/mainnet-fork"
+  warp_slot: 123456800
+```
 
-**3. Custom Networks**
-- User-defined genesis configurations
-- Custom program deployments
-- Specific validator settings
-- Tailored for specialized testing scenarios
+**3. Custom Environment**
+```yaml
+custom_env:
+  type: "custom"
+  genesis_config: "./custom-genesis.json"
+  rpc_port: 8899
+  ws_port: 8900
+  bpf_programs:
+    - "Program111111111111111111111111111111111111:./target/deploy/program.so"
+    - "Program222222222222222222222222222222222222:./target/deploy/program2.so"
+```
 
-**4. Time-Controlled Environments**
-- Slot manipulation capabilities
-- State snapshot management
-- Historical state exploration
-- Essential for debugging time-sensitive issues
+#### **Multi-Platform Environment Switching**
 
-### ⚡ **Program Deployment & Management**
-
-Surfpool streamlines the program development lifecycle with automated deployment and management features.
-
-#### **Deployment Features:**
-- **Build Integration**: Automatically builds Rust programs using Cargo
-- **Account Management**: Creates and manages program accounts
-- **Upgrade Support**: Handles program upgrades with proper authority
-- **ID Generation**: Generates deterministic program IDs
-- **Deployment History**: Tracks all deployment versions and changes
-
-#### **Program Operations:**
+**Desktop UI:**
 ```rust
-// Deploy new program
-let program_id = surfpool.deploy_program("target/deploy/my_program.so")?;
-
-// Upgrade existing program
-surfpool.upgrade_program(program_id, "target/deploy/my_program_v2.so")?;
-
-// Close program
-surfpool.close_program(program_id)?;
-```
-
-### 🔄 **State Management & Snapshots**
-
-Surfpool provides comprehensive state management capabilities that enable developers to capture, restore, and manipulate blockchain state.
-
-#### **State Features:**
-- **Account Snapshots**: Capture complete account state at any point
-- **Program State**: Save and restore program-specific data
-- **Slot Snapshots**: Create state snapshots at specific slots
-- **Selective Restore**: Restore specific accounts or programs
-- **State Diffing**: Compare state changes between snapshots
-
-#### **Snapshot Operations:**
-```bash
-# Create account snapshot
-surfpool snapshot create --accounts <ACCOUNT_LIST> --name "pre_upgrade"
-
-# Restore from snapshot
-surfpool snapshot restore --name "pre_upgrade"
-
-# List available snapshots
-surfpool snapshot list
-```
-
-### ⏰ **Time Control & Slot Manipulation**
-
-Surfpool's time control features give developers unprecedented ability to manipulate blockchain time for testing and debugging.
-
-#### **Time Features:**
-- **Slot Warping**: Jump to specific slots for testing
-- **Time Acceleration**: Speed up block production
-- **Slot Rewinding**: Go back to previous slots
-- **Block Height Control**: Manipulate block production
-- **Timestamp Manipulation**: Control block timestamps
-
-#### **Time Operations:**
-```bash
-# Warp to specific slot
-surfpool time warp-slot 123456789
-
-# Advance slots
-surfpool time advance-slots 100
-
-# Rewind slots
-surfpool time rewind-slots 50
-
-# Set slot speed
-surfpool time set-speed 2x
-```
-
-### 💾 **Account & Data Management**
-
-Surfpool provides comprehensive account management tools that make it easy to work with Solana accounts and data.
-
-#### **Account Features:**
-- **Account Creation**: Create various account types (system, token, custom)
-- **Balance Management**: Fund accounts with SOL for testing
-- **Data Manipulation**: Directly modify account data
-- **Account Cloning**: Copy account data between environments
-- **Rent Management**: Handle rent payments and exemptions
-
-#### **Account Operations:**
-```rust
-// Create system account
-let account = surfpool.create_account(SystemProgram, &account_key)?;
-
-// Fund account
-surfpool.fund_account(&account, 10_000_000_000)?; // 10 SOL
-
-// Modify account data
-surfpool.modify_account_data(&account, new_data)?;
-```
-
-### 🔌 **RPC & API Integration**
-
-Surfpool provides local RPC endpoints that are fully compatible with Solana's JSON-RPC API, enabling seamless integration with existing tools and frameworks.
-
-#### **RPC Features:**
-- **Full RPC Compatibility**: Supports all standard Solana RPC methods
-- **Custom Endpoints**: Additional debugging and management endpoints
-- **WebSocket Support**: Real-time account and transaction updates
-- **Rate Limiting**: Configurable rate limits for testing
-- **Request Logging**: Complete request/response logging
-
-#### **Available RPC Methods:**
-- `getAccountInfo`
-- `getProgramAccounts`
-- `sendTransaction`
-- `simulateTransaction`
-- `getLatestBlockhash`
-- `getSlot`
-- And all standard Solana RPC methods
-
-### 🛠️ **Development Tools Integration**
-
-Surfpool integrates seamlessly with popular Solana development tools and frameworks.
-
-#### **Tool Integrations:**
-- **Anchor Framework**: Automatic Anchor workspace detection and management
-- **Solana CLI**: Direct integration with `solana-cli` commands
-- **TypeScript SDK**: Native support for `@solana/web3.js`
-- **Rust SDK**: Integration with `solana-sdk-rust`
-- **IDE Plugins**: VS Code and other IDE plugin support
-
-#### **IDE Features:**
-- **Syntax Highlighting**: Solana-specific syntax highlighting
-- **Code Completion**: Auto-completion for Solana APIs
-- **Error Detection**: Real-time error checking and suggestions
-- **Debug Integration**: Direct debugging from IDE
-- **Testing Support**: Built-in test runner integration
-
-## Architecture Overview
-
-### **Core Components**
-
-#### **1. Validator Controller**
-```rust
-pub struct ValidatorController {
-    validator_process: Child,
-    config: ValidatorConfig,
-    health_monitor: HealthMonitor,
-    rpc_server: RpcServer,
+#[component]
+fn EnvironmentSelector() -> Element {
+    let environments = use_signal(|| vec![]);
+    let active_env = use_signal(|| None);
+    
+    rsx! {
+        div { class: "environment-selector",
+            select {
+                class: "native-select",
+                value: "{active_env.read().as_ref().map(|e| &e.name).unwrap_or(&"".to_string())}",
+                onchange: move |e| {
+                    let env_id = e.value();
+                    spawn(async move {
+                        surfdesk_core::switch_environment(&env_id).await.unwrap();
+                    });
+                },
+                for env in environments.read().iter() {
+                    option { 
+                        value: "{env.id}",
+                        "{env.name} ({env.type_})"
+                    }
+                }
+            }
+            
+            button {
+                class: "native-button",
+                onclick: move |_| {
+                    spawn(async move {
+                        surfdesk_core::create_environment_dialog().await.unwrap();
+                    });
+                },
+                "New Environment"
+            }
+        }
+    }
 }
 ```
 
-#### **2. Environment Manager**
+**Web Interface:**
 ```rust
-pub struct EnvironmentManager {
-    environments: HashMap<String, Environment>,
-    active_environment: Option<String>,
-    state_manager: StateManager,
+#[component]
+fn WebEnvironmentSelector() -> Element {
+    rsx! {
+        div { class: "web-environment-selector",
+            div { class: "environment-cards",
+                for env in environments.read().iter() {
+                    div {
+                        class: format!("env-card {} {}", 
+                            if active_env.read().as_ref().map(|e| e.id) == Some(env.id) { "active" } else { "" },
+                            env.type_
+                        ),
+                        onclick: move |_| spawn(async move {
+                            surfdesk_web::switch_environment(&env.id).await.unwrap();
+                        }),
+                        
+                        h3 { "{env.name}" }
+                        p { "Type: {env.type_}" }
+                        div { class: "env-status",
+                            span { class: "status-dot {env.status}" }
+                            "{env.status}"
+                        }
+                    }
+                }
+            }
+            
+            button {
+                class: "floating-action-button",
+                onclick: move |_| spawn(async move {
+                    surfdesk_web::show_create_environment_modal().await.unwrap();
+                }),
+                "+"
+            }
+        }
+    }
 }
 ```
 
-#### **3. Account Manager**
+**Terminal Interface:**
 ```rust
-pub struct AccountManager {
-    accounts: HashMap<Pubkey, Account>,
-    rent_collector: RentCollector,
-    balance_manager: BalanceManager,
+// surfdesk-tui/src/components/environment.rs
+pub struct EnvironmentPanel {
+    environments: Vec<Environment>,
+    selected_index: usize,
+}
+
+impl EnvironmentPanel {
+    pub fn render(&self, frame: &mut Frame) {
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3),
+                Constraint::Min(0),
+                Constraint::Length(3),
+            ])
+            .split(frame.size());
+        
+        // Header
+        let header = Paragraph::new("Environments")
+            .style(Style::default().fg(Color::Cyan))
+            .block(Block::default().borders(Borders::ALL));
+        frame.render_widget(header, chunks[0]);
+        
+        // Environment list
+        let items: Vec<ListItem> = self.environments
+            .iter()
+            .enumerate()
+            .map(|(i, env)| {
+                let style = if i == self.selected_index {
+                    Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default()
+                };
+                
+                ListItem::new(format!(
+                    "{} {} [{}]",
+                    if i == self.selected_index { "▶" } else { " " },
+                    env.name,
+                    env.type_
+                )).style(style)
+            })
+            .collect();
+        
+        let list = List::new(items)
+            .block(Block::default().borders(Borders::ALL).title("Select Environment"));
+        frame.render_widget(list, chunks[1]);
+        
+        // Footer with controls
+        let footer = Paragraph::new("↑↓: Select | Enter: Switch | n: New | d: Delete")
+            .style(Style::default().fg(Color::Gray));
+        frame.render_widget(footer, chunks[2]);
+    }
 }
 ```
 
-#### **4. Time Controller**
+### ⏰ **Time Control & State Management**
+
+SurfPool provides sophisticated time manipulation capabilities across all platforms, enabling developers to test time-sensitive scenarios and debug temporal issues.
+
+#### **Cross-Platform Time Control Interface**
+
+**Desktop Time Control:**
 ```rust
-pub struct TimeController {
+#[component]
+fn TimeControlPanel() -> Element {
+    let current_slot = use_signal(|| 0u64);
+    let target_slot = use_signal(|| 0u64);
+    let is_warping = use_signal(|| false);
+    
+    rsx! {
+        div { class: "time-control-panel",
+            div { class: "current-state",
+                h3 { "Current Slot" }
+                span { class: "slot-display", "{current_slot}" }
+            }
+            
+            div { class: "warp-controls",
+                input {
+                    r#type: "number",
+                    class: "slot-input",
+                    value: "{target_slot}",
+                    oninput: move |e| target_slot.set(e.value().parse().unwrap_or(0))
+                }
+                
+                button {
+                    class: "warp-button",
+                    disabled: is_warping(),
+                    onclick: move |_| {
+                        is_warping.set(true);
+                        let target = *target_slot.read();
+                        spawn(async move {
+                            if let Ok(_) = surfdesk_core::warp_to_slot(target).await {
+                                current_slot.set(target);
+                            }
+                            is_warping.set(false);
+                        });
+                    },
+                    if is_warping() { "Warping..." } else { "Warp to Slot" }
+                }
+            }
+            
+            div { class: "quick-actions",
+                button { 
+                    onclick: move |_| spawn(async move {
+                        if let Ok(new_slot) = surfdesk_core::advance_slots(10).await {
+                            current_slot.set(new_slot);
+                        }
+                    }),
+                    "+10 Slots" 
+                }
+                button { 
+                    onclick: move |_| spawn(async move {
+                        if let Ok(new_slot) = surfdesk_core::advance_slots(100).await {
+                            current_slot.set(new_slot);
+                        }
+                    }),
+                    "+100 Slots" 
+                }
+                button { 
+                    onclick: move |_| spawn(async move {
+                        if let Ok(snapshot_id) = surfdesk_core::create_snapshot().await {
+                            // Show success notification
+                        }
+                    }),
+                    "Create Snapshot" 
+                }
+            }
+        }
+    }
+}
+```
+
+**Terminal Time Control:**
+```rust
+pub struct TimeControlPanel {
     current_slot: u64,
-    slot_history: Vec<SlotInfo>,
-    time_speed: f64,
-    warp_history: Vec<WarpOperation>,
+    input_buffer: String,
+    input_mode: bool,
+}
+
+impl TimeControlPanel {
+    pub fn handle_input(&mut self, key: Key) -> TimeControlAction {
+        match key {
+            Key::Char('w') if !self.input_mode => {
+                self.input_mode = true;
+                self.input_buffer.clear();
+                TimeControlAction::EnterWarpMode
+            }
+            Key::Char(c) if self.input_mode => {
+                self.input_buffer.push(c);
+                TimeControlAction::UpdateInput(self.input_buffer.clone())
+            }
+            Key::Enter if self.input_mode => {
+                if let Ok(target_slot) = self.input_buffer.parse::<u64>() {
+                    self.input_mode = false;
+                    TimeControlAction::WarpToSlot(target_slot)
+                } else {
+                    TimeControlAction::InvalidInput
+                }
+            }
+            Key::Esc => {
+                self.input_mode = false;
+                self.input_buffer.clear();
+                TimeControlAction::CancelInput
+            }
+            Key::Char('+') => TimeControlAction::AdvanceSlots(10),
+            Key::Char('=') => TimeControlAction::AdvanceSlots(100),
+            Key::Char('s') => TimeControlAction::CreateSnapshot,
+            _ => TimeControlAction::None,
+        }
+    }
 }
 ```
 
-### **Data Flow**
+### 📊 **Monitoring & Observability**
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   SurfDesk UI   │◄──►│   Surfpool Core   │◄──►│  Test Validator │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-          │                      │                      │
-          ▼                      ▼                      ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│  Configuration │    │  State Management │    │  RPC Server    │
-│   Management   │    │     System        │    │                │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-          │                      │                      │
-          ▼                      ▼                      ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Database      │    │   File System     │    │  Network Stack  │
-│   (SQLite)      │    │   (Snapshots)     │    │  (TCP/UDP)      │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
+SurfPool provides comprehensive monitoring capabilities with platform-optimized interfaces for tracking validator performance, network status, and resource usage.
 
-## Configuration
+#### **Cross-Platform Metrics Collection**
 
-### **Validator Configuration**
-
-```toml
-[validator]
-# Basic settings
-rpc_port = 8899
-ws_port = 8900
-gossip_port = 8001
-tpu_port = 8002
-
-# Performance settings
-threads = 4
-ram = 4096
-ledger_path = "./ledger"
-
-# Genesis settings
-genesis_hash = "default"
-account_paths = ["./accounts"]
-bpf_programs = ["./programs"]
-
-# Fork settings (optional)
-fork_url = "https://api.mainnet-beta.solana.com"
-fork_slot = 123456789
-
-# Time control settings
-enable_time_control = true
-default_time_speed = 1.0
-auto_warp_interval = 100
-```
-
-### **Environment Configuration**
-
-```toml
-[environments.local]
-type = "devnet"
-validator_port = 8899
-genesis = "default"
-accounts = [
-    { key = "11111111111111111111111111111111", balance = 1000000000 },
-    { key = "22222222222222222222222222222222", balance = 500000000 }
-]
-
-[environments.mainnet_fork]
-type = "fork"
-url = "https://api.mainnet-beta.solana.com"
-slot = 123456789
-validator_port = 8898
-accounts = "forked"
-
-[environments.custom]
-type = "custom"
-genesis_file = "./custom_genesis.json"
-validator_port = 8897
-accounts = "./custom_accounts.json"
-```
-
-## Usage Examples
-
-### **Basic Development Workflow**
-
+**Desktop Monitoring:**
 ```rust
-use surfpool::{Surfpool, EnvironmentType};
+#[component]
+fn MonitoringDashboard() -> Element {
+    let metrics = use_signal(|| MonitoringMetrics::default());
+    
+    // Start metrics collection
+    use_effect(move || {
+        spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            loop {
+                interval.tick().await;
+                if let Ok(new_metrics) = surfdesk_core::collect_metrics().await {
+                    metrics.set(new_metrics);
+                }
+            }
+        });
+    });
+    
+    rsx! {
+        div { class: "monitoring-dashboard",
+            div { class: "metrics-grid",
+                MetricCard {
+                    title: "RPC Requests/sec",
+                    value: "{metrics.read().rpc_requests_per_sec}",
+                    trend: metrics.read().rpc_trend
+                }
+                
+                MetricCard {
+                    title: "Memory Usage",
+                    value: "{metrics.read().memory_usage_mb} MB",
+                    trend: metrics.read().memory_trend
+                }
+                
+                MetricCard {
+                    title: "CPU Usage",
+                    value: "{metrics.read().cpu_usage_percent}%",
+                    trend: metrics.read().cpu_trend
+                }
+                
+                MetricCard {
+                    title: "Active Connections",
+                    value: "{metrics.read().active_connections}",
+                    trend: metrics.read().connection_trend
+                }
+            }
+            
+            div { class: "charts-section",
+                LineChart {
+                    data: metrics.read().historical_data.clone(),
+                    title: "Validator Performance"
+                }
+            }
+        }
+    }
+}
+```
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize Surfpool
-    let mut surfpool = Surfpool::new().await?;
-    
-    // Create local devnet environment
-    let env_id = surfpool.create_environment(EnvironmentType::LocalDevnet).await?;
-    
-    // Deploy a program
-    let program_id = surfpool.deploy_program("./target/deploy/my_program.so").await?;
-    
-    // Create test accounts
-    let test_accounts = surfpool.create_test_accounts(10).await?;
-    
-    // Run tests
-    surfpool.run_tests("./tests/").await?;
-    
-    // Create snapshot
-    let snapshot_id = surfpool.create_snapshot("pre-upgrade").await?;
-    
-    // Upgrade program
-    surfpool.upgrade_program(program_id, "./target/deploy/my_program_v2.so").await?;
-    
-    // Run tests again
-    surfpool.run_tests("./tests/").await?;
-    
-    // Restore snapshot if needed
-    if !surfpool.tests_passed() {
-        surfpool.restore_snapshot(snapshot_id).await?;
+**Terminal Monitoring:**
+```rust
+pub struct MonitoringWidget {
+    metrics: MonitoringMetrics,
+    chart_data: VecDeque<f64>,
+    max_points: usize,
+}
+
+impl MonitoringWidget {
+    pub fn update(&mut self, metrics: MonitoringMetrics) {
+        self.metrics = metrics;
+        self.chart_data.push_back(self.metrics.cpu_usage_percent as f64);
+        if self.chart_data.len() > self.max_points {
+            self.chart_data.pop_front();
+        }
     }
     
-    Ok(())
+    pub fn render(&self, frame: &mut Frame, area: Rect) {
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(8),
+                Constraint::Min(0),
+            ])
+            .split(area);
+        
+        // Metrics table
+        let metrics_data = vec![
+            Row::new(vec!["RPC/sec", &self.metrics.rpc_requests_per_sec.to_string()]),
+            Row::new(vec!["Memory", &format!("{} MB", self.metrics.memory_usage_mb)]),
+            Row::new(vec!["CPU", &format!("{}%", self.metrics.cpu_usage_percent)]),
+            Row::new(vec!["Connections", &self.metrics.active_connections.to_string()]),
+        ];
+        
+        let table = Table::new(metrics_data, [Constraint::Min(10), Constraint::Min(10)])
+            .block(Block::default().borders(Borders::ALL).title("System Metrics"));
+        frame.render_widget(table, chunks[0]);
+        
+        // Sparkline chart
+        let sparkline = Sparkline::default()
+            .block(Block::default().borders(Borders::ALL).title("CPU Usage"))
+            .data(&self.chart_data)
+            .style(Style::default().fg(Color::Yellow))
+            .max(100.0);
+        frame.render_widget(sparkline, chunks[1]);
+    }
 }
 ```
 
-### **Advanced Time Control**
+## Platform-Specific Integration
 
+### 🖥️ **Desktop Platform Features**
+
+#### **Native System Integration**
 ```rust
-use surfpool::time::{TimeController, WarpOperation};
-
-async fn test_time_sensitive_scenarios() -> Result<(), Box<dyn std::error::Error>> {
-    let mut surfpool = Surfpool::new().await?;
-    let time_controller = surfpool.get_time_controller();
-    
-    // Warp to specific slot
-    time_controller.warp_to_slot(123456789).await?;
-    
-    // Test program behavior at this slot
-    let results = surfpool.run_time_sensitive_tests().await?;
-    
-    // Rewind and test again
-    time_controller.rewind_slots(100).await?;
-    let results2 = surfpool.run_time_sensitive_tests().await?;
-    
-    // Compare results
-    let comparison = compare_test_results(results, results2)?;
-    
-    Ok(())
+// surfdesk-desktop/src/integrations/system.rs
+pub struct SystemIntegration {
+    tray_icon: Option<TrayIcon>,
+    notification_manager: NotificationManager,
+    file_watcher: RecommendedWatcher,
 }
-```
 
-### **Fork Testing**
-
-```rust
-async fn test_against_mainnet() -> Result<(), Box<dyn std::error::Error>> {
-    let mut surfpool = Surfpool::new().await?;
-    
-    // Create mainnet fork
-    let env_id = surfpool.create_environment(EnvironmentType::MainnetFork {
-        url: "https://api.mainnet-beta.solana.com",
-        slot: 123456789,
-    }).await?;
-    
-    // Get live account data
-    let account = surfpool.get_account("SerumV2Pool1111111111111111111111111111111").await?;
-    
-    // Test against live data
-    let results = surfpool.test_with_live_data(account).await?;
-    
-    // Create snapshot for repeated testing
-    let snapshot_id = surfpool.create_snapshot("mainnet_state").await?;
-    
-    // Run tests multiple times with same state
-    for i in 0..10 {
-        surfpool.restore_snapshot(snapshot_id).await?;
-        let test_results = surfpool.run_tests("./tests/").await?;
-        println!("Test run {} results: {:?}", i, test_results);
+impl SystemIntegration {
+    pub fn setup_system_tray(&mut self) -> Result<(), SystemError> {
+        let menu = SystemTrayMenu::new()
+            .add_item(NativeMenuItem::new("Show SurfDesk", true, None))
+            .add_item(NativeMenuItem::new("Start Validator", true, None))
+            .add_item(NativeMenuItem::new("Stop Validator", true, None))
+            .add_native_item(SystemTrayMenuItem::Separator)
+            .add_item(NativeMenuItem::new("Quit", true, None));
+        
+        self.tray_icon = Some(SystemTray::new("surfdesk-icon", menu)?);
+        Ok(())
     }
     
-    Ok(())
+    pub fn show_notification(&self, title: &str, body: &str) -> Result<(), SystemError> {
+        self.notification_manager.show(title, body)
+    }
+    
+    pub fn watch_program_directory(&mut self, path: &Path) -> Result<(), SystemError> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let mut watcher = notify::recommended_watcher(tx)?;
+        watcher.watch(path, RecursiveMode::Recursive)?;
+        
+        // Handle file system events
+        std::thread::spawn(move || {
+            for event in rx {
+                match event {
+                    Ok(Event { kind: EventKind::Create(_), .. }) => {
+                        // Trigger rebuild
+                    }
+                    Ok(Event { kind: EventKind::Modify(_), .. }) => {
+                        // Trigger hot reload
+                    }
+                    _ => {}
+                }
+            }
+        });
+        
+        self.file_watcher = watcher;
+        Ok(())
+    }
 }
 ```
 
-## Integration with SurfDesk
+#### **Multi-Window Support**
+```rust
+#[component]
+fn MultiWindowManager() -> Element {
+    let windows = use_signal(|| Vec::new());
+    let active_window = use_signal(|| None);
+    
+    rsx! {
+        div { class: "window-manager",
+            for window in windows.read().iter() {
+                Window {
+                    title: "{window.title}",
+                    visible: window.visible,
+                    on_close: move |_| {
+                        windows.retain(|w| w.id != window.id);
+                    },
+                    div { class: "window-content",
+                        {window.content.clone()}
+                    }
+                }
+            }
+            
+            button {
+                onclick: move |_| {
+                    let new_window = WindowConfig {
+                        title: "Account Inspector".to_string(),
+                        content: rsx! { AccountInspector {} },
+                        visible: true,
+                    };
+                    windows.push(new_window);
+                },
+                "New Window"
+            }
+        }
+    }
+}
+```
 
-### **Tauri Integration**
+### 🌐 **Web Platform Features**
 
-Surfpool integrates with SurfDesk's Tauri frontend through a comprehensive Rust API:
+#### **WebSocket Bridge**
+```rust
+// surfdesk-web/src/bridge/websocket.rs
+pub struct WebSocketBridge {
+    socket: WebSocket,
+    message_handlers: HashMap<String, Box<dyn MessageHandler>>,
+}
+
+impl WebSocketBridge {
+    pub async fn connect(url: &str) -> Result<Self, WebSocketError> {
+        let socket = WebSocket::new(url)?;
+        
+        Ok(Self {
+            socket,
+            message_handlers: HashMap::new(),
+        })
+    }
+    
+    pub async fn send_command(&mut self, command: SurfPoolCommand) -> Result<(), WebSocketError> {
+        let message = serde_json::to_string(&command)?;
+        self.socket.send(Message::Text(message)).await?;
+        Ok(())
+    }
+    
+    pub async fn start_message_loop(&mut self) {
+        while let Some(msg) = self.socket.next().await {
+            match msg {
+                Ok(Message::Text(text)) => {
+                    if let Ok(event) = serde_json::from_str::<SurfPoolEvent>(&text) {
+                        self.handle_event(event).await;
+                    }
+                }
+                Ok(Message::Binary(data)) => {
+                    // Handle binary data (logs, large responses)
+                }
+                Err(e) => {
+                    log::error!("WebSocket error: {}", e);
+                }
+            }
+        }
+    }
+    
+    async fn handle_event(&mut self, event: SurfPoolEvent) {
+        match event {
+            SurfPoolEvent::ValidatorStatusChanged(status) => {
+                // Update UI state
+            }
+            SurfPoolEvent::LogEntry(log_entry) => {
+                // Append to log viewer
+            }
+            SurfPoolEvent::MetricsUpdate(metrics) => {
+                // Update monitoring dashboard
+            }
+        }
+    }
+}
+```
+
+#### **Progressive Web App Features**
+```rust
+// surfdesk-web/src/pwa/service_worker.js
+const CACHE_NAME = 'surfdesk-v1.0.0';
+const urlsToCache = [
+  '/',
+  '/static/css/main.css',
+  '/static/js/main.js',
+  '/static/icons/icon-192x192.png',
+  '/static/icons/icon-512x512.png'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+  );
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // Cache hit - return response
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
+      }
+    )
+  );
+});
+```
+
+### 💻 **Terminal Platform Features**
+
+#### **Rich Terminal UI**
+```rust
+// surfdesk-tui/src/app.rs
+pub struct SurfDeskTui {
+    panels: Vec<Box<dyn Panel>>,
+    active_panel: usize,
+    mode: AppMode,
+    theme: Theme,
+}
+
+impl SurfDeskTui {
+    pub fn new() -> Self {
+        Self {
+            panels: vec![
+                Box::new(EnvironmentPanel::new()),
+                Box::new(AccountPanel::new()),
+                Box::new(TransactionPanel::new()),
+                Box::new(LogPanel::new()),
+                Box::new(MonitoringPanel::new()),
+            ],
+            active_panel: 0,
+            mode: AppMode::Normal,
+            theme: Theme::Dark,
+        }
+    }
+    
+    pub fn run(&mut self) -> Result<(), TuiError> {
+        enable_raw_mode()?;
+        let mut stdout = io::stdout();
+        execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+        let backend = CrosstermBackend::new(stdout);
+        let mut terminal = Terminal::new(backend)?;
+        
+        let events = Events::new();
+        
+        loop {
+            terminal.draw(|f| self.render(f))?;
+            
+            match events.next()? {
+                Event::Input(key) => {
+                    if let Some(action) = self.handle_key(key) {
+                        match action {
+                            AppAction::Quit => break,
+                            AppAction::SwitchPanel(panel) => {
+                                self.active_panel = panel;
+                            }
+                            AppAction::ToggleMode => {
+                                self.mode = match self.mode {
+                                    AppMode::Normal => AppMode::Command,
+                                    AppMode::Command => AppMode::Normal,
+                                };
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                Event::Tick => {
+                    // Update panels with fresh data
+                    for panel in &mut self.panels {
+                        panel.update();
+                    }
+                }
+            }
+        }
+        
+        restore_terminal()?;
+        Ok(())
+    }
+}
+```
+
+#### **Keyboard-First Interface**
+```rust
+pub struct KeyBindings {
+    bindings: HashMap<Key, Action>,
+}
+
+impl KeyBindings {
+    pub fn default() -> Self {
+        let mut bindings = HashMap::new();
+        
+        // Global bindings
+        bindings.insert(Key::Ctrl('c'), Action::Quit);
+        bindings.insert(Key::Ctrl('q'), Action::Quit);
+        bindings.insert(Key::F1, Action::ShowHelp);
+        bindings.insert(Key::Tab, Action::NextPanel);
+        bindings.insert(Key::BackTab, Action::PrevPanel);
+        
+        // Panel-specific bindings
+        bindings.insert(Key::Char('1'), Action::SwitchPanel(0));
+        bindings.insert(Key::Char('2'), Action::SwitchPanel(1));
+        bindings.insert(Key::Char('3'), Action::SwitchPanel(2));
+        bindings.insert(Key::Char('4'), Action::SwitchPanel(3));
+        bindings.insert(Key::Char('5'), Action::SwitchPanel(4));
+        
+        // Environment panel
+        bindings.insert(Key::Char('n'), Action::NewEnvironment);
+        bindings.insert(Key::Char('d'), Action::DeleteEnvironment);
+        bindings.insert(Key::Enter, Action::SelectEnvironment);
+        
+        // Time control
+        bindings.insert(Key::Char('w'), Action::EnterWarpMode);
+        bindings.insert(Key::Char('+'), Action::AdvanceSlots(10));
+        bindings.insert(Key::Char('='), Action::AdvanceSlots(100));
+        bindings.insert(Key::Char('s'), Action::CreateSnapshot);
+        
+        Self { bindings }
+    }
+}
+```
+
+## Configuration & Customization
+
+### 📝 **Cross-Platform Configuration**
+
+SurfPool uses a unified configuration system that adapts to each platform's capabilities and constraints.
+
+#### **Configuration Structure**
+```yaml
+# ~/.surfdesk/config.yaml
+surfpool:
+  default_environment: "local-devnet"
+  auto_start: false
+  resource_limits:
+    max_memory_mb: 2048
+    max_cpu_percent: 80
+    max_disk_gb: 10
+  
+  environments:
+    local-devnet:
+      type: "local"
+      rpc_port: 8899
+      ws_port: 8900
+      preset_accounts:
+        - pubkey: "11111111111111111111111111111111"
+          lamports: 1000000000000
+    
+    mainnet-fork:
+      type: "fork"
+      fork_url: "https://api.mainnet-beta.solana.com"
+      rpc_port: 8899
+      ws_port: 8900
+      
+  platform_specific:
+    desktop:
+      system_tray: true
+      auto_start: false
+      native_notifications: true
+      file_watcher: true
+      
+    web:
+      websocket_bridge: "ws://localhost:8800"
+      cloud_sync: true
+      offline_mode: true
+      
+    terminal:
+      color_scheme: "dark"
+      refresh_rate_ms: 1000
+      max_log_lines: 1000
+      keyboard_layout: "us"
+```
+
+#### **Platform-Specific Overrides**
+```rust
+// surfdesk-core/src/config/platform.rs
+pub trait PlatformConfig {
+    fn apply_overrides(&self, config: &mut SurfPoolConfig);
+    fn get_default_paths(&self) -> PlatformPaths;
+    fn validate_config(&self, config: &SurfPoolConfig) -> Result<(), ConfigError>;
+}
+
+pub struct DesktopConfig;
+impl PlatformConfig for DesktopConfig {
+    fn apply_overrides(&self, config: &mut SurfPoolConfig) {
+        config.system_tray = true;
+        config.native_notifications = true;
+        config.file_watcher = true;
+    }
+    
+    fn get_default_paths(&self) -> PlatformPaths {
+        PlatformPaths {
+            config_dir: dirs::config_dir().unwrap().join("surfdesk"),
+            data_dir: dirs::data_dir().unwrap().join("surfdesk"),
+            cache_dir: dirs::cache_dir().unwrap().join("surfdesk"),
+        }
+    }
+}
+
+pub struct WebConfig;
+impl PlatformConfig for WebConfig {
+    fn apply_overrides(&self, config: &mut SurfPoolConfig) {
+        config.websocket_bridge = Some("ws://localhost:8800".to_string());
+        config.cloud_sync = true;
+        config.offline_mode = true;
+    }
+    
+    fn get_default_paths(&self) -> PlatformPaths {
+        PlatformPaths {
+            config_dir: PathBuf::from("/config"),
+            data_dir: PathBuf::from("/data"),
+            cache_dir: PathBuf::from("/cache"),
+        }
+    }
+}
+```
+
+## Performance & Optimization
+
+### ⚡ **Cross-Platform Performance**
+
+SurfPool is optimized for performance across all platforms, with specific optimizations for each platform's constraints and capabilities.
+
+#### **Desktop Optimizations**
+- **Native Process Management**: Efficient process spawning and monitoring
+- **Memory Pooling**: Reuse memory allocations for frequent operations
+- **Background Processing**: Non-blocking operations with thread pools
+- **Resource Monitoring**: Real-time resource usage tracking
+
+#### **Web Optimizations**
+- **WebAssembly Compilation**: Optimized WASM build with size optimization
+- **Lazy Loading**: Load features on demand to reduce initial bundle size
+- **Service Worker Caching**: Cache frequently used resources
+- **WebSocket Optimization**: Efficient binary message protocol
+
+#### **Terminal Optimizations**
+- **Minimal Rendering**: Only update changed screen regions
+- **Efficient Data Structures**: Use ring buffers for log storage
+- **Low Memory Footprint**: Minimal memory usage for server environments
+- **Fast Keyboard Processing**: Immediate keyboard response
 
 ```rust
-#[tauri::command]
-async fn create_environment(environment_type: String) -> Result<String, String> {
-    let surfpool = get_surfpool_instance().await?;
-    let env_type = parse_environment_type(&environment_type)?;
-    let env_id = surfpool.create_environment(env_type).await
-        .map_err(|e| e.to_string())?;
-    Ok(env_id)
+// surfdesk-core/src/performance/optimizer.rs
+pub struct PerformanceOptimizer {
+    platform: PlatformType,
+    metrics: PerformanceMetrics,
+    optimizations: Vec<Box<dyn Optimization>>,
 }
 
-#[tauri::command]
-async fn deploy_program(program_path: String) -> Result<String, String> {
-    let surfpool = get_surfpool_instance().await?;
-    let program_id = surfpool.deploy_program(&program_path).await
-        .map_err(|e| e.to_string())?;
-    Ok(program_id.to_string())
+impl PerformanceOptimizer {
+    pub fn new(platform: PlatformType) -> Self {
+        let mut optimizations: Vec<Box<dyn Optimization>> = vec![];
+        
+        match platform {
+            PlatformType::Desktop => {
+                optimizations.push(Box::new(MemoryPoolOptimizer::new()));
+                optimizations.push(Box::new(ThreadPoolOptimizer::new()));
+                optimizations.push(Box::new(CacheOptimizer::new()));
+            }
+            PlatformType::Web => {
+                optimizations.push(Box::new(WasmOptimizer::new()));
+                optimizations.push(Box::new(LazyLoadOptimizer::new()));
+                optimizations.push(Box::new(ServiceWorkerOptimizer::new()));
+            }
+            PlatformType::Terminal => {
+                optimizations.push(Box::new(MemoryOptimizer::new()));
+                optimizations.push(Box::new(RenderingOptimizer::new()));
+                optimizations.push(Box::new(KeyboardOptimizer::new()));
+            }
+        }
+        
+        Self {
+            platform,
+            metrics: PerformanceMetrics::default(),
+            optimizations,
+        }
+    }
+    
+    pub fn apply_optimizations(&mut self) {
+        for optimization in &mut self.optimizations {
+            optimization.apply(&self.metrics);
+        }
+    }
+    
+    pub fn measure_performance(&mut self) {
+        self.metrics.update();
+        
+        // Apply optimizations if performance degrades
+        if self.metrics.cpu_usage > 80.0 || self.metrics.memory_usage > 1024 * 1024 * 1024 {
+            self.apply_optimizations();
+        }
+    }
 }
-
-#[tauri::command]
-async fn get_validator_status() -> Result<ValidatorStatus, String> {
-    let surfpool = get_surfpool_instance().await?;
-    let status = surfpool.get_validator_status().await
-        .map_err(|e| e.to_string())?;
-    Ok(status)
-}
 ```
 
-### **Database Integration**
+## Integration with External Tools
 
-Surfpool stores all environment and state data in SurfDesk's SQLite database:
+### 🔗 **Plugin System**
 
-```sql
--- Environments table
-CREATE TABLE environments (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL,
-    config JSON NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+SurfPool provides a plugin system that allows developers to extend functionality across all platforms.
 
--- Deployments table
-CREATE TABLE deployments (
-    id TEXT PRIMARY KEY,
-    environment_id TEXT NOT NULL,
-    program_id TEXT NOT NULL,
-    program_path TEXT NOT NULL,
-    deployment_slot INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (environment_id) REFERENCES environments(id)
-);
-
--- Snapshots table
-CREATE TABLE snapshots (
-    id TEXT PRIMARY KEY,
-    environment_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    slot INTEGER NOT NULL,
-    accounts JSON NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (environment_id) REFERENCES environments(id)
-);
-```
-
-## Best Practices
-
-### **Development Workflow**
-
-1. **Use Separate Environments**: Create dedicated environments for different testing scenarios
-2. **Regular Snapshots**: Create snapshots before major changes to enable quick rollbacks
-3. **Clean State Management**: Start with a clean slate for each testing session
-4. **Resource Monitoring**: Keep an eye on validator resource usage to prevent issues
-5. **Regular Updates**: Keep Surfpool and Solana tools up to date
-
-### **Performance Optimization**
-
-1. **Adjust Validator Resources**: Configure validator resources based on project needs
-2. **Use SSD Storage**: Store ledger data on fast SSD storage for better performance
-3. **Limit Account History**: Configure appropriate account history limits
-4. **Optimize RPC Settings**: Tune RPC server settings for your use case
-5. **Monitor Network Traffic**: Keep an eye on network usage and optimize accordingly
-
-### **Security Considerations**
-
-1. **Secure Private Keys**: Never commit private keys to version control
-2. **Use Test Keys**: Generate dedicated test keys for development
-3. **Isolate Development**: Keep development environments isolated from production
-4. **Regular Cleanup**: Regularly clean up old environments and snapshots
-5. **Access Control**: Implement proper access controls for team environments
-
-## Troubleshooting
-
-### **Common Issues**
-
-#### **Validator Won't Start**
-```bash
-# Check port availability
-netstat -tulpn | grep :8899
-
-# Check system resources
-free -h
-df -h
-
-# Check logs
-surfpool logs --level debug
-```
-
-#### **RPC Connection Issues**
-```bash
-# Test RPC endpoint
-curl -X POST http://localhost:8899 -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}'
-
-# Check WebSocket connection
-wscat -c ws://localhost:8900
-```
-
-#### **Account Data Issues**
-```bash
-# Check account data
-surfpool account get <ACCOUNT_ADDRESS>
-
-# Verify account ownership
-surfpool account verify <ACCOUNT_ADDRESS>
-
-# Check account rent
-surfpool account rent <ACCOUNT_ADDRESS>
-```
-
-### **Debug Mode**
-
-Enable debug mode for detailed logging:
-
+#### **Plugin Architecture**
 ```rust
-let mut surfpool = Surfpool::new()
-    .with_debug_mode(true)
-    .with_log_level(LogLevel::Debug)
-    .await?;
+// surfdesk-core/src/plugins/mod.rs
+pub trait Plugin: Send + Sync {
+    fn name(&self) -> &str;
+    fn version(&self) -> &str;
+    fn platform_compatibility(&self) -> Vec<PlatformType>;
+    fn initialize(&mut self) -> Result<(), PluginError>;
+    fn shutdown(&mut self) -> Result<(), PluginError>;
+    fn handle_command(&mut self, command: &str) -> Result<PluginResponse, PluginError>;
+}
+
+pub struct PluginManager {
+    plugins: HashMap<String, Box<dyn Plugin>>,
+    command_handlers: HashMap<String, Vec<String>>,
+}
+
+impl PluginManager {
+    pub fn load_plugin<P: Plugin + 'static>(&mut self, plugin: P) -> Result<(), PluginError> {
+        let name = plugin.name().to_string();
+        
+        // Check platform compatibility
+        if !plugin.platform_compatibility().contains(&current_platform()) {
+            return Err(PluginError::IncompatiblePlatform);
+        }
+        
+        plugin.initialize()?;
+        self.plugins.insert(name.clone(), Box::new(plugin));
+        Ok(())
+    }
+    
+    pub fn execute_command(&mut self, command: &str) -> Result<PluginResponse, PluginError> {
+        let parts: Vec<&str> = command.split_whitespace().collect();
+        if parts.is_empty() {
+            return Err(PluginError::InvalidCommand);
+        }
+        
+        let plugin_name = parts[0];
+        if let Some(plugin) = self.plugins.get_mut(plugin_name) {
+            plugin.handle_command(command)
+        } else {
+            Err(PluginError::PluginNotFound)
+        }
+    }
+}
 ```
 
-## Future Enhancements
+#### **Example Plugins**
 
-### **Planned Features**
+**Solana CLI Integration Plugin:**
+```rust
+pub struct SolanaCliPlugin {
+    solana_path: PathBuf,
+}
 
-1. **Multi-Validator Support**: Run multiple validators in a cluster
-2. **Cross-Chain Testing**: Support for testing cross-chain interactions
-3. **Performance Benchmarking**: Built-in performance testing tools
-4. **Automated Testing**: Integration with CI/CD pipelines
-5. **Cloud Deployment**: Support for cloud-based validator deployment
+impl Plugin for SolanaCliPlugin {
+    fn name(&self) -> &str {
+        "solana-cli"
+    }
+    
+    fn version(&self) -> &str {
+        "1.0.0"
+    }
+    
+    fn platform_compatibility(&self) -> Vec<PlatformType> {
+        vec![PlatformType::Desktop, PlatformType::Terminal]
+    }
+    
+    fn initialize(&mut self) -> Result<(), PluginError> {
+        // Find solana CLI in PATH
+        self.solana_path = which::which("solana")
+            .map_err(|_| PluginError::NotFound("solana CLI not found".to_string()))?;
+        Ok(())
+    }
+    
+    fn handle_command(&mut self, command: &str) -> Result<PluginResponse, PluginError> {
+        let parts: Vec<&str> = command.split_whitespace().collect();
+        if parts.len() < 2 {
+            return Err(PluginError::InvalidCommand);
+        }
+        
+        match parts[1] {
+            "address" => {
+                let output = std::process::Command::new(&self.solana_path)
+                    .arg("address")
+                    .output()
+                    .map_err(|e| PluginError::ExecutionError(e.to_string()))?;
+                
+                Ok(PluginResponse::Text(
+                    String::from_utf8_lossy(&output.stdout).to_string()
+                ))
+            }
+            "balance" => {
+                let pubkey = parts.get(2).unwrap_or(&"");
+                let output = std::process::Command::new(&self.solana_path)
+                    .arg("balance")
+                    .arg(pubkey)
+                    .output()
+                    .map_err(|e| PluginError::ExecutionError(e.to_string()))?;
+                
+                Ok(PluginResponse::Text(
+                    String::from_utf8_lossy(&output.stdout).to_string()
+                ))
+            }
+            _ => Err(PluginError::InvalidCommand),
+        }
+    }
+}
+```
 
-### **Community Contributions**
+**VSCode Integration Plugin:**
+```rust
+pub struct VSCodePlugin {
+    workspace_path: Option<PathBuf>,
+}
 
-Surfpool is designed to be extensible and welcomes community contributions:
+impl Plugin for VSCodePlugin {
+    fn name(&self) -> &str {
+        "vscode"
+    }
+    
+    fn version(&self) -> &str {
+        "1.0.0"
+    }
+    
+    fn platform_compatibility(&self) -> Vec<PlatformType> {
+        vec![PlatformType::Desktop]
+    }
+    
+    fn initialize(&mut self) -> Result<(), PluginError> {
+        // Detect current VSCode workspace
+        self.workspace_path = std::env::var("VSCODE_WORKSPACE_FOLDER")
+            .ok()
+            .map(PathBuf::from);
+        Ok(())
+    }
+    
+    fn handle_command(&mut self, command: &str) -> Result<PluginResponse, PluginError> {
+        match command {
+            "vscode open-project" => {
+                if let Some(workspace) = &self.workspace_path {
+                    std::process::Command::new("code")
+                        .arg(workspace)
+                        .spawn()
+                        .map_err(|e| PluginError::ExecutionError(e.to_string()))?;
+                    
+                    Ok(PluginResponse::Success("Project opened in VSCode".to_string()))
+                } else {
+                    Err(PluginError::NotFound("No VSCode workspace detected".to_string()))
+                }
+            }
+            "vscode run-tests" => {
+                // Trigger test runner in VSCode
+                Ok(PluginResponse::Success("Tests triggered in VSCode".to_string()))
+            }
+            _ => Err(PluginError::InvalidCommand),
+        }
+    }
+}
+```
 
-- **Plugin System**: Develop custom plugins for specific use cases
-- **Tool Integrations**: Add support for new development tools
-- **Performance Improvements**: Contribute performance optimizations
-- **Documentation**: Help improve documentation and examples
-- **Bug Reports**: Report and help fix bugs
+## Testing & Quality Assurance
 
-## Support
+### 🧪 **Cross-Platform Testing Strategy**
 
-### **Documentation**
-- Comprehensive API documentation
-- Tutorial videos and guides
-- Example projects and templates
-- Best practices guide
+SurfPool implements comprehensive testing across all platforms to ensure reliability and consistency.
 
-### **Community**
-- Discord server for real-time support
-- GitHub issues for bug reports and feature requests
-- Community forums for discussions and knowledge sharing
-- Regular office hours for direct support
+#### **Unit Testing**
+```rust
+// surfdesk-core/src/services/surfpool/tests.rs
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testing::MockPlatformAdapter;
+    
+    #[tokio::test]
+    async fn test_controller_start_stop() {
+        let mock_platform = MockPlatformAdapter::new();
+        let mut controller = SurfPoolController::new(
+            Box::new(mock_platform),
+            SurfPoolConfig::default()
+        ).unwrap();
+        
+        // Test start
+        assert!(!controller.is_running());
+        controller.start().await.unwrap();
+        assert!(controller.is_running());
+        
+        // Test stop
+        controller.stop().await.unwrap();
+        assert!(!controller.is_running());
+    }
+    
+    #[tokio::test]
+    async fn test_environment_switching() {
+        let mut controller = SurfPoolController::new(
+            Box::new(MockPlatformAdapter::new()),
+            SurfPoolConfig::default()
+        ).unwrap();
+        
+        // Create environments
+        let env1 = controller.create_environment(EnvironmentConfig::local()).await.unwrap();
+        let env2 = controller.create_environment(EnvironmentConfig::fork()).await.unwrap();
+        
+        // Switch environments
+        controller.switch_environment(&env1).await.unwrap();
+        assert_eq!(controller.active_environment().unwrap().id, env1);
+        
+        controller.switch_environment(&env2).await.unwrap();
+        assert_eq!(controller.active_environment().unwrap().id, env2);
+    }
+    
+    #[tokio::test]
+    async fn test_time_control() {
+        let mut controller = SurfPoolController::new(
+            Box::new(MockPlatformAdapter::new()),
+            SurfPoolConfig::default()
+        ).unwrap();
+        
+        controller.start().await.unwrap();
+        
+        let initial_slot = controller.current_slot().await.unwrap();
+        
+        // Warp to future slot
+        let target_slot = initial_slot + 100;
+        controller.warp_to_slot(target_slot).await.unwrap();
+        
+        let current_slot = controller.current_slot().await.unwrap();
+        assert_eq!(current_slot, target_slot);
+        
+        // Create and restore snapshot
+        let snapshot_id = controller.create_snapshot().await.unwrap();
+        controller.warp_to_slot(initial_slot).await.unwrap();
+        controller.restore_snapshot(&snapshot_id).await.unwrap();
+        
+        let restored_slot = controller.current_slot().await.unwrap();
+        assert_eq!(restored_slot, target_slot);
+    }
+}
+```
 
-### **Professional Support**
-- Enterprise support packages available
-- Custom development and consulting
-- Training and workshops
-- Priority bug fixes and feature requests
+#### **Integration Testing**
+```rust
+// tests/integration_test.rs
+use surfdesk_core::*;
+use surfdesk_desktop::*;
+use surfdesk_web::*;
+use surfdesk_tui::*;
+
+#[tokio::test]
+async fn test_cross_platform_consistency() {
+    // Test that all platforms produce consistent results
+    
+    // Desktop
+    let desktop_app = SurfDeskDesktop::new().await.unwrap();
+    let desktop_result = desktop_app.create_project("Test Project").await.unwrap();
+    
+    // Web (mock)
+    let web_app = SurfDeskWeb::with_mock_server().await.unwrap();
+    let web_result = web_app.create_project("Test Project").await.unwrap();
+    
+    // Terminal
+    let terminal_app = SurfDeskTui::with_mock_io().await.unwrap();
+    let terminal_result = terminal_app.create_project("Test Project").await.unwrap();
+    
+    // Verify consistency
+    assert_eq!(desktop_result.name, web_result.name);
+    assert_eq!(web_result.name, terminal_result.name);
+    assert_eq!(terminal_result.name, desktop_result.name);
+}
+
+#[tokio::test]
+async fn test_full_workflow() {
+    let mut app = SurfDeskApp::new(Platform::Desktop).await.unwrap();
+    
+    // Complete workflow test
+    let project = app.create_project("Integration Test").await.unwrap();
+    let environment = app.create_environment(&project.id, EnvironmentType::Local).await.unwrap();
+    
+    app.start_environment(&environment.id).await.unwrap();
+    
+    let program = app.deploy_program(&project.id, "./test_program.so").await.unwrap();
+    let transaction = app.create_transaction(&program.id).await.unwrap();
+    
+    let signature = app.send_transaction(transaction).await.unwrap();
+    assert!(!signature.is_empty());
+    
+    // Cleanup
+    app.stop_environment(&environment.id).await.unwrap();
+    app.delete_project(&project.id).await.unwrap();
+}
+```
+
+#### **Platform-Specific Testing**
+
+**Desktop UI Testing:**
+```rust
+// surfdesk-desktop/src/tests/ui_tests.rs
+#[cfg(test)]
+mod ui_tests {
+    use super::*;
+    use dioxus_desktop::tao::window::WindowBuilder;
+    
+    #[tokio::test]
+    async fn test_window_creation() {
+        let window = WindowBuilder::new()
+            .with_title("Test Window")
+            .with_inner_size(dioxus_desktop::tao::dpi::LogicalSize::new(800, 600))
+            .build()
+            .unwrap();
+        
+        // Verify window properties
+        assert_eq!(window.title(), "Test Window");
+        let size = window.inner_size();
+        assert_eq!(size.width, 800);
+        assert_eq!(size.height, 600);
+    }
+    
+    #[tokio::test]
+    async fn test_file_dialog() {
+        let result = surfdesk_desktop::dialogs::open_file_dialog(
+            "Select Program File",
+            Some(&["so"]),
+        ).await;
+        
+        // Mock file selection
+        assert!(result.is_ok());
+    }
+}
+```
+
+**Web UI Testing:**
+```rust
+// surfdesk-web/src/tests/web_tests.rs
+#[cfg(test)]
+mod web_tests {
+    use super::*;
+    use wasm_bindgen_test::*;
+    
+    wasm_bindgen_test_configure!(run_in_browser);
+    
+    #[wasm_bindgen_test]
+    async fn test_websocket_connection() {
+        let bridge = WebSocketBridge::connect("ws://localhost:8800").await.unwrap();
+        
+        // Test command sending
+        let command = SurfPoolCommand::GetStatus;
+        bridge.send_command(command).await.unwrap();
+        
+        // Wait for response
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        
+        // Verify connection is working
+        assert!(bridge.is_connected());
+    }
+    
+    #[wasm_bindgen_test]
+    async fn test_responsive_layout() {
+        // Test mobile layout
+        set_window_size(375, 667); // iPhone SE
+        assert!(is_mobile_layout());
+        
+        // Test desktop layout
+        set_window_size(1200, 800);
+        assert!(!is_mobile_layout());
+    }
+}
+```
+
+**Terminal UI Testing:**
+```rust
+// surfdesk-tui/src/tests/tui_tests.rs
+#[cfg(test)]
+mod tui_tests {
+    use super::*;
+    use crossterm::event::{Event, KeyCode, KeyEvent};
+    
+    #[tokio::test]
+    async fn test_keyboard_navigation() {
+        let mut app = SurfDeskTui::new();
+        
+        // Test panel switching
+        assert_eq!(app.active_panel(), 0);
+        
+        app.handle_key(KeyEvent::from(KeyCode::Tab));
+        assert_eq!(app.active_panel(), 1);
+        
+        app.handle_key(KeyEvent::from(KeyCode::BackTab));
+        assert_eq!(app.active_panel(), 0);
+    }
+    
+    #[tokio::test]
+    async fn test_command_mode() {
+        let mut app = SurfDeskTui::new();
+        
+        // Enter command mode
+        app.handle_key(KeyEvent::from(KeyCode::Char(':')));
+        assert!(matches!(app.mode(), AppMode::Command));
+        
+        // Execute command
+        app.handle_key(KeyEvent::from(KeyCode::Char('q')));
+        app.handle_key(KeyEvent::from(KeyCode::Enter));
+        
+        // Should quit
+        assert!(app.should_quit());
+    }
+}
+```
+
+## Security & Best Practices
+
+### 🔒 **Security Considerations**
+
+SurfPool implements comprehensive security measures across all platforms to ensure safe development environments.
+
+#### **Cross-Platform Security**
+```rust
+// surfdesk-core/src/security/mod.rs
+pub struct SecurityManager {
+    key_manager: Box<dyn KeyManager>,
+    encryption: EncryptionService,
+    audit_logger: AuditLogger,
+}
+
+impl SecurityManager {
+    pub async fn validate_operation(&self, operation: &Operation) -> Result<(), SecurityError> {
+        // Check permissions
+        if !self.has_permission(&operation.required_permission()) {
+            return Err(SecurityError::InsufficientPermissions);
+        }
+        
+        // Validate operation parameters
+        self.validate_parameters(&operation).await?;
+        
+        // Log operation
+        self.audit_logger.log_operation(operation).await;
+        
+        Ok(())
+    }
+    
+    pub async fn encrypt_sensitive_data(&self, data: &[u8]) -> Result<Vec<u8>, SecurityError> {
+        self.encryption.encrypt(data).await
+    }
+    
+    pub async fn decrypt_sensitive_data(&self, encrypted_data: &[u8]) -> Result<Vec<u8>, SecurityError> {
+        self.encryption.decrypt(encrypted_data).await
+    }
+}
+```
+
+#### **Platform-Specific Security**
+
+**Desktop Security:**
+- Native keychain integration for secure storage
+- Code signing for application integrity
+- Sandboxing for process isolation
+- Secure inter-process communication
+
+**Web Security:**
+- Content Security Policy (CSP) headers
+- Secure WebSocket connections (WSS)
+- Same-origin policy enforcement
+- HTTPS-only communication
+
+**Terminal Security:**
+- Secure terminal emulation
+- Protected memory regions
+- Safe keyboard input handling
+- Audit logging for all operations
+
+## Future Roadmap
+
+### 🚀 **Upcoming Features**
+
+SurfPool continues to evolve with planned enhancements across all platforms:
+
+#### **Q3 2024: Enhanced Multi-Platform Features**
+- **Mobile Support**: Experimental Dioxus mobile targets
+- **Cloud Integration**: Enhanced cloud sync and collaboration
+- **Advanced Monitoring**: Real-time performance analytics
+- **Plugin Ecosystem**: Third-party plugin marketplace
+
+#### **Q4 2024: AI-Powered Features**
+- **Intelligent Auto-tuning**: AI-driven performance optimization
+- **Predictive Scaling**: Anticipatory resource management
+- **Smart Error Detection**: ML-based anomaly detection
+- **Automated Testing**: AI-generated test scenarios
+
+#### **Q1 2025: Enterprise Features**
+- **Team Collaboration**: Multi-user development environments
+- **Advanced Security**: Enterprise-grade security features
+- **Compliance Tools**: Regulatory compliance reporting
+- **Advanced Analytics**: Development insights and metrics
 
 ---
 
-**Version**: 1.0  
-**Created**: 2025-06-18  
-**Last Updated**: 2025-06-18  
-**Compatibility**: Solana 1.18+  
-**License**: MIT
-
-Surfpool is the foundation of local Solana development in SurfDesk, providing developers with the tools they need to build, test, and deploy Solana programs with confidence and efficiency.
+**SurfPool** represents the future of cross-platform Solana development, providing a unified, powerful, and flexible development environment that adapts to developers' needs across desktop, web, and terminal platforms. With its comprehensive feature set, robust architecture, and commitment to cross-platform excellence, SurfPool is poised to become the essential tool for Solana developers worldwide.

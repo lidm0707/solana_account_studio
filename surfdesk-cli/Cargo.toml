@@ -1,0 +1,73 @@
+[package]
+name = "surfdesk-cli"
+version = "0.1.0"
+edition = "2021"
+description = "CLI application for SurfDesk - Multi-platform Solana Account Studio"
+license = "MIT"
+repository = "https://github.com/your-org/surfdesk"
+
+[[bin]]
+name = "surfdesk-cli"
+path = "src/main.rs"
+
+[dependencies]
+# Core library
+surfdesk-core = { path = "../surfdesk-core", features = ["solana", "database"] }
+
+# CLI framework
+clap = { workspace = true, features = ["derive", "env"], optional = true }
+
+# Async runtime
+tokio = { workspace = true, features = ["full"] }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging
+log = { workspace = true }
+env_logger = "0.11"
+
+# Configuration
+config = { workspace = true, optional = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Table formatting
+tabled = "0.15"
+
+# Colored output
+colored = "2.1"
+
+# Progress bars
+indicatif = "0.17"
+
+# Interactive prompts
+dialoguer = { version = "0.11", optional = true }
+
+# Time utilities
+chrono = { workspace = true }
+
+# UUID generation
+uuid = { workspace = true, features = ["v4"] }
+
+# HTTP client (for API calls)
+reqwest = { version = "0.11", features = ["json"], optional = true }
+
+# File system operations
+dirs = "5.0"
+
+[features]
+default = ["cli"]
+cli = ["clap", "config", "dialoguer", "reqwest"]
+
+[package.metadata.deb]
+maintainer = "SurfDesk Team <team@surfdesk.dev>"
+copyright = "2024, SurfDesk Team"
+license-file = ["LICENSE", "4"]
+extended-description = "A comprehensive command-line interface for the SurfDesk Solana account studio. Provides powerful tools for Solana blockchain interaction, account management, and transaction building directly from your terminal."
+depends = "$auto"
+section = "utility"
+priority = "optional"
