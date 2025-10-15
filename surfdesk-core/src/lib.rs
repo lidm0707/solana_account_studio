@@ -19,6 +19,7 @@
 
 pub mod app;
 pub mod components;
+pub mod database;
 pub mod error;
 pub mod platform;
 pub mod services;

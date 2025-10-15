@@ -493,6 +493,7 @@ while true; do
     echo "✅ Foundation maintained - proceeding to next turn"
     git add .
     git commit -m "feat: automated_turn_X - continuous success"
+    git push
   else
     echo "⚠️ Errors detected - applying algorithm.md"
     # Apply BREAKTOOL patterns

@@ -4,9 +4,11 @@
 //! It handles data persistence, migrations, and query operations across
 //! all platforms with platform-specific storage backends.
 
+use crate::database::migrations::SimpleMigration;
 use crate::error::{Result, SurfDeskError};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
+use diesel::sqlite::SqliteConnection;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -48,6 +50,13 @@ impl DatabaseService {
     /// Create a new database service
     pub async fn new(_config_service: &crate::services::config::ConfigService) -> Result<Self> {
         let config = DatabaseConfig::from_platform();
+
+        // Create database directory if it doesn't exist
+        if let Some(parent) = std::path::Path::new(&config.database_path).parent() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                SurfDeskError::database(format!("Failed to create database directory: {}", e))
+            })?;
+        }
 
         log::info!(
             "Initializing database service with path: {}",
