@@ -287,7 +287,10 @@ impl SolanaService {
         match simulation {
             Ok(sim) => {
                 let result = TransactionSimulation {
-                    value: sim.value,
+                    value: format!(
+                        "Simulation completed with {} units consumed",
+                        sim.value.units_consumed.unwrap_or(0)
+                    ),
                     units_consumed: sim.value.units_consumed,
                     logs: sim.value.logs,
                 };

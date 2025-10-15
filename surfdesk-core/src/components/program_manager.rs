@@ -158,6 +158,9 @@ fn ProgramCard(
     #[props(optional)] on_select: Option<EventHandler<ProgramInfo>>,
     #[props(optional)] on_delete: Option<EventHandler<ProgramInfo>>,
 ) -> Element {
+    let program_for_select = program.clone();
+    let program_for_delete = program.clone();
+
     rsx! {
         div { class: "program-card",
             h3 { class: "program-title", "{program.name}" }
@@ -167,7 +170,7 @@ fn ProgramCard(
                     class: "btn btn-primary btn-sm",
                     onclick: move |_| {
                         if let Some(ref handler) = on_select {
-                            handler.call(program.clone());
+                            handler.call(program_for_select.clone());
                         }
                     },
                     "Manage"
@@ -176,7 +179,7 @@ fn ProgramCard(
                     class: "btn btn-secondary btn-sm",
                     onclick: move |_| {
                         if let Some(ref handler) = on_delete {
-                            handler.call(program.clone());
+                            handler.call(program_for_delete.clone());
                         }
                     },
                     "Delete"

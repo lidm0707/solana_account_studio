@@ -45,6 +45,10 @@ pub struct MainContentProps {
     #[props(optional)]
     pub header_actions: Option<Element>,
 
+    /// CSS classes
+    #[props(optional)]
+    pub class: Option<String>,
+
     /// Content
     children: Element,
 }

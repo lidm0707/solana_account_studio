@@ -55,6 +55,9 @@ config = "0.14"
 # Testing
 proptest = "1.4"
 
+# Dependency resolution fixes - use compatible zeroize version for Solana ecosystem
+zeroize = { version = "=1.3.0", features = ["alloc"] }
+
 [profile.release]
 opt-level = 3
 lto = true

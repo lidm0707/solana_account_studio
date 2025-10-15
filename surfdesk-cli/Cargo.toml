@@ -44,8 +44,8 @@ colored = "2.1"
 # Progress bars
 indicatif = "0.17"
 
-# Interactive prompts
-dialoguer = { version = "0.11", optional = true }
+# Interactive prompts - temporarily commented out to avoid zeroize conflicts
+# dialoguer = { version = "0.10", optional = true }
 
 # Time utilities
 chrono = { workspace = true }
@@ -61,7 +61,7 @@ dirs = "5.0"
 
 [features]
 default = ["cli"]
-cli = ["clap", "config", "dialoguer", "reqwest"]
+cli = ["clap", "config", "reqwest"]
 
 [package.metadata.deb]
 maintainer = "SurfDesk Team <team@surfdesk.dev>"

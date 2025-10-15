@@ -238,7 +238,7 @@ pub struct KeypairInfo {
 }
 
 /// Program deployment information
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProgramInfo {
     /// Program name
     pub name: String,
