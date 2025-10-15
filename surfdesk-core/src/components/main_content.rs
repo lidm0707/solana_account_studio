@@ -139,18 +139,27 @@ pub fn MainContent(props: MainContentProps) -> Element {
     }
 }
 
+/// Simple main content with title props
+#[derive(Debug, Clone, PartialEq, Props)]
+pub struct SimpleMainContentProps {
+    /// Content title
+    pub title: String,
+    /// Content children
+    #[props(optional)]
+    pub children: Element,
+    /// CSS classes
+    #[props(optional)]
+    pub class: Option<String>,
+}
+
 /// Simple main content with title
 #[component]
-pub fn SimpleMainContent(
-    title: String,
-    #[props(optional)] children: Element,
-    #[props(optional)] class: Option<String>,
-) -> Element {
+pub fn SimpleMainContent(props: SimpleMainContentProps) -> Element {
     rsx! {
         MainContent {
-            title: title,
-            children: children,
-            class: class,
+            title: props.title,
+            children: props.children,
+            class: props.class,
         }
     }
 }
@@ -171,6 +180,7 @@ mod tests {
             background: None,
             show_header: None,
             header_actions: None,
+            class: None,
             children: rsx! { "Test content" },
         };
 
@@ -194,13 +204,13 @@ mod tests {
 
     #[test]
     fn test_simple_main_content() {
-        let content = SimpleMainContent {
+        let props = SimpleMainContentProps {
             title: "Test Title".to_string(),
             children: rsx! { "Test content" },
             class: Some("custom-class".to_string()),
         };
 
-        assert_eq!(content.title, "Test Title");
-        assert_eq!(content.class, Some("custom-class".to_string()));
+        assert_eq!(props.title, "Test Title");
+        assert_eq!(props.class, Some("custom-class".to_string()));
     }
 }
