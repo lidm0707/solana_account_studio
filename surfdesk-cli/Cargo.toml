@@ -44,8 +44,14 @@ colored = "2.1"
 # Progress bars
 indicatif = "0.17"
 
-# Interactive prompts - temporarily commented out to avoid zeroize conflicts
-# dialoguer = { version = "0.10", optional = true }
+# Interactive prompts
+dialoguer = { version = "0.11", optional = true }
+
+# YAML support
+serde_yaml = "0.9"
+
+# Environment variables
+dotenvy = "0.15"
 
 # Time utilities
 chrono = { workspace = true }
@@ -61,7 +67,7 @@ dirs = "5.0"
 
 [features]
 default = ["cli"]
-cli = ["clap", "config", "reqwest"]
+cli = ["clap", "config", "reqwest", "dialoguer"]
 
 [package.metadata.deb]
 maintainer = "SurfDesk Team <team@surfdesk.dev>"

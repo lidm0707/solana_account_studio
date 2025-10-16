@@ -12,7 +12,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use log::{error, info, LevelFilter};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use surfdesk_core::{init_core, current_platform, Platform, DEFAULT_SOLANA_RPC_URL};
+use surfdesk_core::{current_platform, init_core, Platform, DEFAULT_SOLANA_RPC_URL};
 
 /// CLI configuration structure
 #[derive(Parser, Debug)]
@@ -280,9 +280,11 @@ impl CliApp {
         let pb = ProgressBar::new(total);
         pb.set_style(
             ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+                .template(
+                    "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+                )
                 .unwrap()
-                .progress_chars("#>-")
+                .progress_chars("#>-"),
         );
         pb
     }
@@ -300,21 +302,16 @@ impl CliApp {
 
     /// Get user input
     fn input(&self, prompt: &str) -> Result<String> {
-        Ok(Input::new()
-            .with_prompt(prompt)
-            .interact_text()?)
+        Ok(Input::new().with_prompt(prompt).interact_text()?)
     }
 
     /// Select from options
     fn select(&self, prompt: &str, items: &[String]) -> Result<usize> {
-        Ok(Select::new()
-            .with_prompt(prompt)
-            .items(items)
-            .interact()?)
+        Ok(Select::new().with_prompt(prompt).items(items).interact()?)
     }
 
     /// Output data in specified format
-    fn output_data<T: Serialize>(&self, data: &T) -> Result<()> {
+    fn output_data<T: Serialize + std::fmt::Debug>(&self, data: &T) -> Result<()> {
         match self.output_format.as_str() {
             "json" => {
                 let json = serde_json::to_string_pretty(data)?;
@@ -330,7 +327,10 @@ impl CliApp {
                 println!("Table format for: {:?}", data);
             }
             _ => {
-                self.error(&format!("Unsupported output format: {}", self.output_format));
+                self.error(&format!(
+                    "Unsupported output format: {}",
+                    self.output_format
+                ));
             }
         }
         Ok(())
@@ -363,7 +363,10 @@ fn load_config(config_path: &str) -> Result<()> {
         dotenvy::from_filename(config_path)?;
         info!("Configuration loaded from: {}", config_path);
     } else {
-        info!("Configuration file not found: {} (using defaults)", config_path);
+        info!(
+            "Configuration file not found: {} (using defaults)",
+            config_path
+        );
     }
     Ok(())
 }
@@ -478,7 +481,7 @@ fn main() -> Result<()> {
     // Create CLI application state
     let app = CliApp::new(
         cli.rpc_url.clone(),
-        cli.output_format.clone(),
+        cli.output.clone(),
         cli.verbose,
         cli.quiet,
     );
@@ -494,6 +497,7 @@ fn main() -> Result<()> {
             error!("Failed to initialize core library: {}", e);
             return Err(e);
         }
+        Ok(())
     })?;
 
     // Handle commands
@@ -533,95 +537,97 @@ fn main() -> Result<()> {
             app.success("Program accounts retrieved");
         }
         Commands::Airdrop { pubkey, amount } => {
-            app.info(&format!("Requesting airdrop of {} lamports for {}", amount, pubkey));
+            app.info(&format!(
+                "Requesting airdrop of {} lamports for {}",
+                amount, pubkey
+            ));
             let sol_amount = amount as f64 / 1_000_000_000.0;
-            app.success(&format!("Airdrop of {} SOL requested successfully", sol_amount));
+            app.success(&format!(
+                "Airdrop of {} SOL requested successfully",
+                sol_amount
+            ));
         }
         Commands::Connect { url, test } => {
             handle_connect(&app, url, test)?;
         }
-        Commands::Config { action } => {
-            match action {
-                ConfigAction::Show => {
-                    handle_config_show(&app)?;
-                }
-                ConfigAction::Set { key, value } => {
-                    app.info(&format!("Setting config: {} = {}", key, value));
-                    app.success("Configuration updated");
-                }
-                ConfigAction::Get { key } => {
-                    app.info(&format!("Getting config value for: {}", key));
-                    println!("Config value: {}", key);
-                }
-                ConfigAction::Reset => {
-                    app.warning("Resetting configuration to defaults");
-                    app.success("Configuration reset");
-                }
-                ConfigAction::Validate => {
-                    app.info("Validating configuration...");
-                    app.success("Configuration is valid");
+        Commands::Config { action } => match action {
+            ConfigAction::Show => {
+                handle_config_show(&app)?;
+            }
+            ConfigAction::Set { key, value } => {
+                app.info(&format!("Setting config: {} = {}", key, value));
+                app.success("Configuration updated");
+            }
+            ConfigAction::Get { key } => {
+                app.info(&format!("Getting config value for: {}", key));
+                println!("Config value: {}", key);
+            }
+            ConfigAction::Reset => {
+                app.warning("Resetting configuration to defaults");
+                app.success("Configuration reset");
+            }
+            ConfigAction::Validate => {
+                app.info("Validating configuration...");
+                app.success("Configuration is valid");
+            }
+        },
+        Commands::Database { action } => match action {
+            DatabaseAction::Init => {
+                handle_database_init(&app)?;
+            }
+            DatabaseAction::Migrate => {
+                app.info("Running database migrations...");
+                app.success("Database migrations completed");
+            }
+            DatabaseAction::Reset => {
+                if app.confirm(
+                    "Are you sure you want to reset the database? This will delete all data.",
+                )? {
+                    app.warning("Resetting database...");
+                    app.success("Database reset successfully");
+                } else {
+                    app.warning("Database reset cancelled");
                 }
             }
-        }
-        Commands::Database { action } => {
-            match action {
-                DatabaseAction::Init => {
-                    handle_database_init(&app)?;
-                }
-                DatabaseAction::Migrate => {
-                    app.info("Running database migrations...");
-                    app.success("Database migrations completed");
-                }
-                DatabaseAction::Reset => {
-                    if app.confirm("Are you sure you want to reset the database? This will delete all data.")? {
-                        app.warning("Resetting database...");
-                        app.success("Database reset successfully");
-                    } else {
-                        app.warning("Database reset cancelled");
-                    }
-                }
-                DatabaseAction::Status => {
-                    app.info("Database status:");
-                    println!("  Status: Connected");
-                    println!("  Size: 2.5MB");
-                    println!("  Tables: 12");
-                }
-                DatabaseAction::Backup { path } => {
-                    app.info(&format!("Creating database backup: {}", path));
-                    app.success("Database backup created");
-                }
-                DatabaseAction::Restore { path } => {
-                    app.info(&format!("Restoring database from: {}", path));
-                    app.success("Database restored successfully");
-                }
+            DatabaseAction::Status => {
+                app.info("Database status:");
+                println!("  Status: Connected");
+                println!("  Size: 2.5MB");
+                println!("  Tables: 12");
             }
-        }
-        Commands::Dev { action } => {
-            match action {
-                DevAction::GenerateTestData { count } => {
-                    app.info(&format!("Generating {} test accounts...", count));
-                    let pb = app.progress_bar(count as u64);
-                    for i in 0..count {
-                        pb.set_position((i + 1) as u64);
-                        std::thread::sleep(Duration::from_millis(100));
-                    }
-                    pb.finish_with_message("Test data generated");
-                    app.success(&format!("Generated {} test accounts", count));
-                }
-                DevAction::Benchmark { kind } => {
-                    app.info(&format!("Running benchmarks: {}", kind));
-                    app.success("Benchmarks completed");
-                }
-                DevAction::Validate => {
-                    app.info("Validating project setup...");
-                    app.success("Project setup is valid");
-                }
-                DevAction::Docs => {
-                    app.info("Generating documentation...");
-                    app.success("Documentation generated");
-                }
+            DatabaseAction::Backup { path } => {
+                app.info(&format!("Creating database backup: {}", path));
+                app.success("Database backup created");
             }
-        }
+            DatabaseAction::Restore { path } => {
+                app.info(&format!("Restoring database from: {}", path));
+                app.success("Database restored successfully");
+            }
+        },
+        Commands::Dev { action } => match action {
+            DevAction::GenerateTestData { count } => {
+                app.info(&format!("Generating {} test accounts...", count));
+                let pb = app.progress_bar(count as u64);
+                for i in 0..count {
+                    pb.set_position((i + 1) as u64);
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+                pb.finish_with_message("Test data generated");
+                app.success(&format!("Generated {} test accounts", count));
+            }
+            DevAction::Benchmark { kind } => {
+                app.info(&format!("Running benchmarks: {}", kind));
+                app.success("Benchmarks completed");
+            }
+            DevAction::Validate => {
+                app.info("Validating project setup...");
+                app.success("Project setup is valid");
+            }
+            DevAction::Docs => {
+                app.info("Generating documentation...");
+                app.success("Documentation generated");
+            }
+        },
     }
 
     app.success("Command completed successfully");
@@ -643,7 +649,8 @@ mod tests {
             "json",
             "account",
             "11111111111111111111111111111111",
-        ]).unwrap();
+        ])
+        .unwrap();
 
         assert_eq!(args.log_level, "debug");
         assert_eq!(args.output, "json");

@@ -1,0 +1,322 @@
+warning: unused import: `Color`
+ --> surfdesk-core/src/components/notification.rs:6:25
+  |
+6 | use crate::components::{Color, Size};
+  |                         ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `diesel::sql_types::*`
+ --> surfdesk-core/src/database/schema.rs:7:5
+  |
+7 | use diesel::sql_types::*;
+  |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `diesel::table`
+ --> surfdesk-core/src/database/schema.rs:8:5
+  |
+8 | use diesel::table;
+  |     ^^^^^^^^^^^^^
+
+warning: unused import: `serde_json::json`
+ --> surfdesk-core/src/services/events.rs:8:5
+  |
+8 | use serde_json::json;
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::database::migrations::SimpleMigration`
+ --> surfdesk-core/src/services/database.rs:7:5
+  |
+7 | use crate::database::migrations::SimpleMigration;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `solana_sdk::transaction::Transaction`
+ --> surfdesk-core/src/accounts/mod.rs:7:5
+  |
+7 | use solana_sdk::transaction::Transaction;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::str::FromStr`
+ --> surfdesk-core/src/accounts/mod.rs:8:5
+  |
+8 | use std::str::FromStr;
+  |     ^^^^^^^^^^^^^^^^^
+
+warning: unreachable expression
+   --> surfdesk-core/src/services/logger.rs:120:9
+    |
+115 | /             return Err(SurfDeskError::platform(
+116 | |                 "Web logger not available on non-wasm target",
+117 | |             ));
+    | |______________- any code following this expression is unreachable
+...
+120 |           Ok(())
+    |           ^^^^^^ unreachable expression
+    |
+    = note: `#[warn(unreachable_code)]` on by default
+
+warning: unused import: `std::io::Write`
+ --> surfdesk-core/src/services/logger.rs:8:5
+  |
+8 | use std::io::Write;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused variable: `account_manager`
+  --> surfdesk-core/src/app.rs:14:13
+   |
+14 |     let mut account_manager = use_signal(AccountManager::new);
+   |             ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_account_manager`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `transaction_manager`
+  --> surfdesk-core/src/app.rs:15:13
+   |
+15 |     let mut transaction_manager = use_signal(TransactionManager::new);
+   |             ^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transaction_manager`
+
+warning: variable does not need to be mutable
+  --> surfdesk-core/src/app.rs:14:9
+   |
+14 |     let mut account_manager = use_signal(AccountManager::new);
+   |         ----^^^^^^^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+  --> surfdesk-core/src/app.rs:15:9
+   |
+15 |     let mut transaction_manager = use_signal(TransactionManager::new);
+   |         ----^^^^^^^^^^^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: unused variable: `status_class`
+   --> surfdesk-core/src/components/footer.rs:166:9
+    |
+166 |     let status_class = connected
+    |         ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_status_class`
+
+warning: unused variable: `nav_items`
+   --> surfdesk-core/src/components/header.rs:121:9
+    |
+121 |     let nav_items = vec![
+    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_nav_items`
+
+warning: variable does not need to be mutable
+   --> surfdesk-core/src/database/mod.rs:124:13
+    |
+124 |         let mut path = dirs::data_dir()
+    |             ----^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> surfdesk-core/src/platform.rs:293:23
+    |
+293 |             if let Ok(mut file) = File::open("/dev/tty") {
+    |                       ----^^^^
+    |                       |
+    |                       help: remove this `mut`
+
+warning: unused variable: `file`
+  --> surfdesk-core/src/services/logger.rs:82:17
+   |
+82 |             let file = OpenOptions::new()
+   |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_file`
+
+warning: unused variable: `config`
+  --> surfdesk-core/src/services/logger.rs:98:24
+   |
+98 |     fn init_web_logger(config: &LoggerConfig) -> Result<()> {
+   |                        ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `signer`
+  --> surfdesk-core/src/transactions/mod.rs:36:34
+   |
+36 |     pub fn add_signer(&mut self, signer: &Keypair) -> &mut Self {
+   |                                  ^^^^^^ help: if this is intentional, prefix it with an underscore: `_signer`
+
+warning: variable does not need to be mutable
+  --> surfdesk-core/src/transactions/mod.rs:50:13
+   |
+50 |         let mut transaction = Transaction::new_with_payer(&self.instructions, Some(&self.payer));
+   |             ----^^^^^^^^^^^
+   |             |
+   |             help: remove this `mut`
+
+warning: unused variable: `to`
+  --> surfdesk-core/src/transactions/mod.rs:61:9
+   |
+61 |         to: Pubkey,
+   |         ^^ help: if this is intentional, prefix it with an underscore: `_to`
+
+warning: unused variable: `amount`
+  --> surfdesk-core/src/transactions/mod.rs:62:9
+   |
+62 |         amount: u64,
+   |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_amount`
+
+warning: function `safe_class` is never used
+   --> surfdesk-core/src/components/mod.rs:239:4
+    |
+239 | fn safe_class(class: &str) -> &str {
+    |    ^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: associated functions `get_terminal_size`, `supports_colors`, and `get_system_info` are never used
+   --> surfdesk-core/src/platform.rs:287:8
+    |
+235 | impl PlatformAdapter {
+    | -------------------- associated functions in this implementation
+...
+287 |     fn get_terminal_size() -> Option<(u16, u16)> {
+    |        ^^^^^^^^^^^^^^^^^
+...
+310 |     fn supports_colors() -> bool {
+    |        ^^^^^^^^^^^^^^^
+...
+325 |     fn get_system_info() -> HashMap<String, String> {
+    |        ^^^^^^^^^^^^^^^
+
+warning: field `max_buffer_size` is never read
+  --> surfdesk-core/src/services/logger.rs:18:5
+   |
+12 | pub struct LoggerService {
+   |            ------------- field in this struct
+...
+18 |     max_buffer_size: usize,
+   |     ^^^^^^^^^^^^^^^
+
+warning: function `config_type_display` is never used
+  --> surfdesk-core/src/surfpool/environment.rs:16:4
+   |
+16 | fn config_type_display(config: &EnvironmentConfig) -> &'static str {
+   |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `config_type_display_web` is never used
+  --> surfdesk-core/src/surfpool/environment.rs:25:4
+   |
+25 | fn config_type_display_web(config: &EnvironmentConfig) -> &'static str {
+   |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `platform` is never read
+   --> surfdesk-core/src/surfpool/environment.rs:128:5
+    |
+126 | pub struct EnvironmentManager {
+    |            ------------------ field in this struct
+127 |     /// Current platform
+128 |     platform: Platform,
+    |     ^^^^^^^^
+    |
+    = note: `EnvironmentManager` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: field `signers` is never read
+  --> surfdesk-core/src/transactions/mod.rs:13:5
+   |
+11 | pub struct TransactionBuilder {
+   |            ------------------ field in this struct
+12 |     instructions: Vec<Instruction>,
+13 |     signers: Vec<Keypair>,
+   |     ^^^^^^^
+
+warning: comparison is useless due to type limits
+   --> surfdesk-core/src/surfpool/environment.rs:250:38
+    |
+250 |         if config.rpc_port < 1024 || config.rpc_port > 65535 {
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_comparisons)]` on by default
+
+warning: comparison is useless due to type limits
+   --> surfdesk-core/src/surfpool/environment.rs:255:37
+    |
+255 |         if config.ws_port < 1024 || config.ws_port > 65535 {
+    |                                     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `surfdesk-core` (lib) generated 32 warnings (run `cargo fix --lib -p surfdesk-core` to apply 12 suggestions)
+warning: unused imports: `LevelFilter`, `error`, and `info`
+  --> surfdesk-web/src/main.rs:10:11
+   |
+10 | use log::{error, info, LevelFilter};
+   |           ^^^^^  ^^^^  ^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Platform`
+  --> surfdesk-web/src/main.rs:11:50
+   |
+11 | use surfdesk_core::{current_platform, init_core, Platform};
+   |                                                  ^^^^^^^^
+
+warning: variable does not need to be mutable
+  --> surfdesk-web/src/main.rs:72:9
+   |
+72 |     let mut solana_url = use_signal(|| "https://api.devnet.solana.com".to_string());
+   |         ----^^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+  --> surfdesk-web/src/main.rs:74:9
+   |
+74 |     let mut account_count = use_signal(|| 0u64);
+   |         ----^^^^^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: unused import: `Platform`
+  --> surfdesk-cli/src/main.rs:15:50
+   |
+15 | use surfdesk_core::{current_platform, init_core, Platform, DEFAULT_SOLANA_RPC_URL};
+   |                                                  ^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: struct `TransactionInfo` is never constructed
+   --> surfdesk-cli/src/main.rs:218:8
+    |
+218 | struct TransactionInfo {
+    |        ^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: methods `input` and `select` are never used
+   --> surfdesk-cli/src/main.rs:304:8
+    |
+234 | impl CliApp {
+    | ----------- methods in this implementation
+...
+304 |     fn input(&self, prompt: &str) -> Result<String> {
+    |        ^^^^^
+...
+309 |     fn select(&self, prompt: &str, items: &[String]) -> Result<usize> {
+    |        ^^^^^^
+
+warning: `surfdesk-web` (bin "surfdesk-web") generated 4 warnings (run `cargo fix --bin "surfdesk-web"` to apply 4 suggestions)
+warning: `surfdesk-cli` (bin "surfdesk-cli") generated 3 warnings (run `cargo fix --bin "surfdesk-cli"` to apply 1 suggestion)
+warning: unused imports: `Wrap` and `text::Span`
+  --> surfdesk-tui/src/main.rs:19:5
+   |
+19 |     text::Span,
+   |     ^^^^^^^^^^
+20 |     widgets::{Block, Borders, Clear, Gauge, List, ListItem, Paragraph, Wrap},
+   |                                                                        ^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Platform`
+  --> surfdesk-tui/src/main.rs:24:50
+   |
+24 | use surfdesk_core::{current_platform, init_core, Platform};
+   |                                                  ^^^^^^^^
+
+warning: `surfdesk-tui` (bin "surfdesk-tui") generated 2 warnings (run `cargo fix --bin "surfdesk-tui"` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.43s
+warning: the following packages contain code that will be rejected by a future version of Rust: ashpd v0.8.1, solana-client v1.18.26
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
