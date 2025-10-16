@@ -1,3 +1,29 @@
+       )
+➜  solana_account_studio git:(main) ✗ dx serve --platform linux --package surfdesk-desktop
+
+   0.82s ERROR Loading crate
+   0.83s ERROR err=Other(Failed to run cargo metadata
+
+Caused by:
+    0: `cargo metadata` exited with an error: error: failed to select a version for `surfdesk-core`.
+           ... required by package `surfdesk-desktop v0.1.0 (/home/moo-tu/git/solana_account_studio/surfdesk-desktop)`
+       versions that meet the requirements `*` (locked to 0.1.0) are: 0.1.0
+
+       package `surfdesk-desktop` depends on `surfdesk-core` with feature `solana` but `surfdesk-core` does not have that feature.
+
+
+       failed to select a version for `surfdesk-core` which could resolve this conflict
+
+    1: `cargo metadata` exited with an error: error: failed to select a version for `surfdesk-core`.
+           ... required by package `surfdesk-desktop v0.1.0 (/home/moo-tu/git/solana_account_studio/surfdesk-desktop)`
+       versions that meet the requirements `*` (locked to 0.1.0) are: 0.1.0
+
+       package `surfdesk-desktop` depends on `surfdesk-core` with feature `solana` but `surfdesk-core` does not have that feature.
+
+
+       failed to select a version for `surfdesk-core` which could resolve this conflict
+       )
+
 🧩 Can Dioxus 0.6+ use the Solana SDK?
 
 Yes, but it depends on where you run Dioxus:

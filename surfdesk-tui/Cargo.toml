@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Core library
-surfdesk-core = { path = "../surfdesk-core", features = ["solana", "database"] }
+surfdesk-core = { path = "../surfdesk-core", features = ["database"] }
 
 # Terminal UI framework
 crossterm = { workspace = true }

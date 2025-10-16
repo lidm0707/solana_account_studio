@@ -499,7 +499,7 @@ pub fn SurfPoolControls(props: SurfPoolControlsProps) -> Element {
                 match status() {
                     SurfPoolStatus::Stopped => {
                         div { class: "status-stopped",
-                            span { class: "status-indicator status-offline", "" }
+                            span { class: "status-indicator status-offline"}
                             span { "Stopped" }
                         }
                     }

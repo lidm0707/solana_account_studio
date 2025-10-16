@@ -4,6 +4,11 @@
 //! Components are built with Dioxus 0.6+ and designed to be reusable across
 //! all platforms (desktop, web, and terminal).
 
+/// CSS class helper function for components
+pub fn css_class(class: &str) -> &str {
+    class
+}
+
 /// Macro for generating Default implementations for enum types
 macro_rules! impl_default_enum {
     ($enum_type:ty, $default_variant:ident) => {

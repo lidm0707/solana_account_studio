@@ -24,19 +24,15 @@ cfg-if = "1.0"
 base64 = "0.22"
 gloo-console = "0.3"
 
-# Solana ecosystem
-solana-sdk = { workspace = true, optional = true }
-solana-client = { workspace = true, optional = true }
-solana-account-decoder = { workspace = true, optional = true }
+
 
 # Additional utilities
 bs58 = "0.5"
 chrono = { version = "0.4", features = ["serde"] }
 log = "0.4"
-
+rand = "0.8"
+reqwest = { version = "0.11", features = ["json"] }
 # Workspace dependencies
-anchor-lang = { workspace = true, optional = true }
-anchor-client = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -62,9 +58,8 @@ tokio-test = "0.4"
 tempfile = "3.0"
 
 [features]
-default = ["database", "solana", "surfpool"]
+default = ["database", "surfpool"]
 database = ["diesel", "diesel_migrations"]
-solana = ["solana-sdk", "solana-client", "solana-account-decoder", "anchor-lang", "anchor-client", "tokio"]
 surfpool = []
 web = ["dioxus/web", "console_log", "wasm-bindgen", "web-sys", "wasm-bindgen-futures", "js-sys", "chrono/wasmbind", "gloo-net"]
 desktop = ["dioxus/desktop", "tokio"]

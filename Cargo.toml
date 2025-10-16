@@ -14,12 +14,6 @@ dioxus = { version = "0.6", features = ["desktop", "web"] }
 dioxus-router = "0.6"
 dioxus-signals = "0.6"
 
-# Solana ecosystem
-solana-sdk = "1.18"
-solana-client = "1.18"
-solana-account-decoder = "1.18"
-anchor-lang = "0.30"
-anchor-client = "0.30"
 
 # Async runtime and utilities
 tokio = { version = "1.0", features = ["full"] }

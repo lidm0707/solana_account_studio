@@ -3,13 +3,12 @@
 //! Simple account management for SurfDesk with clean architecture.
 
 use crate::services::surfpool_service::{
-    DeploymentRequest, DeploymentResult, DeploymentStatistics, DeploymentStatus, SurfPoolService,
-    SurfPoolStatus,
+    system_program, DeploymentRequest, DeploymentResult, DeploymentStatistics, Pubkey,
+    SurfPoolService, SurfPoolStatus,
 };
 use chrono;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
-use solana_sdk::{pubkey::Pubkey, signature::Keypair, system_program, transaction::Transaction};
 use std::sync::Arc;
 
 // Hook for accessing SurfPool service (simplified for compilation)
@@ -143,7 +142,7 @@ pub struct AccountBuilder {
     pub custom_data: String,
     pub keypair: Option<String>,
     pub account_data: Option<AccountData>,
-    pub deployment_status: DeploymentStatus,
+    pub deployment_status: crate::services::surfpool_service::DeploymentStatus,
 }
 
 impl Default for AccountBuilder {
@@ -158,19 +157,12 @@ impl Default for AccountBuilder {
             custom_data: String::new(),
             keypair: None,
             account_data: None,
-            deployment_status: DeploymentStatus::Queued,
+            deployment_status: crate::services::surfpool_service::DeploymentStatus::Queued,
         }
     }
 }
 
-/// Deployment status
-#[derive(Debug, Clone, PartialEq)]
-pub enum DeploymentStatus {
-    Queued,
-    InProgress,
-    Completed { signature: String },
-    Failed { error: String },
-}
+// Use DeploymentStatus from surfpool_service instead of defining duplicate
 
 /// Account explorer props
 #[derive(Debug, Clone, Props, PartialEq)]
@@ -229,7 +221,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         let mut new_builder = builder();
         // Simplified keypair generation for now
         new_builder.keypair = Some("generated_keypair_mock".to_string());
-        new_builder.deployment_status = DeploymentStatus::Queued;
+        new_builder.deployment_status = crate::services::surfpool_service::DeploymentStatus::Queued;
         builder.set(new_builder);
         success_message.set("New keypair generated successfully".to_string());
     };
@@ -281,7 +273,8 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                     };
 
                     current.account_data = Some(account_data.clone());
-                    current.deployment_status = DeploymentStatus::Queued;
+                    current.deployment_status =
+                        crate::services::surfpool_service::DeploymentStatus::Queued;
                     builder_state.set(current);
 
                     let mut acc_list = accounts_signal();
@@ -292,7 +285,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                     success_msg.set(format!(
                         "Account built successfully: {}",
                         account_data.pubkey
-                    ));
+                    ))
                 }
 
                 is_building_signal.set(false);
@@ -320,13 +313,18 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
 
         // Create simplified deployment request
         let deployment_request = DeploymentRequest::new(
-            current_builder.account_data.as_ref().unwrap().pubkey,
+            current_builder
+                .account_data
+                .as_ref()
+                .unwrap()
+                .pubkey
+                .clone(),
             system_program::id(),
             (current_builder.initial_balance * 1_000_000_000.0) as u64,
             current_builder.space as u64,
             current_builder.executable,
             current_builder.account_data.as_ref().unwrap().data.clone(),
-            payer: Keypair,
+            current_builder.keypair.clone(),
         );
 
         // Deploy using simplified workflow
@@ -335,7 +333,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
             let is_deploying_signal = is_deploying.clone();
             let deployment_req = deployment_request;
             let on_deploy = props.on_deploy.clone();
-            let on_deployment_result = props.on_deployment_result.clone();
+            on_deployment_result = props.on_deployment_result.clone();
             let success_msg = success_message.clone();
             let error_msg = error_message.clone();
 
@@ -344,9 +342,10 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                 tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
 
                 let mut current = builder_state();
-                current.deployment_status = DeploymentStatus::Completed {
-                    signature: "mock_signature_12345".to_string(),
-                };
+                current.deployment_status =
+                    crate::services::surfpool_service::DeploymentStatus::Completed {
+                        signature: "mock_signature_12345".to_string(),
+                    };
                 builder_state.set(current);
 
                 // Create mock transaction
@@ -355,11 +354,16 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
 
                 // Create mock deployment result
                 let deployment_result = DeploymentResult {
-                    status: DeploymentStatus::Completed {
+                    status: crate::services::surfpool_service::DeploymentStatus::Completed {
                         signature: "mock_signature_12345".to_string(),
                     },
                     signature: Some("mock_signature_12345".to_string()),
-                    pubkey: deployment_req.pubkey,
+                    pubkey: current_builder
+                        .account_data
+                        .as_ref()
+                        .unwrap()
+                        .pubkey
+                        .clone(),
                     timestamp: chrono::Utc::now(),
                     error: None,
                     block_height: Some(100),
@@ -392,9 +396,9 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                     div { style: "display: flex; align-items: center; gap: 8px;",
                         div { style: "width: 8px; height: 8px; border-radius: 50%; background: {};",
                             match validator_status() {
-                                SurfPoolStatus::Running { .. } => "#22c55e",
-                                SurfPoolStatus::Starting => "#f59e0b",
-                                _ => "#ef4444"
+                                SurfPoolStatus::Running { .. } => "#22c55e".to_string(),
+                                SurfPoolStatus::Starting => "#f59e0b".to_string(),
+                                _ => "#ef4444".to_string()
                             }
                         }
                         span { style: "font-size: 14px; color: #6b7280;",
@@ -663,7 +667,7 @@ fn AccountBuilderTab(
                 if let Some(account_data) = &builder.account_data {
                     div { style: "background: #f0fdf4; padding: 24px; border-radius: 8px; border: 1px solid #bbf7d0; color: #166534;",
                         h3 { style: "font-size: 18px; font-weight: 600; color: #166534; margin: 0 0 16px 0;",
-                            if matches!(builder.deployment_status, DeploymentStatus::Queued) {
+                            if matches!(builder.deployment_status, crate::services::surfpool_service::DeploymentStatus::Queued) {
                                 "✓ Account Built Successfully"
                             } else {
                                 "✓ Account Deployed Successfully"
@@ -717,10 +721,10 @@ fn AccountBuilderTab(
                                 }
                                 span { style: "font-family: monospace; font-size: 12px;",
                                     match builder.deployment_status {
-                                        DeploymentStatus::Queued => "Queued",
-                                        DeploymentStatus::InProgress => "In Progress",
-                                        DeploymentStatus::Completed { .. } => "Completed",
-                                        DeploymentStatus::Failed { .. } => "Failed",
+                                        crate::services::surfpool_service::DeploymentStatus::Queued => "Queued",
+                                        crate::services::surfpool_service::DeploymentStatus::InProgress => "In Progress",
+                                        crate::services::surfpool_service::DeploymentStatus::Completed { .. } => "Completed",
+                                        crate::services::surfpool_service::DeploymentStatus::Failed { .. } => "Failed",
                                     }
                                 }
                             }
@@ -861,5 +865,4 @@ fn AccountExplorerTab(accounts: Vec<AccountData>, surfpool_running: bool) -> Ele
     }
 }
 
-// Re-export from surfpool_service to maintain compatibility
-pub use crate::services::surfpool_service::DeploymentResult;
+// DeploymentResult is already imported from surfpool_service

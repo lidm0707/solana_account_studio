@@ -6,15 +6,167 @@
 
 use crate::error::Result;
 use serde::{Deserialize, Serialize};
-use solana_sdk::{
-    instruction::Instruction,
-    pubkey::Pubkey,
-    signature::{Keypair, Signer},
-    transaction::Transaction,
-};
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::{sleep, Duration};
+
+// Import rand for mock keypair generation
+use rand;
+
+// Custom Solana types using solana_rpc
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct Pubkey(String);
+
+impl Pubkey {
+    pub fn new() -> Self {
+        Self(format!("{:x}", rand::random::<u128>()))
+    }
+
+    pub fn from_string(s: &str) -> Self {
+        Self(s.to_string())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Default for Pubkey {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Deployment status for account creation
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum DeploymentStatus {
+    /// Deployment is queued
+    Queued,
+    /// Deployment is in progress
+    InProgress,
+    /// Deployment completed successfully
+    Completed { signature: String },
+    /// Deployment failed
+    Failed { error: String },
+}
+
+#[derive(Debug, Clone)]
+pub struct Instruction {
+    pub program_id: Pubkey,
+    pub accounts: Vec<AccountMeta>,
+    pub data: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AccountMeta {
+    pub pubkey: Pubkey,
+    pub is_signer: bool,
+    pub is_writable: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct Transaction {
+    pub signatures: Vec<String>,
+    pub message: CompiledInstruction,
+}
+
+#[derive(Debug, Clone)]
+pub struct CompiledInstruction {
+    pub account_keys: Vec<Pubkey>,
+    pub recent_blockhash: String,
+    pub instructions: Vec<Instruction>,
+}
+
+// Custom keypair implementation
+#[derive(Debug, Clone)]
+pub struct Keypair {
+    pub pubkey: Pubkey,
+    secret: [u8; 32],
+}
+
+impl Keypair {
+    pub fn new() -> Self {
+        let secret = rand::random::<[u8; 32]>();
+        let pubkey = Pubkey::from_string(&format!("{:x}", rand::random::<u128>()));
+        Self { pubkey, secret }
+    }
+
+    pub fn pubkey(&self) -> &Pubkey {
+        &self.pubkey
+    }
+}
+
+impl Default for Keypair {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub trait Signer {
+    fn pubkey(&self) -> &Pubkey;
+    fn try_sign_message(&self, message: &[u8]) -> Result<Vec<u8>>;
+}
+
+impl Signer for Keypair {
+    fn pubkey(&self) -> &Pubkey {
+        &self.pubkey
+    }
+
+    fn try_sign_message(&self, _message: &[u8]) -> Result<Vec<u8>> {
+        // Mock signature
+        Ok(vec![0u8; 64])
+    }
+}
+
+// System program constants
+pub mod system_program {
+    use super::Pubkey;
+    pub fn id() -> Pubkey {
+        Pubkey::from_string("11111111111111111111111111111111")
+    }
+}
+
+pub mod system_instruction {
+    use super::{AccountMeta, Instruction, Pubkey};
+
+    pub fn create_account(
+        from_pubkey: &Pubkey,
+        to_pubkey: &Pubkey,
+        lamports: u64,
+        space: u64,
+        owner: &Pubkey,
+    ) -> Instruction {
+        Instruction {
+            program_id: system_program::id(),
+            accounts: vec![
+                AccountMeta {
+                    pubkey: from_pubkey.clone(),
+                    is_signer: true,
+                    is_writable: true,
+                },
+                AccountMeta {
+                    pubkey: to_pubkey.clone(),
+                    is_signer: false,
+                    is_writable: true,
+                },
+            ],
+            data: vec![0, 0, 0, 0], // Mock instruction data
+        }
+    }
+}
+
+// Hash type for compatibility
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Hash(String);
+
+impl Default for Hash {
+    fn default() -> Self {
+        Self("default_hash".to_string())
+    }
+}
+
+// Import rand for mock keypair generation
+use rand;
 
 // Mock types for compilation - will be replaced with real integration
 #[derive(Debug, Clone)]
@@ -123,12 +275,10 @@ pub struct DeploymentRequest {
     pub space: u64,
     /// Whether account is executable
     pub executable: bool,
-    /// Account seed data
+    /// Account seed for derivation
     pub seed: Vec<u8>,
     /// Payer keypair for transaction fees
-    pub payer: Keypair,
-    /// Custom instruction (optional)
-    pub custom_instruction: Option<Instruction>,
+    pub payer: Arc<Keypair>,
 }
 
 impl DeploymentRequest {
@@ -140,7 +290,7 @@ impl DeploymentRequest {
         space: u64,
         executable: bool,
         seed: Vec<u8>,
-        payer: Keypair,
+        payer: Arc<Keypair>,
     ) -> Self {
         Self {
             pubkey,
@@ -150,7 +300,6 @@ impl DeploymentRequest {
             executable,
             seed,
             payer,
-            custom_instruction: None,
         }
     }
 
@@ -182,9 +331,10 @@ impl SurfPoolService {
         let config = SurfPoolConfig::default();
         let controller = Arc::new(SurfPoolController::new(config).await?);
 
+        let config_clone = config.clone();
         Ok(Self {
             controller,
-            config: Arc::new(RwLock::new(config)),
+            config: Arc::new(RwLock::new(config_clone)),
             deployment_queue: Arc::new(Mutex::new(Vec::new())),
             deployment_results: Arc::new(RwLock::new(Vec::new())),
             active_deployments: Arc::new(Mutex::new(Vec::new())),
@@ -221,7 +371,10 @@ impl SurfPoolService {
 
     /// Check if validator is running
     pub async fn is_validator_running(&self) -> bool {
-        matches!(self.controller.get_status().await, SurfPoolStatus::Running { .. })
+        matches!(
+            self.controller.get_status().await,
+            SurfPoolStatus::Running { .. }
+        )
     }
 
     /// Get validator status
@@ -301,46 +454,45 @@ impl SurfPoolService {
                     block_height: Some(100), // Simulated block height
                 })
             }
-            Err(e) => {
-                Ok(DeploymentResult {
-                    status: DeploymentStatus::Failed {
-                        error: format!("Deployment failed: {}", e),
-                    },
-                    signature: None,
-                    pubkey: request.pubkey,
-                    timestamp,
-                    error: Some(format!("Deployment failed: {}", e)),
-                    block_height: None,
-                })
-            }
+            Err(e) => Ok(DeploymentResult {
+                status: DeploymentStatus::Failed {
+                    error: format!("Deployment failed: {}", e),
+                },
+                signature: None,
+                pubkey: request.pubkey,
+                timestamp,
+                error: Some(format!("Deployment failed: {}", e)),
+                block_height: None,
+            }),
         }
     }
 
     /// Create deployment transaction
-    async fn create_deployment_transaction(&self, request: &DeploymentRequest) -> Result<Transaction> {
+    async fn create_deployment_transaction(
+        &self,
+        request: &DeploymentRequest,
+    ) -> Result<Transaction> {
         // Simulate creating a transaction
         let mut instructions = Vec::new();
 
         // Add system program instruction for account creation
-        let account_instruction = solana_sdk::system_program::create_account(
+        let account_instruction = system_instruction::create_account(
             &request.payer.pubkey(),
             &request.pubkey,
             request.lamports,
-            request.space as usize,
+            request.space,
             &request.owner,
         );
         instructions.push(account_instruction);
 
-        // Add custom instruction if provided
-        if let Some(custom_instruction) = &request.custom_instruction {
-            instructions.push(custom_instruction.clone());
-        }
-
-        let mut transaction = Transaction::new_with_payer(&instructions, Some(&request.payer.pubkey()));
-
-        // Get recent blockhash (mock implementation)
-        let recent_blockhash = solana_sdk::hash::Hash::default();
-        transaction.sign(&[&request.payer], recent_blockhash);
+        let transaction = Transaction {
+            signatures: vec![],
+            message: CompiledInstruction {
+                account_keys: vec![request.payer.pubkey.clone(), request.pubkey.clone()],
+                recent_blockhash: "mock_blockhash".to_string(),
+                instructions,
+            },
+        };
 
         Ok(transaction)
     }
@@ -420,301 +572,9 @@ pub fn use_surfpool_service() -> Result<Arc<SurfPoolService>> {
     });
 
     // Return a placeholder for now
-    Err(crate::error::SurfDeskError::internal("Service not yet implemented"))
-}
-
-
-
-    /// Stop the SurfPool validator
-    pub async fn stop_validator(&self) -> Result<()> {
-        log::info!("Stopping SurfPool validator");
-
-        let mut controller = self.controller.clone();
-        controller.stop().await?;
-
-        log::info!("SurfPool validator stopped successfully");
-        Ok(())
-    }
-
-    /// Get current validator status
-    pub async fn get_validator_status(&self) -> Result<SurfPoolStatus> {
-        let controller = self.controller.clone();
-        Ok(controller.get_status())
-    }
-
-    /// Check if validator is running
-    pub async fn is_validator_running(&self) -> bool {
-        matches!(
-            self.get_validator_status().await,
-            Ok(SurfPoolStatus::Running { .. })
-        )
-    }
-
-    /// Deploy an account to the local validator
-    pub async fn deploy_account(&self, request: DeploymentRequest) -> Result<DeploymentResult> {
-        log::info!("Deploying account: {}", request.pubkey);
-
-        // Check if validator is running
-        if !self.is_validator_running().await {
-            return Err(crate::error::SurfDeskError::SurfPoolError(
-                "SurfPool validator is not running".to_string(),
-            )
-            .into());
-        }
-
-        // Add to deployment queue
-        {
-            let mut queue = self.deployment_queue.lock().await;
-            queue.push(request.clone());
-        }
-
-        // Process deployment
-        let result = self.process_deployment(request).await?;
-
-        // Store result
-        {
-            let mut results = self.deployment_results.write().await;
-            results.push(result.clone());
-        }
-
-        log::info!("Account deployment completed: {:?}", result.signature);
-        Ok(result)
-    }
-
-    /// Process a single deployment request
-    async fn process_deployment(&self, request: DeploymentRequest) -> Result<DeploymentResult> {
-        let timestamp = chrono::Utc::now();
-
-        // Create deployment transaction
-        let transaction = match self.create_deployment_transaction(&request).await {
-            Ok(tx) => tx,
-            Err(e) => {
-                return Ok(DeploymentResult {
-                    status: DeploymentStatus::Failed {
-                        error: format!("Failed to create transaction: {}", e),
-                    },
-                    signature: None,
-                    pubkey: request.pubkey,
-                    timestamp,
-                    error: Some(format!("Transaction creation failed: {}", e)),
-                    block_height: None,
-                });
-            }
-        };
-
-        // Simulate deployment to local validator
-        match self.simulate_deployment(&transaction).await {
-            Ok(signature) => {
-                Ok(DeploymentResult {
-                    status: DeploymentStatus::Completed {
-                        signature: signature.clone(),
-                    },
-                    signature: Some(signature),
-                    pubkey: request.pubkey,
-                    timestamp,
-                    error: None,
-                    block_height: Some(100), // Simulated block height
-                })
-            }
-            Err(e) => Ok(DeploymentResult {
-                status: DeploymentStatus::Failed {
-                    error: format!("Deployment failed: {}", e),
-                },
-                signature: None,
-                pubkey: request.pubkey,
-                timestamp,
-                error: Some(format!("Deployment failed: {}", e)),
-                block_height: None,
-            }),
-        }
-    }
-
-    /// Create deployment transaction
-    async fn create_deployment_transaction(
-        &self,
-        request: &DeploymentRequest,
-    ) -> Result<Transaction> {
-        let config = self.config.read().await;
-        let client = solana_client::rpc_client::RpcClient::new_builder()
-            .url(format!("http://localhost:{}", config.rpc_port))
-            .build();
-
-        // Create account instruction
-        let account_instruction = solana_sdk::system_program::create_account(
-            &request.payer.pubkey(),
-            &request.pubkey,
-            request.lamports,
-            request.space,
-            &request.owner,
-        );
-
-        let instructions = if let Some(custom_instruction) = &request.custom_instruction {
-            vec![custom_instruction.clone(), account_instruction]
-        } else {
-            vec![account_instruction]
-        };
-
-        // Create transaction
-        let mut transaction =
-            Transaction::new_with_payer(&instructions, Some(&request.payer.pubkey()));
-
-        // Get recent blockhash
-        let recent_blockhash = client.get_latest_blockhash().await?;
-        transaction.sign(&request.payer, recent_blockhash.value);
-
-        Ok(transaction)
-    }
-
-    /// Simulate deployment to local validator
-    async fn simulate_deployment(&self, transaction: &Transaction) -> Result<String> {
-        // Simulate network delay
-        sleep(Duration::from_millis(500)).await;
-
-        // Generate a mock signature (in real implementation, this would be actual signature)
-        let signature = "5j7s8aKqGJ7a4G3j5v2k9Lm8n3p9o2r6";
-
-        log::debug!("Simulated deployment with signature: {}", signature);
-        Ok(signature.to_string())
-    }
-
-    /// Get deployment results
-    pub async fn get_deployment_results(&self) -> Result<Vec<DeploymentResult>> {
-        let results = self.deployment_results.read().await;
-        Ok(results.clone())
-    }
-
-    /// Get active deployments
-    pub async fn get_active_deployments(&self) -> Result<Vec<String>> {
-        let deployments = self.active_deployments.lock().await;
-        Ok(deployments.clone())
-    }
-
-    /// Clear deployment queue
-    pub async fn clear_deployment_queue(&self) -> Result<()> {
-        let mut queue = self.deployment_queue.lock().await;
-        queue.clear();
-        log::info!("Deployment queue cleared");
-        Ok(())
-    }
-
-    /// Get deployment queue length
-    pub async fn get_deployment_queue_length(&self) -> Result<usize> {
-        let queue = self.deployment_queue.lock().await;
-        Ok(queue.len())
-    }
-
-    /// Process deployment queue
-    pub async fn process_deployment_queue(&self) -> Result<Vec<DeploymentResult>> {
-        log::info!("Processing deployment queue");
-
-        let mut results = Vec::new();
-        let requests = {
-            let mut queue = self.deployment_queue.lock().await;
-            let requests = queue.clone();
-            queue.clear();
-            requests
-        };
-
-        for request in requests {
-            match self.deploy_account(request).await {
-                Ok(result) => {
-                    results.push(result);
-                }
-                Err(e) => {
-                    log::error!("Failed to deploy account: {}", e);
-                }
-            }
-        }
-
-        log::info!("Processed {} deployments from queue", results.len());
-        Ok(results)
-    }
-
-    /// Get deployment statistics
-    pub async fn get_deployment_statistics(&self) -> Result<DeploymentStatistics> {
-        let results = self.deployment_results.read().await;
-        let total = results.len();
-        let successful = results
-            .iter()
-            .filter(|r| matches!(r.status, DeploymentStatus::Completed { .. }))
-            .count();
-        let failed = results
-            .iter()
-            .filter(|r| matches!(r.status, DeploymentStatus::Failed { .. }))
-            .count();
-
-        Ok(DeploymentStatistics {
-            total_deployments: total,
-            successful_deployments: successful,
-            failed_deployments: failed,
-            success_rate: if total > 0 {
-                (successful as f64 / total as f64) * 100.0
-            } else {
-                0.0
-            },
-        })
-    }
-
-    /// Shutdown the SurfPool service
-    pub async fn shutdown(&self) -> Result<()> {
-        log::info!("Shutting down SurfPool service");
-
-        // Stop validator if running
-        if self.is_validator_running().await {
-            self.stop_validator().await?;
-        }
-
-        // Clear queues
-        self.clear_deployment_queue().await?;
-        {
-            let mut results = self.deployment_results.write().await;
-            results.clear();
-        }
-        {
-            let mut deployments = self.active_deployments.lock().await;
-            deployments.clear();
-        }
-
-        log::info!("SurfPool service shutdown successfully");
-        Ok(())
-    }
-}
-
-/// Deployment statistics
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DeploymentStatistics {
-    /// Total number of deployments
-    pub total_deployments: usize,
-    /// Number of successful deployments
-    pub successful_deployments: usize,
-    /// Number of failed deployments
-    pub failed_deployments: usize,
-    /// Success rate percentage
-    pub success_rate: f64,
-}
-
-/// Hook for using SurfPool service in Dioxus components
-#[component]
-pub fn use_surfpool_service() -> Result<SurfPoolService> {
-    use_context_provider(|| async move {
-        match SurfPoolService::new().await {
-            Ok(service) => {
-                // Initialize the service
-                if let Err(e) = service.initialize().await {
-                    log::error!("Failed to initialize SurfPool service: {}", e);
-                }
-                service
-            }
-            Err(e) => {
-                log::error!("Failed to create SurfPool service: {}", e);
-                // Return a default service for error recovery
-                SurfPoolService::new().await.unwrap_or_else(|_| {
-                    log::error!("Using fallback SurfPool service");
-                    SurfPoolService::new().await.unwrap()
-                })
-            }
-        }
-    })
+    Err(crate::error::SurfDeskError::internal(
+        "Service not yet implemented",
+    ))
 }
 
 #[cfg(test)]
@@ -730,7 +590,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_deployment_request_creation() {
-        let keypair = Keypair::new();
+        let keypair = Arc::new(Keypair::new());
         let request = DeploymentRequest::new(
             keypair.pubkey(),
             solana_sdk::system_program::id(),
@@ -738,7 +598,7 @@ mod tests {
             100,
             false,
             vec![0; 100],
-            keypair,
+            keypair.clone(),
         );
 
         assert_eq!(request.pubkey, keypair.pubkey());

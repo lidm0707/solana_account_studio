@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Core library
-surfdesk-core = { path = "../surfdesk-core", features = ["desktop", "solana", "database"] }
+surfdesk-core = { path = "../surfdesk-core", features = ["desktop", "database"] }
 
 # Dioxus desktop
 dioxus = { workspace = true, features = ["desktop"] }

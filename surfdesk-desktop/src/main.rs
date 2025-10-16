@@ -16,8 +16,8 @@ use dioxus::prelude::*;
 use log::{debug, error, info, warn, LevelFilter};
 use std::sync::Arc;
 
+mod keyboard;
 mod pages;
-mod surfpool;
 
 use components::*;
 use surfpool::SurfPoolManager;
@@ -192,6 +192,7 @@ fn SurfDeskDesktopApp() -> Element {
             _ => Theme::Auto,
         }),
         current_view: use_signal(|| DesktopView::Dashboard),
+        surfpool_manager: surfpool_manager.clone(),
         settings: use_signal(AppSettings::default),
         notifications: use_signal(Vec::<Notification>::new),
     };
