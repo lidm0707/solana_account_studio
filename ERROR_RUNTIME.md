@@ -112,3 +112,58 @@ thread 'main' panicked at /home/moo-tu/.cargo/registry/src/index.crates.io-1949c
 env_logger::init should not be called after logger initialized: SetLoggerError(())
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 [1]    235435 IOT instruction (core dumped)  ./target/release/surfdesk-tui
+
+
+🧾 Summary of the Problem (English)
+
+You are trying to build a Rust project for WebAssembly (WASM) using wasm-pack or cargo build --target wasm32-unknown-unknown, but the build fails due to several configuration issues:
+
+❗ Main Issues Encountered:
+
+1️⃣ Missing crate type configuration
+
+The error says:
+
+crate-type must be cdylib to compile to wasm32-unknown-unknown
+
+
+Your Cargo.toml does not include:
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+
+2️⃣ getrandom crate not configured for WebAssembly
+
+The build fails with:
+
+The wasm32-unknown-unknown targets are not supported by default...
+you may need to enable the "wasm_js" configuration flag
+
+
+This means you must enable WebAssembly support:
+
+getrandom = { version = "0.3", features = ["js"] }
+
+
+3️⃣ Unexpected function errors (inner_u32, inner_u64)
+
+Errors like:
+
+cannot find function `inner_u64` in module `backends`
+
+
+Indicate that your getrandom crate was accidentally modified or patched, breaking internal references.
+
+🧭 Root Cause
+
+Your Rust project is being compiled for WebAssembly without proper configuration for WASM, and the getrandom dependency was modified or corrupted in the Cargo registry.
+
+🚑 Required Fix Steps (High-Level)
+Step	Action
+1	Add crate-type = ["cdylib", "rlib"] to Cargo.toml
+2	Enable WebAssembly support in getrandom using features = ["js"]
+3	Clean and restore Cargo registry to remove corrupted patches
+4	Rebuild using wasm-pack or cargo build
+
+If you'd like, I can generate a fixed Cargo.toml and shell script for you automatically.
