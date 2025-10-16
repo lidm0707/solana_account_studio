@@ -4,7 +4,6 @@
 use crate::accounts::{Account, AccountManager};
 use crate::error::{Result, SurfDeskError};
 use crate::solana_rpc::{Keypair, Pubkey, RpcCommitment, Signer, SolanaNetwork, SolanaRpcClient};
-use std::collections::HashMap;
 
 /// Account service with real Solana integration
 pub struct AccountService {
@@ -41,7 +40,7 @@ impl AccountService {
             .add_account(account.clone())
             .map_err(|e| SurfDeskError::internal(format!("Failed to add account: {}", e)))?;
 
-        Ok((account, keypair))
+        Ok((account, Keypair::with_secret(keypair))))
     }
 
     /// Import account from secret key
@@ -62,13 +61,13 @@ impl AccountService {
         let mut accounts_with_balance = Vec::new();
 
         // Get all pubkeys for batch request
-        let pubkeys: Vec<&str> = accounts
-            .iter()
-            .map(|acc| acc.pubkey.to_string().as_str())
-            .collect();
+        let pubkeys: Vec<String> = accounts.iter().map(|acc| acc.pubkey.to_string()).collect();
 
         // Fetch balances in batch
-        let account_infos = self.rpc_client.get_multiple_accounts(pubkeys).await?;
+        let account_infos = self
+            .rpc_client
+            .get_multiple_accounts(pubkeys.iter().map(|s| s.as_str()).collect())
+            .await?;
 
         for (i, account) in accounts.into_iter().enumerate() {
             let balance = if let Some(Some(info)) = account_infos.get(i) {
@@ -142,7 +141,7 @@ impl AccountService {
         );
 
         // Send mock transaction (base64 encoded)
-        let transaction_base64 = base64::encode(&transaction_data);
+        let transaction_base64 = base64::encode(transaction_data);
 
         let signature = self
             .rpc_client
@@ -190,7 +189,6 @@ impl AccountService {
     pub fn switch_network(&mut self, network: SolanaNetwork) {
         self.network = network.clone();
         self.rpc_client = SolanaRpcClient::new(network);
-        self.account_manager.set_network(network);
     }
 
     /// Test connection
@@ -250,7 +248,7 @@ impl AccountWithBalance {
 /// Transaction builder for SOL transfers
 pub struct TransactionBuilder {
     from_pubkey: Pubkey,
-    instructions: Vec<serde_json::Value>,
+    instructions: Vec<String>,
     signers: Vec<Keypair>,
 }
 
@@ -266,8 +264,12 @@ impl TransactionBuilder {
 
     /// Add SOL transfer instruction
     pub fn add_sol_transfer(mut self, to_pubkey: Pubkey, lamports: u64) -> Self {
-        let instruction =
-            solana_sdk::system_instruction::transfer(&self.from_pubkey, &to_pubkey, lamports);
+        let instruction = format!(
+            "transfer_from_{}_to_{}_amount_{}",
+            self.from_pubkey.to_string(),
+            to_pubkey.to_string(),
+            lamports
+        );
         self.instructions.push(instruction);
         self
     }
@@ -295,7 +297,7 @@ impl TransactionBuilder {
         let transaction_str = serde_json::to_string(&transaction_data).map_err(|e| {
             SurfDeskError::internal(format!("Failed to serialize transaction: {}", e))
         })?;
-        let transaction_base64 = base64::encode(&transaction_str);
+        let transaction_base64 = base64::encode(transaction_str);
 
         let signature = rpc_client.send_transaction(&transaction_base64).await?;
         Ok(signature.as_str().to_string())

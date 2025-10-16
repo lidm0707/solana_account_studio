@@ -82,14 +82,8 @@ pub struct AccountManager {
     default_network: SolanaNetwork,
 }
 
-/// Solana network types
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub enum SolanaNetwork {
-    Mainnet,
-    #[default]
-    Devnet,
-    Testnet,
-}
+// Re-export SolanaNetwork from solana_rpc to avoid duplication
+pub use crate::solana_rpc::SolanaNetwork;
 
 impl AccountManager {
     /// Create new account manager

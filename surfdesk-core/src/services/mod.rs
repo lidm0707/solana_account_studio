@@ -135,7 +135,7 @@ impl ServiceManager {
         #[cfg(feature = "solana")]
         {
             if let Some(ref service) = self.solana_service {
-                service.shutdown().await?;
+                service.shutdown()?;
                 log::info!("Solana service shutdown");
             }
         }
