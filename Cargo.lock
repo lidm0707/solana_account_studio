@@ -2861,6 +2861,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dotenvy"
+version = "0.15.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
+
+[[package]]
 name = "downcast-rs"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3674,6 +3680,19 @@ dependencies = [
  "thiserror 1.0.69",
  "windows-sys 0.52.0",
  "x11-dl",
+]
+
+[[package]]
+name = "gloo-console"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a17868f56b4a24f677b17c8cb69958385102fa879418052d60b50bc1727e261"
+dependencies = [
+ "gloo-utils",
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -8729,6 +8748,7 @@ dependencies = [
  "solana-account-decoder",
  "solana-client",
  "solana-sdk",
+ "tempfile",
  "thiserror 1.0.69",
  "tokio",
  "tokio-test",
@@ -8747,6 +8767,8 @@ dependencies = [
  "clap 4.5.49",
  "cocoa 0.25.0",
  "dioxus",
+ "dioxus-desktop",
+ "dotenvy",
  "env_logger 0.11.8",
  "gtk",
  "log",
@@ -8788,6 +8810,8 @@ dependencies = [
  "console_log 1.0.0",
  "dioxus",
  "dioxus-router",
+ "dioxus-web",
+ "gloo-console",
  "js-sys",
  "log",
  "reqwest 0.11.27",
@@ -8799,6 +8823,7 @@ dependencies = [
  "url",
  "uuid",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "web-sys",
 ]

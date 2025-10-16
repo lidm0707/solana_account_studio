@@ -7,6 +7,7 @@
 use crate::error::Result;
 use std::collections::HashMap;
 
+use std::fmt;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
@@ -19,6 +20,16 @@ pub enum Platform {
     Web,
     /// Terminal platform (TUI)
     Terminal,
+}
+
+impl fmt::Display for Platform {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Platform::Desktop => write!(f, "Desktop"),
+            Platform::Web => write!(f, "Web"),
+            Platform::Terminal => write!(f, "Terminal"),
+        }
+    }
 }
 
 impl Platform {

@@ -8,8 +8,8 @@ use anyhow::Result;
 use clap::Parser;
 use dioxus::prelude::*;
 use log::{error, info, LevelFilter};
-use std::env;
-use surfdesk_core::{init_core, current_platform, Platform};
+
+use surfdesk_core::{current_platform, init_core};
 
 /// Command line arguments for the desktop application
 #[derive(Parser, Debug)]
@@ -57,7 +57,7 @@ struct Args {
 #[component]
 fn SurfDeskDesktopApp() -> Element {
     let mut count = use_signal(|| 0);
-    let mut platform_info = use_signal(|| current_platform().to_string());
+    let platform_info = use_signal(|| current_platform().to_string());
 
     rsx! {
         style { {include_str!("../assets/styles.css")} }
@@ -176,7 +176,10 @@ fn load_config(config_path: &str) -> Result<()> {
         dotenvy::from_filename(config_path)?;
         info!("Configuration loaded from: {}", config_path);
     } else {
-        info!("Configuration file not found: {} (using defaults)", config_path);
+        info!(
+            "Configuration file not found: {} (using defaults)",
+            config_path
+        );
     }
     Ok(())
 }
@@ -198,33 +201,14 @@ fn main() -> Result<()> {
     // Initialize core library
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
-        if let Err(e) = init_core().await {
+        init_core().await.map_err(|e| {
             error!("Failed to initialize core library: {}", e);
-            return Err(e);
-        }
+            e
+        })
     })?;
 
     // Configure Dioxus desktop
-    dioxus_desktop::launch_cfg(
-        SurfDeskDesktopApp,
-        dioxus_desktop::Config::new()
-            .with_window(
-                dioxus_desktop::WindowBuilder::new()
-                    .with_title(format!("SurfDesk Desktop v{}", surfdesk_core::VERSION))
-                    .with_inner_size(dioxus_desktop::LogicalSize::new(args.width, args.height))
-                    .with_resizable(!args.no_resize)
-                    .with_fullscreen(args.fullscreen)
-                    .with_always_on_top(args.always_on_top)
-                    .with_min_inner_size(dioxus_desktop::LogicalSize::new(800, 600))
-            )
-            .with_menu(
-                dioxus_desktop::Menu::new()
-                    .item(dioxus_desktop::MenuItem::new("File"))
-                    .item(dioxus_desktop::MenuItem::new("Edit"))
-                    .item(dioxus_desktop::MenuItem::new("View"))
-                    .item(dioxus_desktop::MenuItem::new("Help"))
-            )
-    );
+    dioxus::launch(SurfDeskDesktopApp);
 
     Ok(())
 }
@@ -245,7 +229,8 @@ mod tests {
             "1024",
             "--height",
             "768",
-        ]).unwrap();
+        ])
+        .unwrap();
 
         assert_eq!(args.log_level, "debug");
         assert_eq!(args.width, 1024);

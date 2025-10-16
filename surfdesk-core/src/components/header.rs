@@ -79,7 +79,10 @@ fn UserMenu() -> Element {
         div { class: "user-menu",
             button {
                 class: "user-menu-button",
-                onclick: move |_| menu_open.set(!*menu_open.read()),
+                onclick: move |_| {
+                    let current = *menu_open.read();
+                    menu_open.set(!current);
+                },
                 "👤"
             }
 
@@ -178,47 +181,38 @@ pub fn Header(props: HeaderProps) -> Element {
                         // Navigation items
                         nav { class: "main-nav",
                             ul { class: "nav-list",
-                                {
-                                    // Create items with proper lifetime
-                                    let items = vec![
-                                        rsx! {
-                                            li {
-                                                key: "dashboard",
-                                                class: if props.active_section == "dashboard" { "nav-item active" } else { "nav-item" },
+                                // Dashboard item
+                                li {
+                                    key: "dashboard",
+                                    class: if props.active_section == "dashboard" { "nav-item active" } else { "nav-item" },
 
-                                                a {
-                                                    href: "#",
-                                                    span { class: "nav-icon", "📊" }
-                                                    span { class: "nav-label", "Dashboard" }
-                                                }
-                                            }
-                                        },
-                                        rsx! {
-                                            li {
-                                                key: "surfpool",
-                                                class: if props.active_section == "surfpool" { "nav-item active" } else { "nav-item" },
+                                    a {
+                                        href: "#",
+                                        span { class: "nav-icon", "📊" }
+                                        span { class: "nav-label", "Dashboard" }
+                                    }
+                                }
+                                // SurfPool item
+                                li {
+                                    key: "surfpool",
+                                    class: if props.active_section == "surfpool" { "nav-item active" } else { "nav-item" },
 
-                                                a {
-                                                    href: "#",
-                                                    span { class: "nav-icon", "🏊" }
-                                                    span { class: "nav-label", "SurfPool" }
-                                                }
-                                            }
-                                        },
-                                        rsx! {
-                                            li {
-                                                key: "accounts",
-                                                class: if props.active_section == "accounts" { "nav-item active" } else { "nav-item" },
+                                    a {
+                                        href: "#",
+                                        span { class: "nav-icon", "🏊" }
+                                        span { class: "nav-label", "SurfPool" }
+                                    }
+                                }
+                                // Accounts item
+                                li {
+                                    key: "accounts",
+                                    class: if props.active_section == "accounts" { "nav-item active" } else { "nav-item" },
 
-                                                a {
-                                                    href: "#",
-                                                    span { class: "nav-icon", "👥" }
-                                                    span { class: "nav-label", "Accounts" }
-                                                }
-                                            }
-                                        },
-                                    ];
-                                    items
+                                    a {
+                                        href: "#",
+                                        span { class: "nav-icon", "👥" }
+                                        span { class: "nav-label", "Accounts" }
+                                    }
                                 }
                             }
                         }

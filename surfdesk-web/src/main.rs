@@ -6,15 +6,27 @@
 
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
-use gloo_console::log;
+// use gloo_console::log;
 use log::{error, info, LevelFilter};
-use surfdesk_core::{init_core, current_platform, Platform};
+use surfdesk_core::{current_platform, init_core, Platform};
 
 /// Main application component with routing
 #[component]
 fn SurfDeskWebApp() -> Element {
     rsx! {
-        style { {include_str!("../assets/styles.css")} }
+        style { "
+            body {{ font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }}
+            .container {{ max-width: 1200px; margin: 0 auto; padding: 2rem; }}
+            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4rem 2rem; text-align: center; }}
+            .nav {{ background: white; border-bottom: 1px solid #e5e7eb; padding: 1rem 2rem; }}
+            .nav-item {{ margin: 0 1rem; color: #374151; text-decoration: none; }}
+            .nav-item:hover {{ color: #667eea; }}
+            .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin: 2rem 0; }}
+            .card {{ background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }}
+            .btn {{ background: #667eea; color: white; padding: 0.75rem 1.5rem; border-radius: 4px; text-decoration: none; display: inline-block; }}
+            .btn:hover {{ background: #5a6fd8; }}
+            .footer {{ background: #f9fafb; padding: 3rem 2rem; text-align: center; margin-top: 4rem; }}
+        " }
 
         Router::<Route> {}
     }
@@ -166,8 +178,8 @@ fn Home() -> Element {
                                 div { class: "flex-shrink-0 bg-indigo-500 rounded-md p-3",
                                     span { class: "text-2xl", "🔗" }
                                 }
-                                div { class="ml-4",
-                                    h3 { class="text-lg font-medium text-gray-900", "Solana Integration" }
+                                div { class: "ml-4",
+                                    h3 { class: "text-lg font-medium text-gray-900", "Solana Integration" }
                                 }
                             }
                             div { class="mt-4",
@@ -261,11 +273,12 @@ fn Home() -> Element {
                             span { class="text-gray-300", " • " }
                             a { href: "https://docs.surfdesk.dev", class="text-gray-400 hover:text-gray-500", "Documentation" }
                             span { class="text-gray-300", " • " }
-                            a { href=" "https://discord.gg/surfdesk", class="text-gray-400 hover:text-gray-500", "Discord" }
+                            a { href: "https://discord.gg/surfdesk", class="text-gray-400 hover:text-gray-500", "Discord" }
                         }
-                        p { class="mt-8 text-base text-gray-400 md:mt-0 md:order-1",
+                        p { class: "mt-8 text-base text-gray-400 md:mt-0 md:order-1",
                             "© 2024 SurfDesk. Built with Dioxus & Rust. "
-                            span { "Platform: {current_platform()}" }
+                            span { "Platform: " }
+                            span { "{current_platform()}" }
                         }
                     }
                 }
@@ -412,18 +425,17 @@ fn main() {
     log::info!("Version: {}", surfdesk_core::VERSION);
 
     // Initialize core library
-    let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
-    rt.block_on(async {
+    // Initialize core library for web
+    wasm_bindgen_futures::spawn_local(async {
         if let Err(e) = init_core().await {
-            error!("Failed to initialize core library: {}", e);
-            return;
+            web_sys::console::error_1(&format!("Failed to initialize core library: {}", e).into());
         }
     });
 
     log::info!("Core library initialized successfully");
 
     // Launch the web application
-    dioxus_web::launch(SurfDeskWebApp);
+    dioxus::launch(SurfDeskWebApp);
 }
 
 #[cfg(test)]

@@ -22,6 +22,9 @@ dioxus-router = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
 js-sys = "0.3"
+gloo-console = "0.3"
+dioxus-web = "0.6"
+wasm-bindgen-futures = "0.4"
 
 # Logging
 log = { workspace = true }

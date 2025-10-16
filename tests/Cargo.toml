@@ -1,0 +1,32 @@
+[package]
+name = "surfdesk-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+# Core dependencies
+surfdesk-core = { path = "../surfdesk-core" }
+
+# Dioxus testing
+dioxus = { workspace = true }
+dioxus-ssr = { workspace = true }
+
+# Testing utilities
+pretty-assertions = { workspace = true }
+tokio-test = "0.4"
+tempfile = "3.0"
+
+# Logging for tests
+env_logger = "0.10"
+
+# Mock and test utilities
+proptest = { workspace = true }
+
+[[test]]
+name = "unit"
+path = "unit/mod.rs"
+
+[[test]]
+name = "integration"
+path = "integration/mod.rs"

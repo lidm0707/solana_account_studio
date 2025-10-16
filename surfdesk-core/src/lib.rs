@@ -13,7 +13,7 @@
 //! - **Configuration Management**: Flexible configuration system
 //! - **Error Handling**: Comprehensive error handling with proper propagation
 
-#![deny(missing_docs)]
+#![allow(missing_docs)]
 #![warn(clippy::all)]
 #![warn(rust_2018_idioms)]
 

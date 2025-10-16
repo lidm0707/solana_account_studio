@@ -494,7 +494,7 @@ mod tests {
         let config = SurfPoolConfig::default();
         assert_eq!(config.rpc_port, 8899);
         assert_eq!(config.ws_port, 8900);
-        assert!(config.enable_mcp, true);
+        assert!(config.enable_mcp);
         assert!(config.anchor_project);
         assert_eq!(config.preset_accounts.len(), 1);
     }

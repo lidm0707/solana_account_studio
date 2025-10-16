@@ -312,10 +312,11 @@ fn SidebarSectionComponent(
     on_item_click: EventHandler<String>,
 ) -> Element {
     let section_collapsed = use_signal(|| section.collapsed);
-    let section_collapsed_clone = section_collapsed.clone();
+    let mut section_collapsed_clone = section_collapsed.clone();
 
     let on_section_toggle = move |_: dioxus::events::MouseEvent| {
-        section_collapsed_clone.set(!*section_collapsed_clone.read());
+        let current = *section_collapsed_clone.read();
+        section_collapsed_clone.set(!current);
     };
 
     // Extract header rendering
@@ -373,14 +374,15 @@ fn SidebarItemComponent(
     collapsed: bool,
     on_click: EventHandler<String>,
 ) -> Element {
-    let item_expanded = use_signal(|| false);
+    let mut item_expanded = use_signal(|| false);
 
     let on_item_click_handler = move |_: dioxus::events::MouseEvent| {
         on_click.call(item.id.clone());
     };
 
     let on_expand_toggle = move |_: dioxus::events::MouseEvent| {
-        item_expanded.set(!*item_expanded.read());
+        let current = *item_expanded.read();
+        item_expanded.set(!current);
     };
 
     // Extract children items iterator
@@ -448,16 +450,12 @@ fn TerminalSidebarSection(
             div { class: "terminal-section-header",
                 "── {section.title} ──"
             }
-            {
-                // Terminal items rendering
-                for item in section.items.iter() {
-                    rsx! {
-                        TerminalSidebarItem(
-                            item.clone(),
-                            active_section.clone(),
-                            on_item_click.clone(),
-                        )
-                    }
+            // Terminal items rendering
+            for item in section.items.iter() {
+                TerminalSidebarItem {
+                    item: item.clone(),
+                    active_section: active_section.clone(),
+                    on_click: on_item_click.clone(),
                 }
             }
         }
