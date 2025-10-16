@@ -213,6 +213,7 @@ fn SurfDeskDesktopApp() -> Element {
         // style { {include_str!("styles/loading.css")} }
         // style { {include_str!("styles/input.css")} }
         // style { {include_str!("styles/modal.css")} }
+        // style { {include_str!("styles/toast.css")} }
         // style { {include_str!("styles/design-system.css")} }
         // style { {include_str!("styles/keyboard.css")} }
 

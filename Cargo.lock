@@ -8848,6 +8848,7 @@ dependencies = [
  "surfdesk-core",
  "thiserror 1.0.69",
  "tokio",
+ "uuid",
  "wasm-bindgen",
  "web-sys",
  "webbrowser",

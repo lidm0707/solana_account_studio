@@ -8,6 +8,7 @@ pub mod card;
 pub mod input;
 pub mod loading;
 pub mod modal;
+pub mod toast;
 
 // Re-export main components
 pub use button::{Button, ButtonProps, ButtonVariant};
@@ -24,6 +25,10 @@ pub use loading::{
 pub use modal::{
     AlertModal, AlertModalProps, ConfirmModal, ConfirmModalProps, Modal, ModalProps, ModalSize,
     ModalVariant,
+};
+pub use toast::{
+    NotificationToast, NotificationToastProps, ToastManager, ToastManagerProps, ToastPosition,
+    ToastVariant,
 };
 
 /// Common component props and utilities
