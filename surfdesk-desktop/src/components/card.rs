@@ -46,7 +46,7 @@ pub struct CardProps {
 }
 
 /// Card variants for different visual styles
-#[derive(Debug, Clone, PartialEq, Props)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CardVariant {
     /// Default card with standard styling
     Default,
@@ -192,7 +192,7 @@ pub struct SimpleCardProps {
 }
 
 /// Trend indicator for cards
-#[derive(Debug, Clone, PartialEq, Props)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CardTrend {
     Up,
     Down,

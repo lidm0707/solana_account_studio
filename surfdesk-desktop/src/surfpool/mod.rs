@@ -7,7 +7,7 @@
 use anyhow::{Context, Result};
 use dioxus::prelude::*;
 use log::{debug, error, info, warn};
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -153,18 +153,15 @@ impl SurfPoolManager {
             .arg(&self.config.account_path);
 
         if self.config.fork_mainnet {
-            cmd.arg("--fork")
-                .arg(&self.config.rpc_url);
+            cmd.arg("--fork").arg(&self.config.rpc_url);
         }
 
         if self.config.enable_logging {
-            cmd.arg("--log-level")
-                .arg(&self.config.log_level);
+            cmd.arg("--log-level").arg(&self.config.log_level);
         }
 
         // Set up pipes for stdout/stderr
-        cmd.stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
         // Start the process
         match cmd.spawn() {
@@ -275,7 +272,9 @@ impl SurfPoolManager {
                 match client.get(&health_url).send().await {
                     Ok(response) => {
                         if response.status().is_success() {
-                            let health: HealthCheck = response.json().await
+                            let health: HealthCheck = response
+                                .json()
+                                .await
                                 .context("Failed to parse health check response")?;
 
                             // Update last health check time
@@ -294,17 +293,15 @@ impl SurfPoolManager {
                             ))
                         }
                     }
-                    Err(e) => {
-                        Err(anyhow::anyhow!("Failed to perform health check: {}", e))
-                    }
+                    Err(e) => Err(anyhow::anyhow!("Failed to perform health check: {}", e)),
                 }
             }
-            _ => Err(anyhow::anyhow!("SurfPool is not running"))
+            _ => Err(anyhow::anyhow!("SurfPool is not running")),
         }
     }
 
     /// Request airdrop on local network
-    pub asyncfn request_airdrop(&self, pubkey: &str, amount: u64) -> Result<String> {
+    pub async fn request_airdrop(&self, pubkey: &str, amount: u64) -> Result<String> {
         let status = self.get_status();
 
         match status {
@@ -317,14 +314,17 @@ impl SurfPoolManager {
                     "lamports": amount
                 });
 
-                let response = client.post(&airdrop_url)
+                let response = client
+                    .post(&airdrop_url)
                     .json(&body)
                     .send()
                     .await
                     .context("Failed to request airdrop")?;
 
                 if response.status().is_success() {
-                    let result: serde_json::Value = response.json().await
+                    let result: serde_json::Value = response
+                        .json()
+                        .await
                         .context("Failed to parse airdrop response")?;
 
                     Ok(result.to_string())
@@ -335,7 +335,7 @@ impl SurfPoolManager {
                     ))
                 }
             }
-            _ => Err(anyhow::anyhow!("SurfPool is not running"))
+            _ => Err(anyhow::anyhow!("SurfPool is not running")),
         }
     }
 
@@ -389,7 +389,9 @@ impl SurfPoolManager {
                             }
                             Ok(None) => {
                                 // Process is still running, update uptime
-                                if let SurfPoolStatus::Running { uptime, .. } = &mut *status.lock().unwrap() {
+                                if let SurfPoolStatus::Running { uptime, .. } =
+                                    &mut *status.lock().unwrap()
+                                {
                                     *uptime += 5;
                                 }
                             }
@@ -497,7 +499,7 @@ pub fn SurfPoolControls(props: SurfPoolControlsProps) -> Element {
                 match status() {
                     SurfPoolStatus::Stopped => {
                         div { class: "status-stopped",
-                            span { class: "status-indicator status-offline" }
+                            span { class: "status-indicator status-offline", "" }
                             span { "Stopped" }
                         }
                     }

@@ -40,7 +40,7 @@ pub struct ButtonProps {
 }
 
 /// Button variants for different visual styles
-#[derive(Debug, Clone, PartialEq, Props)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ButtonVariant {
     /// Primary action button (purple gradient)
     Primary,
@@ -155,14 +155,14 @@ pub struct ButtonGroupProps {
 }
 
 /// Button group orientation
-#[derive(Debug, Clone, PartialEq, Props)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ButtonGroupOrientation {
     Horizontal,
     Vertical,
 }
 
 /// Button group spacing
-#[derive(Debug, Clone, PartialEq, Props)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ButtonGroupSpacing {
     None,
     Small,

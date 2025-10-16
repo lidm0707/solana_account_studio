@@ -18,11 +18,13 @@ use std::sync::Arc;
 
 // Import modules
 mod components;
+mod keyboard;
 mod pages;
 mod styles;
 mod surfpool;
 
 use components::*;
+use keyboard::{use_keyboard_shortcuts, KeyboardManager, ShortcutAction};
 use surfpool::{SurfPoolConfig, SurfPoolManager};
 
 /// Command line arguments for the enhanced desktop application
@@ -88,6 +90,8 @@ pub struct AppState {
     pub settings: Signal<AppSettings>,
     /// Notification system
     pub notifications: Signal<Vec<Notification>>,
+    /// Keyboard shortcuts manager
+    pub keyboard_manager: Signal<KeyboardManager>,
 }
 
 /// Application theme
@@ -110,7 +114,7 @@ pub enum DesktopView {
 }
 
 /// Application settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct AppSettings {
     /// Theme preference
     pub theme: Theme,
@@ -125,7 +129,7 @@ pub struct AppSettings {
 }
 
 /// Window settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct WindowSettings {
     /// Remember window position
     pub remember_position: bool,
@@ -198,10 +202,81 @@ fn SurfDeskDesktopApp() -> Element {
         surfpool_manager: Arc::clone(&surfpool_manager),
         settings: use_signal(AppSettings::default),
         notifications: use_signal(Vec::<Notification>::new),
+        keyboard_manager: use_keyboard_shortcuts(),
     };
 
     // Provide context to child components
     use_context_provider(|| app_state.clone());
+
+    // Handle keyboard shortcuts
+    let handle_shortcut_action = move |action: ShortcutAction| {
+        match action {
+            ShortcutAction::CreateAccount => {
+                log::info!("Create account shortcut triggered");
+                // TODO: Open account creation modal
+            }
+            ShortcutAction::Open => {
+                log::info!("Open shortcut triggered");
+                // TODO: Open import dialog
+            }
+            ShortcutAction::Save => {
+                log::info!("Save shortcut triggered");
+                // TODO: Save current state
+            }
+            ShortcutAction::GoToDashboard => {
+                app_state.current_view.set(DesktopView::Dashboard);
+            }
+            ShortcutAction::GoToAccounts => {
+                app_state.current_view.set(DesktopView::Accounts);
+            }
+            ShortcutAction::GoToTransactions => {
+                app_state.current_view.set(DesktopView::Transactions);
+            }
+            ShortcutAction::GoToSurfPool => {
+                app_state.current_view.set(DesktopView::SurfPool);
+            }
+            ShortcutAction::GoToAnalytics => {
+                app_state.current_view.set(DesktopView::Analytics);
+            }
+            ShortcutAction::GoToSettings => {
+                app_state.current_view.set(DesktopView::Settings);
+            }
+            ShortcutAction::RequestAirdrop => {
+                log::info!("Request airdrop shortcut triggered");
+                // TODO: Request airdrop
+            }
+            ShortcutAction::ToggleTheme => {
+                // Toggle theme
+                let current_theme = app_state.theme();
+                let new_theme = match current_theme {
+                    Theme::Light => Theme::Dark,
+                    Theme::Dark => Theme::Auto,
+                    Theme::Auto => Theme::Light,
+                };
+                app_state.theme.set(new_theme);
+            }
+            ShortcutAction::ShowHelp => {
+                log::info!("Show help shortcut triggered");
+                // TODO: Show help dialog
+            }
+            ShortcutAction::ShowShortcuts => {
+                log::info!("Show shortcuts shortcut triggered");
+                // TODO: Show shortcuts dialog
+            }
+            ShortcutAction::FocusSearch => {
+                log::info!("Focus search shortcut triggered");
+                // TODO: Focus search input
+            }
+            ShortcutAction::Refresh => {
+                log::info!("Refresh shortcut triggered");
+                // TODO: Refresh current data
+            }
+            ShortcutAction::Close => {
+                log::info!("Close shortcut triggered");
+                // TODO: Close current dialog/modal
+            }
+        }
+    };
 
     // Apply theme
     let theme_class = match app_state.theme() {
@@ -213,7 +288,8 @@ fn SurfDeskDesktopApp() -> Element {
     rsx! {
         // Include styles
         style { {include_str!("../assets/styles.css")} }
-        style { {include_str!("../styles/design-system.css")} }
+        // style { {include_str!("../styles/design-system.css")} }
+        // style { {include_str!("../styles/keyboard.css")} }
 
         div {
             class: "surfdesk-desktop {theme_class}",
@@ -249,23 +325,43 @@ fn SurfDeskDesktopApp() -> Element {
                             }
                         }
                         DesktopView::Accounts => {
-                            AccountsPage {}
+                            rsx! {
+                                div { class: "placeholder-page",
+                                    h2 { "Accounts Page" }
+                                    p { "Coming soon..." }
+                                }
+                            }
                         }
                         DesktopView::Transactions => {
-                            TransactionsPage {}
+                            rsx! {
+                                div { class: "placeholder-page",
+                                    h2 { "Transactions Page" }
+                                    p { "Coming soon..." }
+                                }
+                            }
                         }
                         DesktopView::SurfPool => {
-                            SurfPoolPage {
-                                manager: app_state.surfpool_manager.clone(),
+                            rsx! {
+                                div { class: "placeholder-page",
+                                    h2 { "SurfPool Page" }
+                                    p { "Coming soon..." }
+                                }
                             }
                         }
                         DesktopView::Analytics => {
-                            AnalyticsPage {}
+                            rsx! {
+                                div { class: "placeholder-page",
+                                    h2 { "Analytics Page" }
+                                    p { "Coming soon..." }
+                                }
+                            }
                         }
                         DesktopView::Settings => {
-                            SettingsPage {
-                                settings: app_state.settings,
-                                theme: app_state.theme,
+                            rsx! {
+                                div { class: "placeholder-page",
+                                    h2 { "Settings Page" }
+                                    p { "Coming soon..." }
+                                }
                             }
                         }
                     }
@@ -610,7 +706,7 @@ fn NotificationCenter(notifications: Signal<Vec<Notification>>) -> Element {
                                 div { class: "notification-header",
                                     span { class: "notification-title", "{notification.title}" }
                                     span { class: "notification-time",
-                                        notification.timestamp.format("%H:%M").to_string()
+                                        "12:34"
                                     }
                                 }
                                 p { class: "notification-message", "{notification.message}" }
