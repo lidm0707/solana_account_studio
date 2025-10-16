@@ -40,7 +40,8 @@ impl AccountService {
             .add_account(account.clone())
             .map_err(|e| SurfDeskError::internal(format!("Failed to add account: {}", e)))?;
 
-        Ok((account, Keypair::with_secret(keypair))))
+        Ok((account, Keypair::with_secret(keypair)))
+    }
     }
 
     /// Import account from secret key
