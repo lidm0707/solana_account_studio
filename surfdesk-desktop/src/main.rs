@@ -1,21 +1,35 @@
-//! # SurfDesk Desktop Application
+//! # SurfDesk Desktop Application - Enhanced Edition
 //!
-//! This is the main entry point for the SurfDesk desktop application.
-//! It provides a native desktop experience for the Solana account studio
-//! using Dioxus for cross-platform GUI development.
+//! Professional desktop application for Solana account management.
+//! Features enhanced UI/UX, SurfPool integration, and desktop-specific capabilities.
+//!
+//! ## Features
+//! - Professional design system with dark/light themes
+//! - SurfPool local validator management
+//! - Advanced account management and analytics
+//! - Native desktop integrations (menu bar, system tray, shortcuts)
+//! - Component-based architecture with reusable UI components
 
 use anyhow::Result;
 use clap::Parser;
 use dioxus::prelude::*;
-use log::{error, info, LevelFilter};
+use log::{debug, error, info, warn, LevelFilter};
+use std::sync::Arc;
 
-use surfdesk_core::{current_platform, init_core};
+// Import modules
+mod components;
+mod pages;
+mod styles;
+mod surfpool;
 
-/// Command line arguments for the desktop application
+use components::*;
+use surfpool::{SurfPoolConfig, SurfPoolManager};
+
+/// Command line arguments for the enhanced desktop application
 #[derive(Parser, Debug)]
 #[command(
     name = "surfdesk-desktop",
-    about = "SurfDesk Desktop - Multi-platform Solana Account Studio",
+    about = "SurfDesk Desktop - Professional Solana Account Studio",
     version,
     author
 )]
@@ -33,11 +47,11 @@ struct Args {
     dev: bool,
 
     /// Window width
-    #[arg(long, default_value = "1200")]
+    #[arg(long, default_value = "1400")]
     width: u32,
 
     /// Window height
-    #[arg(long, default_value = "800")]
+    #[arg(long, default_value = "900")]
     height: u32,
 
     /// Enable fullscreen mode
@@ -51,105 +65,571 @@ struct Args {
     /// Disable window resizing
     #[arg(long)]
     no_resize: bool,
+
+    /// Start with SurfPool enabled
+    #[arg(long)]
+    start_surfpool: bool,
+
+    /// Theme preference (light, dark, auto)
+    #[arg(long, default_value = "auto")]
+    theme: String,
+}
+
+/// Application state
+#[derive(Debug, Clone)]
+pub struct AppState {
+    /// Current theme
+    pub theme: Signal<Theme>,
+    /// Current page/view
+    pub current_view: Signal<DesktopView>,
+    /// SurfPool manager
+    pub surfpool_manager: Arc<SurfPoolManager>,
+    /// Application settings
+    pub settings: Signal<AppSettings>,
+    /// Notification system
+    pub notifications: Signal<Vec<Notification>>,
+}
+
+/// Application theme
+#[derive(Debug, Clone, PartialEq)]
+pub enum Theme {
+    Light,
+    Dark,
+    Auto,
+}
+
+/// Desktop views/pages
+#[derive(Debug, Clone, PartialEq)]
+pub enum DesktopView {
+    Dashboard,
+    Accounts,
+    Transactions,
+    SurfPool,
+    Analytics,
+    Settings,
+}
+
+/// Application settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppSettings {
+    /// Theme preference
+    pub theme: Theme,
+    /// Auto-start SurfPool
+    pub auto_start_surfpool: bool,
+    /// Default network
+    pub default_network: String,
+    /// Enable notifications
+    pub enable_notifications: bool,
+    /// Window settings
+    pub window_settings: WindowSettings,
+}
+
+/// Window settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WindowSettings {
+    /// Remember window position
+    pub remember_position: bool,
+    /// Remember window size
+    pub remember_size: bool,
+    /// Start maximized
+    pub start_maximized: bool,
+    /// Show in system tray
+    pub show_in_tray: bool,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            theme: Theme::Auto,
+            auto_start_surfpool: false,
+            default_network: "devnet".to_string(),
+            enable_notifications: true,
+            window_settings: WindowSettings {
+                remember_position: true,
+                remember_size: true,
+                start_maximized: false,
+                show_in_tray: true,
+            },
+        }
+    }
+}
+
+/// Notification for the user
+#[derive(Debug, Clone)]
+pub struct Notification {
+    /// Notification ID
+    pub id: String,
+    /// Notification title
+    pub title: String,
+    /// Notification message
+    pub message: String,
+    /// Notification type
+    pub notification_type: NotificationType,
+    /// Timestamp
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    /// Whether it's read
+    pub read: bool,
+}
+
+/// Notification types
+#[derive(Debug, Clone)]
+pub enum NotificationType {
+    Info,
+    Success,
+    Warning,
+    Error,
 }
 
 /// Main application component
 #[component]
 fn SurfDeskDesktopApp() -> Element {
-    let mut count = use_signal(|| 0);
-    let platform_info = use_signal(|| current_platform().to_string());
+    let args = use_context::<Args>();
+    let surfpool_config = SurfPoolConfig::default();
+    let surfpool_manager = Arc::new(SurfPoolManager::new(surfpool_config));
+
+    // Initialize application state
+    let app_state = AppState {
+        theme: use_signal(|| match args.theme.as_str() {
+            "light" => Theme::Light,
+            "dark" => Theme::Dark,
+            _ => Theme::Auto,
+        }),
+        current_view: use_signal(|| DesktopView::Dashboard),
+        surfpool_manager: Arc::clone(&surfpool_manager),
+        settings: use_signal(AppSettings::default),
+        notifications: use_signal(Vec::<Notification>::new),
+    };
+
+    // Provide context to child components
+    use_context_provider(|| app_state.clone());
+
+    // Apply theme
+    let theme_class = match app_state.theme() {
+        Theme::Light => "theme-light",
+        Theme::Dark => "theme-dark",
+        Theme::Auto => "theme-auto",
+    };
 
     rsx! {
+        // Include styles
         style { {include_str!("../assets/styles.css")} }
+        style { {include_str!("../styles/design-system.css")} }
 
-        div { class: "desktop-app",
-            div { class: "header",
-                h1 { "SurfDesk Desktop" }
-                p { "Multi-platform Solana Account Studio" }
-                div { class: "platform-info",
-                    span { "Platform: {platform_info}" }
-                }
+        div {
+            class: "surfdesk-desktop {theme_class}",
+
+            // Menu bar
+            MenuBar {
+                current_view: app_state.current_view,
+                on_view_change: move |view| {
+                    app_state.current_view.set(view);
+                },
+                surfpool_manager: app_state.surfpool_manager.clone(),
             }
 
-            div { class: "main-content",
-                div { class: "welcome-card",
-                    h2 { "Welcome to SurfDesk!" }
-                    p { "Your comprehensive Solana account studio is ready to use." }
+            // Main content area
+            div { class: "desktop-main",
 
-                    div { class: "feature-grid",
-                        div { class: "feature-card",
-                            h3 { "🔗 Solana Integration" }
-                            p { "Connect to Solana mainnet, devnet, testnet, or local validator" }
-                        }
-
-                        div { class: "feature-card",
-                            h3 { "🏦 Account Management" }
-                            p { "Explore, analyze, and manage Solana accounts and programs" }
-                        }
-
-                        div { class: "feature-card",
-                            h3 { "🔧 Transaction Builder" }
-                            p { "Build, simulate, and send transactions with confidence" }
-                        }
-
-                        div { class: "feature-card",
-                            h3 { "🤖 AI-Powered Testing" }
-                            p { "Generate intelligent test cases and analyze results" }
-                        }
-                    }
-
-                    div { class: "demo-section",
-                        h3 { "Interactive Demo" }
-                        p { "Click count: {count}" }
-                        button {
-                            onclick: move |_| count += 1,
-                            "Click me!"
-                        }
-                        button {
-                            onclick: move |_| count.set(0),
-                            "Reset"
-                        }
-                    }
+                // Sidebar navigation
+                Sidebar {
+                    current_view: app_state.current_view,
+                    on_view_change: move |view| {
+                        app_state.current_view.set(view);
+                    },
                 }
 
-                div { class: "status-panel",
-                    h3 { "System Status" }
-                    div { class: "status-grid",
-                        div { class: "status-item",
-                            span { class: "status-label", "Core Library:" }
-                            span { class: "status-value status-ok", "✓ Initialized" }
+                // Content area
+                div { class: "desktop-content",
+
+                    // Render current view
+                    match app_state.current_view() {
+                        DesktopView::Dashboard => {
+                            DashboardPage {
+                                surfpool_manager: app_state.surfpool_manager.clone(),
+                            }
                         }
-                        div { class: "status-item",
-                            span { class: "status-label", "Platform:" }
-                            span { class: "status-value", "{current_platform()}" }
+                        DesktopView::Accounts => {
+                            AccountsPage {}
                         }
-                        div { class: "status-item",
-                            span { class: "status-label", "GUI:" }
-                            span { class: "status-value status-ok", "✓ Dioxus Desktop" }
+                        DesktopView::Transactions => {
+                            TransactionsPage {}
                         }
-                        div { class: "status-item",
-                            span { class: "status-label", "Features:" }
-                            span { class: "status-value", "Desktop + Solana + Database" }
+                        DesktopView::SurfPool => {
+                            SurfPoolPage {
+                                manager: app_state.surfpool_manager.clone(),
+                            }
+                        }
+                        DesktopView::Analytics => {
+                            AnalyticsPage {}
+                        }
+                        DesktopView::Settings => {
+                            SettingsPage {
+                                settings: app_state.settings,
+                                theme: app_state.theme,
+                            }
                         }
                     }
                 }
             }
 
-            div { class: "footer",
-                p { "SurfDesk v{surfdesk_core::VERSION} - Built with Dioxus & Rust" }
-                div { class: "footer-links",
-                    a { href: "https://github.com/your-org/surfdesk", "GitHub" }
-                    span { " • " }
-                    a { href: "https://docs.surfdesk.dev", "Documentation" }
-                    span { " • " }
-                    a { href: "https://discord.gg/surfdesk", "Discord" }
+            // Status bar
+            StatusBar {
+                surfpool_manager: app_state.surfpool_manager.clone(),
+            }
+
+            // Notification system
+            NotificationCenter {
+                notifications: app_state.notifications,
+            }
+        }
+    }
+}
+
+/// Menu bar component
+#[component]
+fn MenuBar(
+    current_view: Signal<DesktopView>,
+    on_view_change: EventHandler<DesktopView>,
+    surfpool_manager: Arc<SurfPoolManager>,
+) -> Element {
+    let surfpool_status = use_signal(|| surfpool_manager.get_status());
+
+    // Update SurfPool status periodically
+    use_coroutine(|_| {
+        let manager = Arc::clone(&surfpool_manager);
+        let status = surfpool_status.clone();
+
+        async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(2));
+            loop {
+                interval.tick().await;
+                status.set(manager.get_status());
+            }
+        }
+    });
+
+    rsx! {
+        div { class: "menu-bar",
+
+            // App menu
+            div { class: "menu-section",
+                div { class: "menu-item",
+                    span { class: "menu-logo", "🏄" }
+                    span { class: "menu-title", "SurfDesk" }
+                }
+            }
+
+            // Navigation menu
+            div { class: "menu-section nav-menu",
+
+                NavigationItem {
+                    view: DesktopView::Dashboard,
+                    current_view: current_view(),
+                    on_click: on_view_change,
+                    icon: "📊",
+                    label: "Dashboard",
+                }
+
+                NavigationItem {
+                    view: DesktopView::Accounts,
+                    current_view: current_view(),
+                    on_click: on_view_change,
+                    icon: "🏦",
+                    label: "Accounts",
+                }
+
+                NavigationItem {
+                    view: DesktopView::Transactions,
+                    current_view: current_view(),
+                    on_click: on_view_change,
+                    icon: "🔧",
+                    label: "Transactions",
+                }
+
+                NavigationItem {
+                    view: DesktopView::SurfPool,
+                    current_view: current_view(),
+                    on_click: on_view_change,
+                    icon: "🌊",
+                    label: "SurfPool",
+                    badge: match surfpool_status() {
+                        surfpool::SurfPoolStatus::Running { .. } => Some("●".to_string()),
+                        _ => None,
+                    },
+                }
+
+                NavigationItem {
+                    view: DesktopView::Analytics,
+                    current_view: current_view(),
+                    on_click: on_view_change,
+                    icon: "📈",
+                    label: "Analytics",
+                }
+
+                NavigationItem {
+                    view: DesktopView::Settings,
+                    current_view: current_view(),
+                    on_click: on_view_change,
+                    icon: "⚙️",
+                    label: "Settings",
+                }
+            }
+
+            // System menu
+            div { class: "menu-section system-menu",
+
+                // SurfPool status indicator
+                div { class: "surfpool-indicator",
+                    span { class: format!("surfpool-status surfpool-status-{:?}", surfpool_status()),
+                        match surfpool_status() {
+                            surfpool::SurfPoolStatus::Running { .. } => "🟢",
+                            surfpool::SurfPoolStatus::Starting => "🟡",
+                            surfpool::SurfPoolStatus::Stopping => "🟡",
+                            surfpool::SurfPoolStatus::Stopped => "⚪",
+                            surfpool::SurfPoolStatus::Error { .. } => "🔴",
+                        }
+                    }
+                    span { class: "surfpool-text",
+                        match surfpool_status() {
+                            surfpool::SurfPoolStatus::Running { port, .. } => format!("Port {}", port),
+                            surfpool::SurfPoolStatus::Starting => "Starting".to_string(),
+                            surfpool::SurfPoolStatus::Stopping => "Stopping".to_string(),
+                            surfpool::SurfPoolStatus::Stopped => "Stopped".to_string(),
+                            surfpool::SurfPoolStatus::Error { .. } => "Error".to_string(),
+                        }
+                    }
+                }
+
+                // Window controls
+                div { class: "window-controls",
+                    button { class: "window-control minimize", "─" }
+                    button { class: "window-control maximize", "□" }
+                    button { class: "window-control close", "✕" }
                 }
             }
         }
     }
 }
 
-/// Initialize logging
+/// Navigation item component
+#[component]
+fn NavigationItem(
+    view: DesktopView,
+    current_view: DesktopView,
+    on_click: EventHandler<DesktopView>,
+    icon: String,
+    label: String,
+    badge: Option<String>,
+) -> Element {
+    let is_active = current_view == view;
+
+    rsx! {
+        button {
+            class: format!("nav-item {}", if is_active { "active" } else { "" }),
+            onclick: move |_| on_click.call(view),
+
+            span { class: "nav-icon", "{icon}" }
+            span { class: "nav-label", "{label}" }
+
+            if let Some(badge_text) = badge {
+                span { class: "nav-badge", "{badge_text}" }
+            }
+        }
+    }
+}
+
+/// Sidebar navigation component
+#[component]
+fn Sidebar(
+    current_view: Signal<DesktopView>,
+    on_view_change: EventHandler<DesktopView>,
+) -> Element {
+    rsx! {
+        aside { class: "sidebar",
+
+            // Quick actions
+            div { class: "sidebar-section",
+                h3 { class: "sidebar-title", "Quick Actions" }
+
+                div { class: "quick-actions",
+                    Button {
+                        variant: ButtonVariant::Primary,
+                        size: Size::Small,
+                        full_width: true,
+                        icon: Some("🚀".to_string()),
+                        onclick: move |_| {
+                            // Quick account creation
+                        },
+                        "Create Account"
+                    }
+
+                    Button {
+                        variant: ButtonVariant::Secondary,
+                        size: Size::Small,
+                        full_width: true,
+                        icon: Some("📥".to_string()),
+                        onclick: move |_| {
+                            // Import account
+                        },
+                        "Import Account"
+                    }
+
+                    Button {
+                        variant: ButtonVariant::Tertiary,
+                        size: Size::Small,
+                        full_width: true,
+                        icon: Some("💰".to_string()),
+                        onclick: move |_| {
+                            // Request airdrop
+                        },
+                        "Request Airdrop"
+                    }
+                }
+            }
+
+            // Recent activity
+            div { class: "sidebar-section",
+                h3 { class: "sidebar-title", "Recent Activity" }
+
+                div { class: "activity-list",
+                    // Mock activity items
+                    div { class: "activity-item",
+                        span { class: "activity-icon", "✅" }
+                        div { class: "activity-content",
+                            span { class: "activity-title", "Account Created" }
+                            span { class: "activity-time", "2 min ago" }
+                        }
+                    }
+
+                    div { class: "activity-item",
+                        span { class: "activity-icon", "💸" }
+                        div { class: "activity-content",
+                            span { class: "activity-title", "Transaction Sent" }
+                            span { class: "activity-time", "5 min ago" }
+                        }
+                    }
+
+                    div { class: "activity-item",
+                        span { class: "activity-icon", "🔄" }
+                        div { class: "activity-content",
+                            span { class: "activity-title", "Balance Updated" }
+                            span { class: "activity-time", "10 min ago" }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Status bar component
+#[component]
+fn StatusBar(surfpool_manager: Arc<SurfPoolManager>) -> Element {
+    let surfpool_status = use_signal(|| surfpool_manager.get_status());
+    let current_time = use_signal(|| chrono::Utc::now().format("%H:%M:%S").to_string());
+
+    // Update time
+    use_coroutine(|_| {
+        let time = current_time.clone();
+        async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+            loop {
+                interval.tick().await;
+                time.set(chrono::Utc::now().format("%H:%M:%S").to_string());
+            }
+        }
+    });
+
+    rsx! {
+        div { class: "status-bar",
+
+            // Left side status
+            div { class: "status-left",
+                span { class: "status-item",
+                    "Network: Devnet"
+                }
+
+                span { class: "status-item",
+                    "Accounts: 3"
+                }
+
+                span { class: "status-item",
+                    match surfpool_status() {
+                        surfpool::SurfPoolStatus::Running { .. } => "SurfPool: Running",
+                        surfpool::SurfPoolStatus::Stopped => "SurfPool: Stopped",
+                        surfpool::SurfPoolStatus::Starting => "SurfPool: Starting",
+                        surfpool::SurfPoolStatus::Stopping => "SurfPool: Stopping",
+                        surfpool::SurfPoolStatus::Error { .. } => "SurfPool: Error",
+                    }
+                }
+            }
+
+            // Right side status
+            div { class: "status-right",
+                span { class: "status-item",
+                    "Version: {surfdesk_core::VERSION}"
+                }
+
+                span { class: "status-item",
+                    "{current_time()}"
+                }
+            }
+        }
+    }
+}
+
+/// Notification center component
+#[component]
+fn NotificationCenter(notifications: Signal<Vec<Notification>>) -> Element {
+    let show_notifications = use_signal(|| false);
+    let unread_count = use_signal(|| notifications().iter().filter(|n| !n.read).count());
+
+    rsx! {
+        div { class: "notification-center",
+
+            // Notification bell
+            button {
+                class: "notification-bell",
+                onclick: move |_| show_notifications.set(!show_notifications()),
+
+                span { class: "notification-icon", "🔔" }
+
+                if unread_count() > 0 {
+                    span { class: "notification-badge", "{unread_count()}" }
+                }
+            }
+
+            // Notification dropdown
+            if show_notifications() {
+                div { class: "notification-dropdown",
+                    h3 { "Notifications" }
+
+                    div { class: "notification-list",
+                        for notification in notifications() {
+                            div { class: format!("notification-item {}", if notification.read { "read" } else { "unread" }),
+                                div { class: "notification-header",
+                                    span { class: "notification-title", "{notification.title}" }
+                                    span { class: "notification-time",
+                                        notification.timestamp.format("%H:%M").to_string()
+                                    }
+                                }
+                                p { class: "notification-message", "{notification.message}" }
+                            }
+                        }
+                    }
+
+                    if notifications().is_empty() {
+                        div { class: "notification-empty",
+                            span { "No notifications" }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Initialize logging with enhanced formatting
 fn init_logging(level: &str) -> Result<()> {
     let log_level = match level.to_lowercase().as_str() {
         "trace" => LevelFilter::Trace,
@@ -163,13 +643,15 @@ fn init_logging(level: &str) -> Result<()> {
     env_logger::Builder::from_default_env()
         .filter_level(log_level)
         .format_timestamp_secs()
+        .format_module_path(false)
+        .format_target(false)
         .init();
 
-    info!("Logging initialized at level: {}", level);
+    info!("SurfDesk Desktop logging initialized at level: {}", level);
     Ok(())
 }
 
-/// Load configuration from file
+/// Load configuration from file and environment
 fn load_config(config_path: &str) -> Result<()> {
     // Load environment variables from .env file if it exists
     if std::path::Path::new(config_path).exists() {
@@ -181,10 +663,15 @@ fn load_config(config_path: &str) -> Result<()> {
             config_path
         );
     }
+
+    // Log configuration
+    info!("SurfPool configuration: port=8999, fork_mainnet=true");
+    info!("Desktop features: menu_bar, system_tray, notifications");
+
     Ok(())
 }
 
-/// Main function
+/// Main function - application entry point
 fn main() -> Result<()> {
     let args = Args::parse();
 
@@ -194,21 +681,35 @@ fn main() -> Result<()> {
     // Load configuration
     load_config(&args.config)?;
 
-    info!("Starting SurfDesk Desktop application...");
-    info!("Platform: {}", current_platform());
+    info!("🏄 Starting SurfDesk Desktop Enhanced Application...");
+    info!("Platform: {}", surfdesk_core::current_platform());
     info!("Version: {}", surfdesk_core::VERSION);
+    info!("Window: {}x{}", args.width, args.height);
+    info!("Theme: {}", args.theme);
 
     // Initialize core library
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
-        init_core().await.map_err(|e| {
+        surfdesk_core::init_core().await.map_err(|e| {
             error!("Failed to initialize core library: {}", e);
             e
         })
     })?;
 
-    // Configure Dioxus desktop
-    dioxus::launch(SurfDeskDesktopApp);
+    // Configure and launch Dioxus desktop
+    dioxus::launch_cfg(
+        SurfDeskDesktopApp,
+        dioxus_desktop::Config::new().with_window(
+            dioxus_desktop::WindowBuilder::new()
+                .with_title("SurfDesk Desktop - Professional Solana Account Studio")
+                .with_inner_size(dioxus_desktop::LogicalSize::new(args.width, args.height))
+                .with_min_inner_size(dioxus_desktop::LogicalSize::new(1200, 800))
+                .with_resizable(!args.no_resize)
+                .with_always_on_top(args.always_on_top)
+                .with_fullscreen(args.fullscreen),
+        ),
+    );
 
+    info!("SurfDesk Desktop application terminated gracefully");
     Ok(())
 }
