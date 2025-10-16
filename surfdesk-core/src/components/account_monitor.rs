@@ -167,7 +167,7 @@ pub fn AccountMonitor(props: AccountMonitorProps) -> Element {
     // Format timestamp
     let format_timestamp = |timestamp: u64| {
         let datetime = std::time::UNIX_EPOCH + std::time::Duration::from_secs(timestamp);
-        format!("{}", humantime::format_rfc3339_seconds(datetime))
+        format!("{:?}", datetime)
     };
 
     rsx! {
@@ -324,7 +324,7 @@ fn AddAccountForm(
             h4 { "Add Account to Monitor" }
             div { class: "form-group",
                 input {
-                    r#type: "text",
+                    "type": "text",
                     placeholder: "Enter account public key",
                     value: "{pubkey_input}",
                     oninput: move |e| pubkey_input.set(e.value()),

@@ -3,9 +3,10 @@
 //! Simple account management for SurfDesk with clean architecture.
 
 use crate::services::surfpool_service::{
-    system_program, DeploymentRequest, DeploymentResult, DeploymentStatistics, Pubkey,
-    SurfPoolService, SurfPoolStatus, Transaction,
+    system_program, DeploymentRequest, DeploymentResult, DeploymentStatistics, SurfPoolService,
+    SurfPoolStatus, Transaction,
 };
+use crate::solana_rpc::Pubkey;
 use chrono;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -333,7 +334,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
             let is_deploying_signal = is_deploying.clone();
             let deployment_req = deployment_request;
             let on_deploy = props.on_deploy.clone();
-            on_deployment_result = props.on_deployment_result.clone();
+            let on_deployment_result = props.on_deployment_result.clone();
             let success_msg = success_message.clone();
             let error_msg = error_message.clone();
 

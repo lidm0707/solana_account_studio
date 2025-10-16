@@ -458,7 +458,7 @@ pub fn MultiSelectDropdown(props: MultiSelectDropdownProps) -> Element {
     };
 
     rsx! {
-        div { class: "{final_classes}",
+        div { class: final_classes,
 
             // Dropdown trigger
             button {
@@ -802,7 +802,7 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
                                     if option.disabled { "disabled" } else { "enabled" },
                                     if is_selected { "selected" } else { "" },
                                 ]),
-                                r#type: "button",
+                                "type": "button",
                                 disabled: option.disabled,
                                 onclick: move |_| handle_select(option.clone()),
                                 role: "option",
