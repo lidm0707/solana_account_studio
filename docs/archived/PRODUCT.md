@@ -207,7 +207,7 @@ Welcome → Configuration → Project Creation → Environment Setup → Tutoria
 
 **Steps**:
 1. **Welcome Screen**: Product overview and key features
-2. **Configuration**:
+2. **Configuration**: 
    - Solana CLI path detection
    - Default workspace selection
    - Theme and preference setup
@@ -328,18 +328,18 @@ Define Goal → AI Generates Plan → Review & Edit → Execute → Analyze Resu
   --primary-500: #3b82f6;
   --primary-600: #2563eb;
   --primary-900: #1e3a8a;
-
+  
   /* Solana Brand Colors */
   --solana-green: #00d4aa;
   --solana-purple: #9945ff;
   --solana-dark: #14233c;
-
+  
   /* Semantic Colors */
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
   --info: #3b82f6;
-
+  
   /* Neutral Colors */
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
@@ -357,18 +357,18 @@ Define Goal → AI Generates Plan → Review & Edit → Execute → Analyze Resu
   --primary-500: #3b82f6;
   --primary-600: #60a5fa;
   --primary-900: #eff6ff;
-
+  
   /* Solana Brand Colors */
   --solana-green: #14f5c4;
   --solana-purple: #b379ff;
   --solana-dark: #f0f9ff;
-
+  
   /* Semantic Colors */
   --success: #34d399;
   --warning: #fbbf24;
   --error: #f87171;
   --info: #60a5fa;
-
+  
   /* Neutral Colors */
   --gray-50: #111827;
   --gray-100: #1f2937;
@@ -453,12 +453,12 @@ fn AccountCard(
                 if selected.unwrap_or(false) { "ring-2 ring-primary-500" } else { "" }
             ),
             onclick: move |_| on_select.call(account.pubkey.clone()),
-
+            
             div { class: "flex justify-between items-start mb-2",
                 h3 { class: "font-mono text-sm font-medium", "{account.pubkey}" }
                 span { class: "text-xs text-gray-500", "{account.lamports} SOL" }
             }
-
+            
             div { class: "text-sm text-gray-600 dark:text-gray-400",
                 "{account.owner} • {account.data.len()} bytes"
             }
@@ -487,8 +487,8 @@ fn TransactionTable(transactions: Vec<Transaction>) -> Element {
                 tbody {
                     for transaction in transactions {
                         tr {
-                            td { class: "px-6 py-4 whitespace-nowrap text-sm font-mono",
-                                "{transaction.signature[..8]}...{transaction.signature[40..]}"
+                            td { class: "px-6 py-4 whitespace-nowrap text-sm font-mono", 
+                                "{transaction.signature[..8]}...{transaction.signature[40..]}" 
                             }
                             td { class: "px-6 py-4 whitespace-nowrap text-sm", "{transaction.slot}" }
                             td { class: "px-6 py-4 whitespace-nowrap text-sm",
@@ -541,7 +541,7 @@ fn TransactionTable(transactions: Vec<Transaction>) -> Element {
 fn ProgramDeployForm() -> Element {
     let program_path = use_signal(|| String::new());
     let program_id = use_signal(|| String::new());
-
+    
     rsx! {
         form {
             div { class: "space-y-4",
@@ -554,7 +554,7 @@ fn ProgramDeployForm() -> Element {
                         oninput: move |e| program_path.set(e.value())
                     }
                 }
-
+                
                 div {
                     label { class: "block text-sm font-medium text-gray-700 dark:text-gray-300", "Program ID" }
                     input {
@@ -564,7 +564,7 @@ fn ProgramDeployForm() -> Element {
                         oninput: move |e| program_id.set(e.value())
                     }
                 }
-
+                
                 button {
                     r#type: "submit",
                     class: "bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md font-medium",
@@ -698,16 +698,16 @@ Actions:
 pub enum SurfDeskError {
     #[error("Solana RPC error: {0}")]
     SolanaRpc(#[from] solana_client::client_error::ClientError),
-
+    
     #[error("Database error: {0}")]
     Database(#[from] diesel::result::Error),
-
+    
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-
+    
     #[error("Configuration error: {0}")]
     Config(String),
-
+    
     #[error("Network error: {0}")]
     Network(String),
 }
@@ -764,7 +764,7 @@ pub const SUPPORTED_LANGUAGES: &[Language] = &[
 #[component]
 fn Translate(key: String, params: Option<Vec<String>>) -> Element {
     let language = use_context::<Signal<Language>>();
-
+    
     rsx! {
         {get_translation(&language.read().code, &key, params)}
     }
