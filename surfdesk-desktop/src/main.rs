@@ -18,14 +18,9 @@ use std::sync::Arc;
 
 // Import modules
 mod components;
-mod keyboard;
 mod pages;
-mod styles;
-mod surfpool;
 
 use components::*;
-use keyboard::{use_keyboard_shortcuts, KeyboardManager, ShortcutAction};
-use surfpool::{SurfPoolConfig, SurfPoolManager};
 
 /// Command line arguments for the enhanced desktop application
 #[derive(Parser, Debug)]
@@ -90,8 +85,6 @@ pub struct AppState {
     pub settings: Signal<AppSettings>,
     /// Notification system
     pub notifications: Signal<Vec<Notification>>,
-    /// Keyboard shortcuts manager
-    pub keyboard_manager: Signal<KeyboardManager>,
 }
 
 /// Application theme
@@ -199,17 +192,12 @@ fn SurfDeskDesktopApp() -> Element {
             _ => Theme::Auto,
         }),
         current_view: use_signal(|| DesktopView::Dashboard),
-        surfpool_manager: Arc::clone(&surfpool_manager),
         settings: use_signal(AppSettings::default),
         notifications: use_signal(Vec::<Notification>::new),
-        keyboard_manager: use_keyboard_shortcuts(),
     };
 
     // Provide context to child components
     use_context_provider(|| app_state.clone());
-
-    // Handle keyboard shortcuts
-    let handle_shortcut_action = move |action: ShortcutAction| {
         match action {
             ShortcutAction::CreateAccount => {
                 log::info!("Create account shortcut triggered");
@@ -288,6 +276,7 @@ fn SurfDeskDesktopApp() -> Element {
     rsx! {
         // Include styles
         style { {include_str!("../assets/styles.css")} }
+        // style { {include_str!("styles/loading.css")} }
         // style { {include_str!("../styles/design-system.css")} }
         // style { {include_str!("../styles/keyboard.css")} }
 
@@ -329,6 +318,11 @@ fn SurfDeskDesktopApp() -> Element {
                                 div { class: "placeholder-page",
                                     h2 { "Accounts Page" }
                                     p { "Coming soon..." }
+                                    LoadingSpinner {
+                                        size: Size::Medium,
+                                        text: Some("Loading accounts...".to_string()),
+                                        variant: LoadingVariant::Dots,
+                                    }
                                 }
                             }
                         }
@@ -368,14 +362,9 @@ fn SurfDeskDesktopApp() -> Element {
                 }
             }
 
-            // Status bar
-            StatusBar {
-                surfpool_manager: app_state.surfpool_manager.clone(),
-            }
-
             // Notification system
-            NotificationCenter {
-                notifications: app_state.notifications,
+            div {
+                "SurfDesk Desktop Application"
             }
         }
     }
@@ -581,7 +570,7 @@ fn Sidebar(
                         "Request Airdrop"
                     }
                 }
-            }
+            // }
 
             // Recent activity
             div { class: "sidebar-section",
@@ -618,23 +607,23 @@ fn Sidebar(
     }
 }
 
-/// Status bar component
-#[component]
-fn StatusBar(surfpool_manager: Arc<SurfPoolManager>) -> Element {
-    let surfpool_status = use_signal(|| surfpool_manager.get_status());
-    let current_time = use_signal(|| chrono::Utc::now().format("%H:%M:%S").to_string());
+// /// Status bar component
+// #[component]
+// fn StatusBar(surfpool_manager: Arc<SurfPoolManager>) -> Element {
+//     let surfpool_status = use_signal(|| surfpool_manager.get_status());
+//     let current_time = use_signal(|| "12:34:56".to_string());
 
     // Update time
-    use_coroutine(|_| {
-        let time = current_time.clone();
-        async move {
-            let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
-            loop {
-                interval.tick().await;
-                time.set(chrono::Utc::now().format("%H:%M:%S").to_string());
-            }
-        }
-    });
+    // use_coroutine(|_| {
+    //     let time = current_time.clone();
+    //     async move {
+    //         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+    //         loop {
+    //             interval.tick().await;
+    //             time.set("12:34:56".to_string());
+    //         }
+    //     }
+    // });
 
     rsx! {
         div { class: "status-bar",
@@ -650,13 +639,7 @@ fn StatusBar(surfpool_manager: Arc<SurfPoolManager>) -> Element {
                 }
 
                 span { class: "status-item",
-                    match surfpool_status() {
-                        surfpool::SurfPoolStatus::Running { .. } => "SurfPool: Running",
-                        surfpool::SurfPoolStatus::Stopped => "SurfPool: Stopped",
-                        surfpool::SurfPoolStatus::Starting => "SurfPool: Starting",
-                        surfpool::SurfPoolStatus::Stopping => "SurfPool: Stopping",
-                        surfpool::SurfPoolStatus::Error { .. } => "SurfPool: Error",
-                    }
+                    "SurfPool: Ready"
                 }
             }
 
@@ -667,63 +650,63 @@ fn StatusBar(surfpool_manager: Arc<SurfPoolManager>) -> Element {
                 }
 
                 span { class: "status-item",
-                    "{current_time()}"
+                    "12:34:56"
                 }
             }
         }
     }
 }
 
-/// Notification center component
-#[component]
-fn NotificationCenter(notifications: Signal<Vec<Notification>>) -> Element {
-    let show_notifications = use_signal(|| false);
-    let unread_count = use_signal(|| notifications().iter().filter(|n| !n.read).count());
+// /// Notification center component
+// #[component]
+// fn NotificationCenter(notifications: Signal<Vec<Notification>>) -> Element {
+//     let show_notifications = use_signal(|| false);
+//     let unread_count = use_signal(|| notifications().iter().filter(|n| !n.read).count());
 
-    rsx! {
-        div { class: "notification-center",
+//     rsx! {
+//         div { class: "notification-center",
 
-            // Notification bell
-            button {
-                class: "notification-bell",
-                onclick: move |_| show_notifications.set(!show_notifications()),
+//             // Notification bell
+//             button {
+//                 class: "notification-bell",
+//                 onclick: move |_| show_notifications.set(!show_notifications()),
 
-                span { class: "notification-icon", "🔔" }
+//                 span { class: "notification-icon", "🔔" }
 
-                if unread_count() > 0 {
-                    span { class: "notification-badge", "{unread_count()}" }
-                }
-            }
+//                 if unread_count() > 0 {
+//                     span { class: "notification-badge", "{unread_count()}" }
+//                 }
+//             }
 
-            // Notification dropdown
-            if show_notifications() {
-                div { class: "notification-dropdown",
-                    h3 { "Notifications" }
+//             // Notification dropdown
+//             if show_notifications() {
+//                 div { class: "notification-dropdown",
+//                     h3 { "Notifications" }
 
-                    div { class: "notification-list",
-                        for notification in notifications() {
-                            div { class: format!("notification-item {}", if notification.read { "read" } else { "unread" }),
-                                div { class: "notification-header",
-                                    span { class: "notification-title", "{notification.title}" }
-                                    span { class: "notification-time",
-                                        "12:34"
-                                    }
-                                }
-                                p { class: "notification-message", "{notification.message}" }
-                            }
-                        }
-                    }
+//                     div { class: "notification-list",
+//                         for notification in notifications() {
+//                             div { class: format!("notification-item {}", if notification.read { "read" } else { "unread" }),
+//                                 div { class: "notification-header",
+//                                     span { class: "notification-title", "{notification.title}" }
+//                                     span { class: "notification-time",
+//                                         "12:34"
+//                                     }
+//                                 }
+//                                 p { class: "notification-message", "{notification.message}" }
+//                             }
+//                         }
+//                     }
 
-                    if notifications().is_empty() {
-                        div { class: "notification-empty",
-                            span { "No notifications" }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+//                     if notifications().is_empty() {
+//                         div { class: "notification-empty",
+//                             span { "No notifications" }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
 
 /// Initialize logging with enhanced formatting
 fn init_logging(level: &str) -> Result<()> {

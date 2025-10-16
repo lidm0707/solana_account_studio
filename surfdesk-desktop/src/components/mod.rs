@@ -5,10 +5,15 @@
 
 pub mod button;
 pub mod card;
+pub mod loading;
 
 // Re-export main components
 pub use button::{Button, ButtonProps, ButtonVariant};
 pub use card::{Card, CardProps, CardVariant};
+pub use loading::{
+    LoadingOverlay, LoadingOverlayProps, LoadingSpinner, LoadingSpinnerProps, LoadingVariant,
+    Skeleton, SkeletonProps,
+};
 
 /// Common component props and utilities
 #[derive(Debug, Clone, PartialEq)]
