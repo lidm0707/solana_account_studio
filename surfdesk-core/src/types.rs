@@ -4,8 +4,8 @@
 //! the SurfDesk application. These types are platform-agnostic and provide
 //! a consistent data model for all components.
 
+use crate::solana_rpc::Pubkey;
 use serde::{Deserialize, Serialize};
-use solana_sdk::pubkey::Pubkey;
 use std::{collections::HashMap, fmt, str::FromStr};
 use uuid::Uuid;
 
@@ -58,8 +58,8 @@ impl From<Pubkey> for SolanaPubkey {
 
 /// Solana public key serialization module
 mod solana_pubkey_serde {
+    use crate::solana_rpc::Pubkey;
     use serde::{Deserialize, Deserializer, Serializer};
-    use solana_sdk::pubkey::Pubkey;
 
     pub fn serialize<S>(pubkey: &Pubkey, serializer: S) -> Result<S::Ok, S::Error>
     where

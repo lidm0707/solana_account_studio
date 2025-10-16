@@ -375,7 +375,6 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                 is_deploying_signal.set(false);
             }
         });
-    };
 
     // Reset builder
     let reset_builder = move |_| {
@@ -864,6 +863,7 @@ fn AccountExplorerTab(accounts: Vec<AccountData>, surfpool_running: bool) -> Ele
             }
         }
     }
+}
 }
 
 // DeploymentResult is already imported from surfpool_service

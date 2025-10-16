@@ -338,11 +338,12 @@ impl From<diesel::ConnectionError> for SurfDeskError {
     }
 }
 
-impl From<solana_client::client_error::ClientError> for SurfDeskError {
-    fn from(err: solana_client::client_error::ClientError) -> Self {
-        Self::SolanaRpc(err.to_string())
-    }
-}
+// Note: Solana client error conversion removed - using custom solana_rpc implementation
+// impl From<solana_client::client_error::ClientError> for SurfDeskError {
+//     fn from(err: solana_client::client_error::ClientError) -> Self {
+//         Self::SolanaRpc(err.to_string())
+//     }
+// }
 
 impl From<serde_json::Error> for SurfDeskError {
     fn from(err: serde_json::Error) -> Self {
@@ -362,19 +363,21 @@ impl From<anyhow::Error> for SurfDeskError {
     }
 }
 
-// Conversion from Solana SDK errors
-impl From<solana_sdk::program_error::ProgramError> for SurfDeskError {
-    fn from(err: solana_sdk::program_error::ProgramError) -> Self {
-        Self::SolanaSdk(format!("Program error: {:?}", err))
-    }
-}
+// Note: Solana SDK error conversion removed - using custom solana_rpc implementation
+// Conversion from custom Solana RPC errors
+// impl From<solana_sdk::program_error::ProgramError> for SurfDeskError {
+//     fn from(err: solana_sdk::program_error::ProgramError) -> Self {
+//         Self::SolanaSdk(format!("Program error: {:?}", err))
+//     }
+// }
 
+// Note: Anchor error conversion removed - using custom implementation
 // Conversion from Anchor errors
-impl From<anchor_lang::error::Error> for SurfDeskError {
-    fn from(err: anchor_lang::error::Error) -> Self {
-        Self::Anchor(format!("Anchor error: {:?}", err))
-    }
-}
+// impl From<anchor_lang::error::Error> for SurfDeskError {
+//     fn from(err: anchor_lang::error::Error) -> Self {
+//         Self::Anchor(format!("Anchor error: {:?}", err))
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

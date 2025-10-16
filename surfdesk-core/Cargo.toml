@@ -61,6 +61,7 @@ tempfile = "3.0"
 default = ["database", "surfpool"]
 database = ["diesel", "diesel_migrations"]
 surfpool = []
+solana = ["tokio"]
 web = ["dioxus/web", "console_log", "wasm-bindgen", "web-sys", "wasm-bindgen-futures", "js-sys", "chrono/wasmbind", "gloo-net"]
 desktop = ["dioxus/desktop", "tokio"]
 tui = ["tokio"]

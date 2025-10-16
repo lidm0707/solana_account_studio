@@ -4,7 +4,7 @@
 //! It uses Dioxus signals for reactive state management across all platforms and
 //! provides a centralized store for application data.
 
-use crate::{error::Result, services::solana::SolanaService, types::*};
+use crate::{error::Result, services::surfpool_service::SurfPoolService, types::*};
 use dioxus::prelude::*;
 use std::sync::Arc;
 
@@ -36,8 +36,8 @@ pub struct AppState {
     pub accounts: Signal<Vec<Account>>,
     /// Transactions in the active environment
     pub transactions: Signal<Vec<Transaction>>,
-    /// Solana service instance
-    pub solana_service: Signal<Option<Arc<SolanaService>>>,
+    /// SurfPool service instance
+    pub surfpool_service: Signal<Option<Arc<SurfPoolService>>>,
     /// Connection status
     pub connection_status: Signal<ConnectionStatus>,
     /// Current network
@@ -412,13 +412,13 @@ impl AppState {
     pub async fn initialize_solana_service(&mut self, rpc_url: String) -> Result<()> {
         #[cfg(feature = "solana")]
         {
-            use crate::services::solana::SolanaService;
+            use crate::services::surfpool_service::SurfPoolService;
 
-            match SolanaService::new(rpc_url).await {
+            match SurfPoolService::new().await {
                 Ok(service) => {
-                    self.solana_service.set(Some(Arc::new(service)));
+                    self.surfpool_service.set(Some(Arc::new(service)));
                     self.set_connection_status(ConnectionStatus::Connected);
-                    log::info!("Solana service initialized successfully");
+                    log::info!("SurfPool service initialized successfully");
                     Ok(())
                 }
                 Err(e) => {
@@ -437,9 +437,11 @@ impl AppState {
         }
     }
 
-    /// Get the Solana service
-    pub fn solana_service(&self) -> Option<Arc<crate::services::solana::SolanaService>> {
-        self.solana_service.read().clone()
+    /// Get the SurfPool service
+    pub fn surfpool_service(
+        &self,
+    ) -> Option<Arc<crate::services::surfpool_service::SurfPoolService>> {
+        self.surfpool_service.read().clone()
     }
 
     /// Refresh the active environment
