@@ -15,6 +15,7 @@ pub mod solana;
 pub mod database;
 
 pub mod surfpool;
+pub mod surfpool_service;
 
 use crate::error::Result;
 
@@ -117,6 +118,11 @@ impl ServiceManager {
 
     /// Get the SurfPool service
     pub fn surfpool_service(&self) -> Option<&surfpool::SurfPoolService> {
+        self.surfpool_service.as_ref()
+    }
+
+    /// Get the SurfPool deployment service
+    pub fn surfpool_deployment_service(&self) -> Option<&surfpool_service::SurfPoolService> {
         self.surfpool_service.as_ref()
     }
 

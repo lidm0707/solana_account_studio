@@ -45,9 +45,6 @@ pub use app_shell::AppShell;
 pub use button::Button;
 pub use card::Card;
 pub use dashboard::Dashboard;
-pub use dropdown::{
-    Dropdown, DropdownOption, DropdownValue, MultiSelectDropdown, SearchableDropdown,
-};
 // pub use footer::Footer;  // Temporarily commented out
 pub use footer::Footer;
 // pub use form::Form; // Temporarily commented out
@@ -64,6 +61,14 @@ pub use sidebar::Sidebar;
 pub use surfpool_control::SurfPoolControl;
 pub use table::Table; // TODO: Implement
 pub use transaction_builder::TransactionBuilder; // TODO: Implement
+
+// Re-export services for integration
+pub use crate::services::{
+    surfpool_service::{
+        use_surfpool_service, DeploymentRequest, DeploymentResult, SurfPoolService,
+    },
+    ServiceManager,
+};
 
 /// Component props for common UI patterns
 #[derive(Debug, Clone, PartialEq)]

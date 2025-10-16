@@ -4,9 +4,13 @@
 //! Features real Solana account building, deployment, and SurfPool integration.
 
 use crate::styles::{colors, spacing, typography};
+use crate::services::{
+    surfpool_service::{use_surfpool_service, DeploymentRequest, DeploymentResult, SurfPoolService},
+    ServiceManager,
+};
 use dioxus::prelude::*;
 use solana_sdk::{
-    instruction::{Instruction, system_program},
+    instruction::Instruction,
     pubkey::Pubkey,
     signature::{Keypair, Signer},
     transaction::Transaction,
@@ -96,6 +100,8 @@ pub struct AccountExplorerProps {
     pub on_account_created: EventHandler<AccountData>,
     /// on deploy handler
     pub on_deploy: EventHandler<Transaction>,
+    /// on deployment result handler
+    pub on_deployment_result: EventHandler<DeploymentResult>,
 }
 
 /// Account explorer component
@@ -108,6 +114,17 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     let mut is_deploying = use_signal(|| false);
     let mut error_message = use_signal(String::new);
     let mut success_message = use_signal(String::new);
+    let mut deployment_results = use_signal(Vec::<DeploymentResult>::new);
+
+    // Get SurfPool service
+    let surfpool_service = use_surfpool_service().unwrap_or_else(|_| {
+        // Fallback if service fails to initialize
+        use_context_provider(|| async move {
+            SurfPoolService::new().await.unwrap_or_else(|_| {
+                panic!("Failed to initialize SurfPool service")
+            })
+        })
+    });
 
     // Generate new keypair
     let generate_keypair = move |_| {
@@ -190,11 +207,11 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         });
     };
 
-    // Deploy account
+    // Deploy account with real SurfPool integration
     let deploy_account = move |_| {
         let current_builder = builder();
 
-        if let Some(_account_data) = &current_builder.account_data {
+        if let Some(account_data) = &current_builder.account_data {
             if let Some(keypair) = &current_builder.keypair {
                 if current_builder.deployment_status == DeploymentStatus::NotDeployed {
                     is_deploying.set(true);
@@ -204,58 +221,59 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                     use_coroutine(|_| {
                         let builder_state = builder.clone();
                         let is_deploying_signal = is_deploying.clone();
+                        let on_deployment_result = props.on_deployment_result.clone();
                         let on_deploy = props.on_deploy.clone();
                         let success_msg = success_message.clone();
                         let error_msg = error_message.clone();
+                        let surfpool_service = surfpool_service.clone();
 
                         async move {
-                            // Simulate deployment delay
-                            tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
-
-                            // Create deployment transaction
-                            let mut transaction = Transaction::new_with_payer(
-                                &[
-                                    Instruction::new_with_data(
-                                        system_program::id(),
-                                        &system_program::instruction::create_account(
-                                            &keypair.pubkey(),
-                                            &current_builder().lamports,
-                                            &current_builder().space,
-                                            &current_builder().owner,
-                                        ),
-                                        &vec![],
-                                    ),
-                                ],
-                                Some(&keypair.pubkey()),
+                            // Create deployment request
+                            let deployment_request = DeploymentRequest::new(
+                                account_data.pubkey,
+                                account_data.owner,
+                                account_data.lamports,
+                                account_data.data.len() as u64,
+                                account_data.executable,
+                                account_data.data.clone(),
+                                keypair.clone(),
                             );
 
-                            // Sign transaction
-                            transaction.sign(
-                                &[keypair],
-                                props.network.parse().unwrap_or_default(),
-                            );
+                            // Deploy account via SurfPool service
+                            match surfpool_service.deploy_account(deployment_request).await {
+                                Ok(result) => {
+                                    // Update builder status
+                                    let mut current = builder_state();
+                                    current.deployment_status = match result.status {
+                                        DeploymentStatus::Completed { signature } => {
+                                            DeploymentStatus::Deployed { signature: signature.clone() }
+                                        }
+                                        _ => result.status.clone(),
+                                    };
+                                    builder_state.set(current);
 
-                            // Update builder status
-                            let mut current = builder_state();
-                            current.deployment_status = DeploymentStatus::Deployed {
-                                signature: transaction
-                                    .signatures
-                                    .first()
-                                    .map(|sig| sig.to_string())
-                                    .unwrap_or_default(),
-                            };
-                            builder_state.set(current);
+                                    // Store deployment result
+                                    let mut deployment_results = surfpool_service.deployment_results.write().await;
+                                    deployment_results.push(result.clone());
 
-                            // Call deploy handler
-                            on_deploy.call(transaction);
-                            success_msg.set(format!(
-                                "Account deployed successfully! Signature: {}",
-                                transaction
-                                    .signatures
-                                    .first()
-                                    .map(|sig| &sig[..8])
-                                    .unwrap_or("unknown")
-                            ));
+                                    // Call handlers
+                                    if let Ok(tx) = surfpool_service.create_deployment_transaction(&deployment_request).await {
+                                        on_deploy.call(tx);
+                                    }
+                                    on_deployment_result.call(result);
+
+                                    success_msg.set(format!(
+                                        "Account deployed successfully! Signature: {}",
+                                        result.signature.as_ref().unwrap_or(&"unknown".to_string())
+                                    ));
+
+                                    log::info!("Account deployment successful: {:?}", result);
+                                }
+                                Err(e) => {
+                                    error_msg.set(format!("Deployment failed: {}", e));
+                                    log::error!("Account deployment failed: {}", e);
+                                }
+                            }
 
                             is_deploying_signal.set(false);
                         }
@@ -1000,6 +1018,7 @@ fn AccountBuilderTab(
                 "#,
 
                 // Action Buttons
+                // Actions
                 div {
                     style: r#"
                         background: #f9fafb;
@@ -1112,7 +1131,11 @@ fn AccountBuilderTab(
                                 color: #166534;
                                 margin: 0 0 16px 0;
                             "#,
-                            "✓ Account Built Successfully"
+                            if matches!(current_builder.deployment_status, DeploymentStatus::NotDeployed) {
+                                "✓ Account Built Successfully"
+                            } else {
+                                "✓ Account Deployed Successfully"
+                            }
                         }
 
                         div {
@@ -1144,6 +1167,115 @@ fn AccountBuilderTab(
                                     "{account_data.pubkey}"
                                 }
                             }
+                            div {
+                                style: r#"
+                                    display: flex;
+                                    justify-content: space-between;
+                                "#,
+                                span {
+                                    style: r#"
+                                        font-weight: 500;
+                                        color: #166534;
+                                    "#,
+                                    "Owner:"
+                                }
+                                span {
+                                    style: r#"
+                                        font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+                                        font-size: 12px;
+                                    "#,
+                                    "{account_data.owner}"
+                                }
+                            }
+                            div {
+                                style: r#"
+                                    display: flex;
+                                    justify-content: space-between;
+                                "#,
+                                span {
+                                    style: r#"
+                                        font-weight: 500;
+                                        color: #166534;
+                                    "#,
+                                    "Balance:"
+                                }
+                                span {
+                                    style: r#"
+                                        font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+                                        font-size: 12px;
+                                    "#,
+                                    "{account_data.lamports / 1_000_000_000} SOL"
+                                }
+                            }
+                            div {
+                                style: r#"
+                                    display: flex;
+                                    justify-content: space-between;
+                                "#,
+                                span {
+                                    style: r#"
+                                        font-weight: 500;
+                                        color: #166534;
+                                    "#,
+                                    "Data Size:"
+                                }
+                                span {
+                                    style: r#"
+                                        font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+                                        font-size: 12px;
+                                    "#,
+                                    "{account_data.data.len()} bytes"
+                                }
+                            }
+                            div {
+                                style: r#"
+                                    display: flex;
+                                    justify-content: space-between;
+                                "#,
+                                span {
+                                    style: r#"
+                                        font-weight: 500;
+                                        color: #166534;
+                                    "#,
+                                    "Executable:"
+                                }
+                                span {
+                                    style: r#"
+                                        font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+                                        font-size: 12px;
+                                    "#,
+                                    "{account_data.executable}"
+                                }
+                            }
+                            div {
+                                style: r#"
+                                    display: flex;
+                                    justify-content: space-between;
+                                "#,
+                                span {
+                                    style: r#"
+                                        font-weight: 500;
+                                        color: #166534;
+                                    "#,
+                                    "Status:"
+                                }
+                                span {
+                                    style: r#"
+                                        font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+                                        font-size: 12px;
+                                    "#,
+                                    match current_builder.deployment_status {
+                                        DeploymentStatus::NotDeployed => "Not Deployed",
+                                        DeploymentStatus::Deploying => "Deploying...",
+                                        DeploymentStatus::Deployed { signature } => format!("Deployed ({})", &signature[..8]),
+                                        DeploymentStatus::Failed { .. } => "Failed",
+                                        _ => "Unknown",
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                             div {
                                 style: r#"
                                     display: flex;
