@@ -4,7 +4,7 @@
 
 use crate::services::surfpool_service::{
     system_program, DeploymentRequest, DeploymentResult, DeploymentStatistics, Pubkey,
-    SurfPoolService, SurfPoolStatus,
+    SurfPoolService, SurfPoolStatus, Transaction,
 };
 use chrono;
 use dioxus::prelude::*;
@@ -170,7 +170,7 @@ pub struct AccountExplorerProps {
     pub network: String,
     pub surfpool_running: bool,
     pub on_account_created: EventHandler<AccountData>,
-    pub on_deploy: EventHandler<solana_sdk::transaction::Transaction>,
+    pub on_deploy: EventHandler<Transaction>,
     pub on_deployment_result: EventHandler<DeploymentResult>,
 }
 

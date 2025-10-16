@@ -16,6 +16,7 @@ pub mod database;
 
 pub mod surfpool;
 pub mod surfpool_service;
+pub mod websocket;
 
 use crate::error::Result;
 
@@ -35,6 +36,8 @@ pub struct ServiceManager {
     database_service: Option<database::DatabaseService>,
     /// SurfPool service
     surfpool_service: Option<surfpool::SurfPoolService>,
+    /// WebSocket service
+    websocket_service: Option<websocket::WebSocketService>,
 }
 
 impl ServiceManager {
@@ -85,6 +88,13 @@ impl ServiceManager {
             log::info!("SurfPool service initialized");
         }
 
+        // Initialize WebSocket service
+        {
+            let ws_config = websocket::WebSocketConfig::default();
+            self.websocket_service = Some(websocket::WebSocketService::new(ws_config));
+            log::info!("WebSocket service initialized");
+        }
+
         log::info!("All services initialized successfully");
         Ok(())
     }
@@ -126,6 +136,11 @@ impl ServiceManager {
         self.surfpool_service.as_ref()
     }
 
+    /// Get the WebSocket service
+    pub fn websocket_service(&self) -> Option<&websocket::WebSocketService> {
+        self.websocket_service.as_ref()
+    }
+
     /// Shutdown all services
     pub async fn shutdown(&self) -> Result<()> {
         log::info!("Shutting down services");
@@ -135,6 +150,13 @@ impl ServiceManager {
             if let Some(ref service) = self.surfpool_service {
                 service.shutdown().await?;
                 log::info!("SurfPool service shutdown");
+            }
+        }
+
+        {
+            if let Some(ref service) = self.websocket_service {
+                service.shutdown().await?;
+                log::info!("WebSocket service shutdown");
             }
         }
 

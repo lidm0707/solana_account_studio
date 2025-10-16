@@ -21,6 +21,7 @@ macro_rules! impl_default_enum {
 }
 
 pub mod account_explorer;
+pub mod account_monitor;
 pub mod app_shell;
 pub mod button;
 pub mod card;

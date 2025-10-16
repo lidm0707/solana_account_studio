@@ -6,6 +6,7 @@
 use super::css_class;
 use dioxus::prelude::*;
 use std::collections::HashSet;
+use wasm_bindgen::prelude::Closure;
 
 /// Dropdown option value type
 #[derive(Debug, Clone, PartialEq)]
