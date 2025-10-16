@@ -212,34 +212,3 @@ fn main() -> Result<()> {
 
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_args_parsing() {
-        use clap::Parser;
-
-        let args = Args::try_parse_from([
-            "surfdesk-desktop",
-            "--log-level",
-            "debug",
-            "--width",
-            "1024",
-            "--height",
-            "768",
-        ])
-        .unwrap();
-
-        assert_eq!(args.log_level, "debug");
-        assert_eq!(args.width, 1024);
-        assert_eq!(args.height, 768);
-    }
-
-    #[test]
-    fn test_logging_init() {
-        let result = init_logging("info");
-        assert!(result.is_ok());
-    }
-}

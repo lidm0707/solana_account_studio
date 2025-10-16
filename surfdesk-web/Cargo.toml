@@ -11,6 +11,8 @@ name = "surfdesk-web"
 path = "src/main.rs"
 
 [dependencies]
+
+# --- Randomness (fix getrandom issue) ---
 # Core library
 surfdesk-core = { path = "../surfdesk-core", features = ["web", "solana", "database"] }
 

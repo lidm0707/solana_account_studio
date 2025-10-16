@@ -76,12 +76,12 @@ pub async fn init_core() -> Result<()> {
     // Initialize logger
     #[cfg(all(not(target_arch = "wasm32"), feature = "desktop"))]
     {
-        env_logger::init();
+        let _ = env_logger::try_init();
     }
 
     #[cfg(target_arch = "wasm32")]
     {
-        console_log::init().expect("Failed to initialize console log");
+        let _ = console_log::init();
     }
 
     log::info!("SurfDesk Core v{} initializing", VERSION);

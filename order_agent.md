@@ -40,7 +40,7 @@ tests/
 # Unit tests
 cargo test --test unit
 
-# Integration tests  
+# Integration tests
 cargo test --test integration
 
 # Full test suite
@@ -890,6 +890,7 @@ echo "🎯 Current Focus: Step 2.2.2 Component Integration"
 
 ### Core Architecture:
 - **Dioxus 0.6+**: Modern reactive UI framework
+- **use Dioxus cli**: dx is Modern manager project dioxus
 - **Cross-Platform**: Desktop, Web, Terminal support
 - **SurfPool Integration**: Real Solana validator management
 - **Responsive Design**: Mobile, tablet, desktop layouts

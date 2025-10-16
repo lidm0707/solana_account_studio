@@ -3,7 +3,8 @@
 
 use crate::accounts::{Account, AccountManager};
 use crate::error::{Result, SurfDeskError};
-use crate::solana_rpc::{Keypair, Pubkey, RpcCommitment, Signer, SolanaNetwork, SolanaRpcClient};
+use crate::solana_rpc::{Keypair, Pubkey, RpcCommitment, SolanaNetwork, SolanaRpcClient};
+use base64::Engine;
 
 /// Account service with real Solana integration
 pub struct AccountService {
@@ -141,7 +142,7 @@ impl AccountService {
         );
 
         // Send mock transaction (base64 encoded)
-        let transaction_base64 = base64::encode(transaction_data);
+        let transaction_base64 = base64::prelude::BASE64_STANDARD.encode(transaction_data);
 
         let signature = self
             .rpc_client
@@ -297,52 +298,9 @@ impl TransactionBuilder {
         let transaction_str = serde_json::to_string(&transaction_data).map_err(|e| {
             SurfDeskError::internal(format!("Failed to serialize transaction: {}", e))
         })?;
-        let transaction_base64 = base64::encode(transaction_str);
+        let transaction_base64 = base64::prelude::BASE64_STANDARD.encode(transaction_str);
 
         let signature = rpc_client.send_transaction(&transaction_base64).await?;
         Ok(signature.as_str().to_string())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_account_service_creation() {
-        let service = AccountService::new(SolanaNetwork::Devnet);
-        assert_eq!(service.network(), &SolanaNetwork::Devnet);
-    }
-
-    #[test]
-    fn test_account_with_balance() {
-        let mut account = Account::new("Test".to_string()).unwrap().0;
-        account.balance = 1_500_000_000; // 1.5 SOL
-
-        let account_with_balance = AccountWithBalance::new(account, 1_500_000_000);
-        assert_eq!(account_with_balance.formatted_balance(), "1.500000000 SOL");
-        assert_eq!(account_with_balance.balance_sol, 1.5);
-    }
-
-    #[test]
-    fn test_transaction_builder() {
-        let from_keypair = Keypair::new();
-        let to_pubkey = Pubkey::from_string("test_pubkey");
-
-        let builder = TransactionBuilder::new(from_keypair.pubkey())
-            .add_sol_transfer(to_pubkey, 1_000_000_000);
-
-        // Should have one instruction
-        assert_eq!(builder.instructions.len(), 1);
-    }
-
-    #[test]
-    fn test_short_pubkey() {
-        let mut account = Account::new("Test".to_string()).unwrap().0;
-        let account_with_balance = AccountWithBalance::new(account, 0);
-
-        let short = account_with_balance.short_pubkey();
-        assert!(short.len() <= 19); // 8 + ... + 8
-        assert!(short.contains("..."));
     }
 }

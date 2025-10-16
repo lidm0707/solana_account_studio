@@ -199,3 +199,97 @@ Step	Action
 4	Rebuild using wasm-pack or cargo build
 
 If you'd like, I can generate a fixed Cargo.toml and shell script for you automatically.
+
+
+
+➜  solana_account_studio git:(main) ✗ dx serve --platform linux --package surfdesk-desktop
+
+15:47:27 [dev] Multiple platforms are enabled. Please specify a platform with `--platform <platform>` or set a single default platform using a cargo feature.
+15:47:27 [dev]   - (Linux, "desktop")
+15:47:27 [dev]   - (Web, "web")
+15:47:27 [dev] -----------------------------------------------------------------
+                Serving your Dioxus app: surfdesk-desktop
+                • Press `ctrl+c` to exit the server
+                • Press `r` to rebuild the app
+                • Press `p` to toggle automatic rebuilds
+                • Press `v` to toggle verbose logging
+                • Press `/` for more commands and shortcuts
+                Learn more at https://dioxuslabs.com/learn/0.6/getting_started
+               ----------------------------------------------------------------
+15:48:08 [linux] [2025-10-16T08:48:07Z INFO  surfdesk_desktop] Logging initialized at level: info
+15:48:08 [linux] [2025-10-16T08:48:07Z INFO  surfdesk_desktop] Configuration loaded from: ./config/.env
+15:48:08 [linux] [2025-10-16T08:48:07Z INFO  surfdesk_desktop] Starting SurfDesk Desktop application...
+15:48:08 [linux] [2025-10-16T08:48:07Z INFO  surfdesk_desktop] Platform: Desktop
+15:48:08 [linux] [2025-10-16T08:48:07Z INFO  surfdesk_desktop] Version: 0.1.0
+15:48:08 [linux] thread 'main' panicked at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/env_logger-0.10.2/src/logger.rs:859:16:
+15:48:07 [dev] Build completed successfully in 39542ms, launching app! 💫
+15:48:08 [linux] env_logger::init should not be called after logger initialized: SetLoggerError(())
+15:48:08 [linux] stack backtrace:
+15:48:08 [linux]    0: __rustc::rust_begin_unwind
+15:48:08 [linux]              at /rustc/1159e78c4747b02ef996e55082b704c09b970588/library/std/src/panicking.rs:697:5
+15:48:08 [linux]    1: core::panicking::panic_fmt
+15:48:08 [linux]              at /rustc/1159e78c4747b02ef996e55082b704c09b970588/library/core/src/panicking.rs:75:14
+15:48:08 [linux]    2: core::result::unwrap_failed
+15:48:08 [linux]              at /rustc/1159e78c4747b02ef996e55082b704c09b970588/library/core/src/result.rs:1765:5
+15:48:08 [dev] Application [linux] exited with error: exit status: 101
+15:48:08 [linux]    3: core::result::Result<T,E>::expect
+15:48:08 [linux]              at /home/moo-tu/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:1119:23
+15:48:08 [linux]    4: env_logger::logger::init
+15:48:08 [linux]              at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/env_logger-0.10.2/src/logger.rs:859:16
+15:48:08 [linux]    5: surfdesk_core::init_core::{{closure}}
+15:48:08 [linux]              at ./surfdesk-core/src/lib.rs:79:9
+15:48:08 [linux]    6: surfdesk_desktop::main::{{closure}}
+15:48:08 [linux]              at ./surfdesk-desktop/src/main.rs:204:21
+15:48:08 [linux]    7: tokio::runtime::park::CachedParkThread::block_on::{{closure}}
+15:48:08 [linux]              at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.48.0/src/runtime/park.rs:285:71
+15:48:08 [linux]    8: tokio::task::coop::with_budget
+15:48:08 [linux]              at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.48.0/src/task/coop/mod.rs:167:5
+15:48:08 [linux]    9: tokio::task::coop::budget
+15:48:08 [linux]              at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.48.0/src/task/coop/mod.rs:133:5
+15:48:08 [linux]   10: tokio::runtime::park::CachedParkThread::block_on
+15:48:08 [linux]              at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.48.0/src/runtime/park.rs:285:31
+15:48:08 [linux]   11: tokio::runtime::context::blocking::BlockingRegionGuard::block_on
+15:48:08 [linux]              at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.48.0/src/runtime/context/blocking.rs:66:14
+15:48:08 [linux]   12: tokio::runtime::scheduler::multi_thread::MultiThread::block_on::{{closure}}
+15:48:08 [linux]              at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.48.0/src/runtime/scheduler/multi_thread/mod.rs:87:22
+15:48:08 [linux]   13: tokio::runtime::context::runtime::enter_runtime
+15:48:08 [linux]              at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.48.0/src/runtime/context/runtime.rs:65:16
+15:48:08 [linux]   14: tokio::runtime::scheduler::multi_thread::MultiThread::block_on
+15:48:08 [linux]              at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.48.0/src/runtime/scheduler/multi_thread/mod.rs:86:9
+15:48:08 [linux]   15: tokio::runtime::runtime::Runtime::block_on_inner
+15:48:08 [linux]              at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.48.0/src/runtime/runtime.rs:370:50
+15:48:08 [linux]   16: tokio::runtime::runtime::Runtime::block_on
+15:48:08 [linux]              at /home/moo-tu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.48.0/src/runtime/runtime.rs:342:18
+15:48:08 [linux]   17: surfdesk_desktop::main
+15:48:08 [linux]              at ./surfdesk-desktop/src/main.rs:203:8
+15:48:08 [linux]   18: core::ops::function::FnOnce::call_once
+15:48:08 [linux]              at /home/moo-tu/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ops/function.rs:253:5
+15:48:08 [linux] note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+
+ solana_account_studio git:(main) ✗ dx serve --platform linux --package surfdesk-web
+
+15:48:57 [dev] Multiple platforms are enabled. Please specify a platform with `--platform <platform>` or set a single default platform using a cargo feature.
+15:48:57 [dev]   - (Linux, "desktop")
+15:48:57 [dev]   - (Web, "web")
+15:48:57 [dev] -----------------------------------------------------------------
+                Serving your Dioxus app: surfdesk-web
+                • Press `ctrl+c` to exit the server
+                • Press `r` to rebuild the app
+                • Press `p` to toggle automatic rebuilds
+                • Press `v` to toggle verbose logging
+                • Press `/` for more commands and shortcuts
+                Learn more at https://dioxuslabs.com/learn/0.6/getting_started
+               ----------------------------------------------------------------
+15:48:59 [cargo] error[E0433]: failed to resolve: use of unresolved module or unlinked crate `console_log`
+   --> surfdesk-web/src/main.rs:868:5
+    |
+868 |     console_log::init_with_level(log::Level::Debug).expect("Failed to initialize logging");
+    |     ^^^^^^^^^^^ use of unresolved module or unlinked crate `console_log`
+    |
+    = help: if you wanted to use a crate named `console_log`, use `cargo add console_log` to add it to your `Cargo.toml`
+
+15:48:59 [cargo] For more information about this error, try `rustc --explain E0433`.
+15:48:59 [cargo] error: could not compile `surfdesk-web` (bin "surfdesk-web") due to 1 previous error; 5 warnings emitted
+15:48:59 [cargo] Caused by:
+15:48:59 [dev] Build failed: Other(Cargo build failed, signaled by the compiler. Toggle tracing mode (press `t`) for more information.)
