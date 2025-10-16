@@ -6,7 +6,7 @@ You are an expert software engineer tasked with delivering **SurfDesk MVP** in r
 
 ## 🎊 CURRENT STATUS: PRODUCTION FOUNDATION COMPLETE ✅
 
-### **MAJOR ACHIEVEMENT: Desktop App Working** 
+### **MAJOR ACHIEVEMENT: Desktop App Working**
 - ✅ **Core Library**: 0 compilation errors, production-ready
 - ✅ **Desktop Application**: Fully functional, builds successfully
 - ✅ **Component System**: Responsive UI, theme support, navigation
@@ -78,29 +78,29 @@ echo "📊 Current error count: $ERROR_COUNT"
 
 if [ "$ERROR_COUNT" -eq 0 ]; then
     echo "✅ Compilation successful - pushing progress"
-    
+
     # Build all platforms
     echo "🏗️ Building all platforms..."
     cargo build --release --bin surfdesk-desktop && \
     cargo build --release --bin surfdesk-web && \
     cargo build --release --bin surfdesk-tui
-    
+
     if [ $? -eq 0 ]; then
         echo "✅ All platforms built successfully"
-        
+
         # Git operations
         git add .
         git commit -m "feat: MVP Progress - $(date '+%Y-%m-%d %H:%M')
 
 🚀 FAST MVP DELIVERY:
-- Error Count: $ERROR_COUNT → 0  
+- Error Count: $ERROR_COUNT → 0
 - Platform Builds: ✅ Desktop ✅ Web ✅ Terminal
 - Focus: Core Solana integration & MVP features
 
 Next: Account management & transaction builder
 
 SPEED TO MVP 🎯"
-        
+
         git push origin main
         echo "🎊 SUCCESS: Progress pushed to repository!"
     else
@@ -165,7 +165,7 @@ fi
 // Pattern 1: RSX Syntax Fixes
 class="value" → class: "value"
 
-// Pattern 2: API Updates  
+// Pattern 2: API Updates
 old_method() → new_method()
 
 // Pattern 3: Dependency Resolution
@@ -217,7 +217,7 @@ cargo check --workspace
 # Build and test
 echo "🏗️ Building all platforms..."
 cargo build --release --bin surfdesk-desktop
-cargo build --release --bin surfdesk-web  
+cargo build --release --bin surfdesk-web
 cargo build --release --bin surfdesk-tui
 
 # Auto-push if successful
@@ -231,5 +231,110 @@ else
     echo "🔧 Issues detected - continuing development"
 fi
 ```
+
+
+
+✅ SurfDesk MVP Development Checklist
+
+Goal: Deliver a fully working SurfDesk MVP (Web + Core first)
+Focus: Dioxus Web App + Solana Core Integration
+Agent Behavior: Work sequentially → verify success → git push
+
+⚙️ Phase 1: Web Platform Completion
+
+🎯 Objective: Make surfdesk-web buildable and fully functional.
+
+#	Task	Description	Status
+1	🧩 Fix RSX syntax errors	Replace class="..." → class: "..."	⬜
+2	🧩 Check missing props / components	Fix components missing required props or RSX child types	⬜
+3	🧩 Update imports	Ensure all imports use correct Dioxus 0.6 paths	⬜
+4	⚙️ Build web target	cargo build --release --bin surfdesk-web	⬜
+5	🧪 Run locally	trunk serve or dx serve to confirm rendering	⬜
+6	🎉 Confirm UI renders	App loads without RSX or compile errors	⬜
+🖥️ Phase 2: Core Feature Implementation
+
+🎯 Objective: Implement minimal Solana account + transaction system.
+
+#	Task	Description	Status
+7	🔑 Implement account create/import	Allow user to create/import Solana keypairs	⬜
+8	👁️ Account list view	Display account list and balances	⬜
+9	💰 Balance fetch	Use Solana RPC client to fetch SOL balance	⬜
+10	🧱 Transaction builder	Construct and sign basic SOL transfer	⬜
+11	🚀 Transaction sender	Send transaction via RPC and confirm	⬜
+12	🔄 Network selector	Toggle between mainnet, devnet, testnet	⬜
+🧩 Phase 3: Integration & Data Flow
+
+🎯 Objective: Make all layers communicate seamlessly.
+
+#	Task	Description	Status
+13	🔗 Link UI ↔ Core	Connect Dioxus components to core APIs	⬜
+14	📦 Shared types	Ensure consistent types (Account, TxData, Config)	⬜
+15	💾 Local storage	Save last-used account and network	⬜
+16	🧠 Core tests	Add basic tests for keypair + RPC handling	⬜
+🌐 Phase 4: SurfPool Integration
+
+🎯 Objective: Enable local validator management (optional for MVP).
+
+#	Task	Description	Status
+17	⚙️ Connect SurfPool	Integrate SurfPool CLI/SDK	⬜
+18	🔍 Detect running validator	Auto-detect surfpool process or endpoint	⬜
+19	🧭 Switch RPC automatically	Switch RPC to SurfPool node when active	⬜
+💅 Phase 5: UI/UX Polish
+
+🎯 Objective: Make MVP visually clean and user-friendly.
+
+#	Task	Description	Status
+20	🎨 Theme + styling	Add base Solana theme colors	⬜
+21	📱 Responsive layout	Ensure web layout adapts to screen size	⬜
+22	🪄 Loading + error states	Add spinner, toast messages	⬜
+23	📘 Minimal docs/help	Add inline docs (how to add account/send tx)	⬜
+🧪 Phase 6: Verification & Delivery
+
+🎯 Objective: Ensure all MVP parts run cleanly and push final build.
+
+#	Task	Description	Status
+24	✅ Full workspace check	cargo check --workspace = 0 errors	⬜
+25	🧱 Build all targets	Desktop, Web, TUI all compile	⬜
+26	🧭 Manual test	Create account → Send TX → View balance	⬜
+27	🚀 Final git push	Commit + push MVP-ready build	⬜
+🧠 Agent Logic (Summary)
+
+The Agent will:
+
+Load this checklist
+
+Execute tasks sequentially (skip done ✅)
+
+After each successful task:
+
+Run:
+
+git add .
+git commit -m "feat: ✅ [Task Name] - $(date)"
+git push origin main
+
+
+Log progress to file: mvp-progress.log
+
+Continue until all items are marked ✅
+
+🔁 Optional: Store Checklist Progress
+
+Save checklist to a YAML or JSON file like:
+
+phase1:
+  - task: Fix RSX syntax errors
+    done: false
+  - task: Check missing props
+    done: false
+phase2:
+  - task: Implement account create/import
+    done: false
+
+
+So the agent can re-run anytime and resume from the last unfinished step.
+
+Would you like me to generate this checklist as a .yaml or .md file (for the agent to read automatically)?
+If you confirm the format, I’ll make it executable with ./continuous-mvp-agent.sh so it can track, update, and auto-push after each ✅ completion.
 
 **Execute: `./fast-mvp-dev.sh` every 30 minutes for continuous MVP delivery!**
