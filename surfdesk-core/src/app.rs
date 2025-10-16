@@ -11,8 +11,8 @@ use dioxus::prelude::*;
 #[component]
 pub fn SurfDeskApp() -> Element {
     let state = use_signal(AppState::default);
-    let mut account_manager = use_signal(AccountManager::new);
-    let mut transaction_manager = use_signal(TransactionManager::new);
+    let account_manager = use_signal(AccountManager::new);
+    let transaction_manager = use_signal(TransactionManager::new);
 
     rsx! {
         AppShell {

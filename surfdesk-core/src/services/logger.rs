@@ -116,8 +116,6 @@ impl LoggerService {
                 "Web logger not available on non-wasm target",
             ));
         }
-
-        Ok(())
     }
 
     /// Get the log file path

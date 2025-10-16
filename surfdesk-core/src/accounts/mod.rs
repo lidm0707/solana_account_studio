@@ -4,8 +4,6 @@
 use serde::{Deserialize, Serialize};
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::{Keypair, Signer};
-use solana_sdk::transaction::Transaction;
-use std::str::FromStr;
 
 /// Solana account information
 #[derive(Debug, Clone, Serialize, Deserialize)]

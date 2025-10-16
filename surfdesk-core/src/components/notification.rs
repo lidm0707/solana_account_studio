@@ -3,7 +3,7 @@
 //! Simplified notification component for MVP approach.
 //! Focus on compilation success over comprehensive features.
 
-use crate::components::{Color, Size};
+use crate::components::Size;
 use dioxus::prelude::*;
 
 /// Notification component properties (MVP simplified)

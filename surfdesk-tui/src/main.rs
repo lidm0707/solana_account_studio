@@ -16,12 +16,11 @@ use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    text::Span,
-    widgets::{Block, Borders, Clear, Gauge, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, Gauge, List, ListItem, Paragraph},
     Frame, Terminal,
 };
 use std::{io, time::Duration};
-use surfdesk_core::{current_platform, init_core, Platform};
+use surfdesk_core::{current_platform, init_core};
 
 /// Command line arguments for the TUI application
 #[derive(Parser, Debug)]

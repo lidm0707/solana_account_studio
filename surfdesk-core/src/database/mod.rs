@@ -121,7 +121,7 @@ impl DatabaseInitializer {
 
     /// Get default database path for the current platform
     pub fn default_database_path() -> PathBuf {
-        let mut path = dirs::data_dir()
+        let path = dirs::data_dir()
             .unwrap_or_else(|| std::env::current_dir().unwrap())
             .join("surfdesk");
 

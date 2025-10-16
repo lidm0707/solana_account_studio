@@ -47,7 +47,7 @@ impl TransactionBuilder {
 
     /// Build transaction
     pub fn build(&self) -> Result<Transaction, Box<dyn std::error::Error>> {
-        let mut transaction = Transaction::new_with_payer(&self.instructions, Some(&self.payer));
+        let transaction = Transaction::new_with_payer(&self.instructions, Some(&self.payer));
 
         // Set recent blockhash (placeholder for MVP)
         // transaction.sign(&self.signers, blockhash);

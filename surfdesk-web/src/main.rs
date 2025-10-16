@@ -7,8 +7,7 @@
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 // use gloo_console::log;
-use log::{error, info, LevelFilter};
-use surfdesk_core::{current_platform, init_core, Platform};
+use surfdesk_core::{current_platform, init_core};
 
 /// Main application component with routing
 #[component]
@@ -69,9 +68,9 @@ enum Route {
 /// Home page component
 #[component]
 fn Home() -> Element {
-    let mut solana_url = use_signal(|| "https://api.devnet.solana.com".to_string());
+    let solana_url = use_signal(|| "https://api.devnet.solana.com".to_string());
     let mut connection_status = use_signal(|| "Disconnected".to_string());
-    let mut account_count = use_signal(|| 0u64);
+    let account_count = use_signal(|| 0u64);
 
     rsx! {
         div { class: "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100",

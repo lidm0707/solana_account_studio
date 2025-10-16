@@ -5,7 +5,6 @@
 //! subscription management across all platforms.
 
 use crate::error::{Result, SurfDeskError};
-use serde_json::json;
 use std::collections::HashMap;
 use tokio::sync::{broadcast, RwLock};
 

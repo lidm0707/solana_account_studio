@@ -4,7 +4,6 @@
 //! It handles data persistence, migrations, and query operations across
 //! all platforms with platform-specific storage backends.
 
-use crate::database::migrations::SimpleMigration;
 use crate::error::{Result, SurfDeskError};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};

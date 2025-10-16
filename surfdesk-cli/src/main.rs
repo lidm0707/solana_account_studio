@@ -12,7 +12,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use log::{error, info, LevelFilter};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use surfdesk_core::{current_platform, init_core, Platform, DEFAULT_SOLANA_RPC_URL};
+use surfdesk_core::{current_platform, init_core, DEFAULT_SOLANA_RPC_URL};
 
 /// CLI configuration structure
 #[derive(Parser, Debug)]

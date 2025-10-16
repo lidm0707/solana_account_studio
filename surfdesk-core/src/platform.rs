@@ -290,7 +290,7 @@ impl PlatformAdapter {
             use std::fs::File;
             use std::os::unix::io::AsRawFd;
 
-            if let Ok(mut file) = File::open("/dev/tty") {
+            if let Ok(file) = File::open("/dev/tty") {
                 use libc::{ioctl, winsize, TIOCGWINSZ};
                 use std::mem;
 
