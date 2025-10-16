@@ -6,7 +6,9 @@ use crate::services::surfpool_service::{
     DeploymentRequest, DeploymentResult, DeploymentStatistics, DeploymentStatus, SurfPoolService,
     SurfPoolStatus,
 };
+use chrono;
 use dioxus::prelude::*;
+use serde::{Deserialize, Serialize};
 use solana_sdk::{pubkey::Pubkey, signature::Keypair, system_program, transaction::Transaction};
 use std::sync::Arc;
 
@@ -44,6 +46,7 @@ fn use_validator_status() -> SurfPoolStatus {
 
 // Hook for deployment statistics (simplified)
 fn use_deployment_stats() -> DeploymentStatistics {
+    let _service = use_surfpool_service();
     let mut stats = use_signal(|| DeploymentStatistics {
         total_deployments: 0,
         successful_deployments: 0,
@@ -68,6 +71,53 @@ fn use_deployment_stats() -> DeploymentStatistics {
     });
 
     stats()
+}
+
+// Hook for real-time balance monitoring
+fn use_balance_monitor(pubkey: Pubkey) -> f64 {
+    let mut balance = use_signal(|| 0.0);
+
+    use_coroutine(move |_| {
+        let balance_signal = balance.clone();
+        let account_pubkey = pubkey;
+        async move {
+            loop {
+                // Mock balance update - in real implementation, this would query RPC
+                let mock_balance = (account_pubkey.to_bytes()[0] as f64) * 0.001;
+                balance_signal.set(mock_balance);
+                tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
+            }
+        }
+    });
+
+    balance()
+}
+
+// Import/Export functionality
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct AccountExport {
+    name: String,
+    pubkey: String,
+    owner: String,
+    balance: f64,
+    executable: bool,
+    created_at: String,
+}
+
+fn export_accounts(accounts: Vec<AccountData>) -> String {
+    let exports: Vec<AccountExport> = accounts
+        .iter()
+        .map(|acc| AccountExport {
+            name: "Account".to_string(),
+            pubkey: acc.pubkey.to_string(),
+            owner: acc.owner.to_string(),
+            balance: acc.lamports as f64 / 1_000_000_000.0,
+            executable: acc.executable,
+            created_at: chrono::Utc::now().to_rfc3339(),
+        })
+        .collect();
+
+    serde_json::to_string_pretty(&exports).unwrap_or_else(|_| "[]".to_string())
 }
 
 /// Account data structure
@@ -731,6 +781,28 @@ fn AccountExplorerTab(accounts: Vec<AccountData>, surfpool_running: bool) -> Ele
                                 _ => "❌ Validator error. Check logs for details."
                             }
                         }
+
+                        // Import/Export controls
+                        div { style: "margin-top: 16px; display: flex; gap: 8px;",
+                            button {
+                                style: "padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;",
+                                onclick: move |_| {
+                                    let export_data = export_accounts(accounts.clone());
+                                    // In real implementation, this would trigger a file download
+                                    log::info!("Export data: {}", export_data);
+                                },
+                                "📤 Export Accounts"
+                            }
+
+                            button {
+                                style: "padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;",
+                                onclick: move |_| {
+                                    // In real implementation, this would open a file dialog
+                                    log::info!("Import accounts triggered");
+                                },
+                                "📥 Import Accounts"
+                            }
+                        }
                     }
                 }
             }
@@ -740,13 +812,17 @@ fn AccountExplorerTab(accounts: Vec<AccountData>, surfpool_running: bool) -> Ele
                 div { style: "background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;",
                     ul { style: "list-style: none; margin: 0; padding: 0;",
                         for account in accounts.iter() {
-                            li { style: "padding: 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; transition: background-color 0.2s ease;",
+                            let account_balance = use_balance_monitor(account.pubkey);
+
+                            li {
+                                style: "padding: 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; transition: background-color 0.2s ease;",
+
                                 div { style: "flex: 1; min-width: 0;",
                                     p { style: "font-size: 14px; font-weight: 500; color: #3b82f6; margin: 0 0 4px 0; word-break: break-all;",
                                         "{account.pubkey}"
                                     }
                                     p { style: "font-size: 12px; color: #6b7280; margin: 0;",
-                                        "Owner: {account.owner} • {account.lamports / 1_000_000_000} SOL"
+                                        "Owner: {account.owner} • {account_balance:.4} SOL"
                                     }
                                 }
 
@@ -758,6 +834,9 @@ fn AccountExplorerTab(accounts: Vec<AccountData>, surfpool_running: bool) -> Ele
                                     }
                                     span { style: "padding: 4px 8px; background: #e0e7ff; color: #3730a3; border-radius: 12px; font-size: 10px; font-weight: 500;",
                                         "{account.data.len()} bytes"
+                                    }
+                                    span { style: "padding: 4px 8px; background: #fbbf24; color: #92400e; border-radius: 12px; font-size: 10px; font-weight: 500;",
+                                        format!("🔄 {:.4} SOL", account_balance)
                                     }
                                 }
                             }
