@@ -207,15 +207,9 @@ fn SurfDeskDesktopApp() -> Element {
     };
 
     rsx! {
-        // Include styles
+        // Include styles from core
         style { {include_str!("../assets/styles.css")} }
-        // Temporarily disabled for compilation testing
-        // style { {include_str!("styles/loading.css")} }
-        // style { {include_str!("styles/input.css")} }
-        // style { {include_str!("styles/modal.css")} }
-        // style { {include_str!("styles/toast.css")} }
-        // style { {include_str!("styles/design-system.css")} }
-        // style { {include_str!("styles/keyboard.css")} }
+        style { {surfdesk_core::styles::include_all_styles()} }
 
         div {
             class: "surfdesk-desktop {theme_class}",

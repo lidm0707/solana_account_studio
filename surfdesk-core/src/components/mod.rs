@@ -20,6 +20,7 @@ pub mod app_shell;
 pub mod button;
 pub mod card;
 pub mod dashboard;
+pub mod dropdown;
 pub mod footer;
 // pub mod form;  // Temporarily commented out due to syntax issues
 pub mod header;
@@ -44,6 +45,9 @@ pub use app_shell::AppShell;
 pub use button::Button;
 pub use card::Card;
 pub use dashboard::Dashboard;
+pub use dropdown::{
+    Dropdown, DropdownOption, DropdownValue, MultiSelectDropdown, SearchableDropdown,
+};
 // pub use footer::Footer;  // Temporarily commented out
 pub use footer::Footer;
 // pub use form::Form; // Temporarily commented out

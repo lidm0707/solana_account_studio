@@ -26,6 +26,7 @@ pub mod platform;
 pub mod services;
 pub mod solana_rpc;
 pub mod state;
+pub mod styles;
 pub mod surfpool;
 pub mod types;
 
