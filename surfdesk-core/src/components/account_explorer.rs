@@ -326,6 +326,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
             current_builder.space as u64,
             current_builder.executable,
             current_builder.account_data.as_ref().unwrap().data.clone(),
+            payer: Keypair,
         );
 
         // Deploy using simplified workflow

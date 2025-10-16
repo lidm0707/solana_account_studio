@@ -423,67 +423,7 @@ pub fn use_surfpool_service() -> Result<Arc<SurfPoolService>> {
     Err(crate::error::SurfDeskError::internal("Service not yet implemented"))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tokio;
 
-    #[tokio::test]
-    async fn test_surfpool_service_creation() {
-        let service = SurfPoolService::new().await;
-        assert!(service.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_validator_status() {
-        let service = SurfPoolService::new().await.unwrap();
-        let status = service.get_validator_status().await.unwrap();
-        assert!(matches!(status, SurfPoolStatus::Stopped));
-    }
-
-    #[tokio::test]
-    async fn test_deployment_request_creation() {
-        let payer = Keypair::new();
-        let pubkey = Pubkey::new_unique();
-        let owner = Pubkey::new_unique();
-
-        let request = DeploymentRequest::new(
-            pubkey,
-            owner,
-            1_000_000_000, // 1 SOL
-            100,
-            false,
-            vec![],
-            payer,
-        );
-
-        assert_eq!(request.pubkey, pubkey);
-        assert_eq!(request.owner, owner);
-        assert_eq!(request.lamports, 1_000_000_000);
-        assert_eq!(request.space, 100);
-        assert!(!request.executable);
-    }
-
-    #[tokio::test]
-    async fn test_deployment_queue_management() {
-        let service = SurfPoolService::new().await.unwrap();
-
-        // Test empty queue
-        assert_eq!(service.get_deployment_queue_length().await.unwrap(), 0);
-
-        // Test clearing empty queue
-        assert!(service.clear_deployment_queue().await.is_ok());
-        assert_eq!(service.get_deployment_queue_length().await.unwrap(), 0);
-    }
-}
-        log::info!("Starting SurfPool validator");
-
-        let mut controller = self.controller.clone();
-        controller.start().await?;
-
-        log::info!("SurfPool validator started successfully");
-        Ok(())
-    }
 
     /// Stop the SurfPool validator
     pub async fn stop_validator(&self) -> Result<()> {

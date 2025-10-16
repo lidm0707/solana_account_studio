@@ -16,11 +16,11 @@ use dioxus::prelude::*;
 use log::{debug, error, info, warn, LevelFilter};
 use std::sync::Arc;
 
-// Import modules
-mod components;
 mod pages;
+mod surfpool;
 
 use components::*;
+use surfpool::SurfPoolManager;
 
 /// Command line arguments for the enhanced desktop application
 #[derive(Parser, Debug)]
@@ -529,24 +529,6 @@ fn Sidebar(
             }
         }
     }
-
-    // /// Status bar component
-    // #[component]
-    // fn StatusBar(surfpool_manager: Arc<SurfPoolManager>) -> Element {
-    //     let surfpool_status = use_signal(|| surfpool_manager.get_status());
-    //     let current_time = use_signal(|| "12:34:56".to_string());
-
-    // Update time
-    // use_coroutine(|_| {
-    //     let time = current_time.clone();
-    //     async move {
-    //         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
-    //         loop {
-    //             interval.tick().await;
-    //             time.set("12:34:56".to_string());
-    //         }
-    //     }
-    // });
 
     rsx! {
         div { class: "status-bar",
