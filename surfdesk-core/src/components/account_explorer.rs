@@ -375,6 +375,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                 is_deploying_signal.set(false);
             }
         });
+    };
 
     // Reset builder
     let reset_builder = move |_| {
@@ -384,119 +385,44 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     };
 
     rsx! {
-        div { style: "display: flex; flex-direction: column; height: 100vh; background: #f9fafb;",
-            // Header
-            div { style: "background: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;",
-                h1 { style: "font-size: 20px; font-weight: 600; color: #111827; margin: 0;",
-                    "Account Explorer"
+        div { style: "padding: 20px;",
+            h1 { "Account Explorer" }
+
+            div { style: "margin-bottom: 20px;",
+                button {
+                    onclick: move |_| active_tab.set("builder".to_string()),
+                    style: "margin-right: 10px; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px;",
+                    "Build Account"
                 }
-
-                div { style: "display: flex; align-items: center; gap: 16px;",
-                    // Validator status indicator
-                    div { style: "display: flex; align-items: center; gap: 8px;",
-                        div { style: "width: 8px; height: 8px; border-radius: 50%; background: {};",
-                            match validator_status() {
-                                SurfPoolStatus::Running { .. } => "#22c55e".to_string(),
-                                SurfPoolStatus::Starting => "#f59e0b".to_string(),
-                                _ => "#ef4444".to_string()
-                            }
-                        }
-                        span { style: "font-size: 14px; color: #6b7280;",
-                            match validator_status() {
-                                SurfPoolStatus::Running { block_height } => {
-                                    format!("SurfPool Running (Block: {})", block_height)
-                                }
-                                SurfPoolStatus::Starting => "SurfPool Starting...".to_string(),
-                                SurfPoolStatus::Stopping => "SurfPool Stopping...".to_string(),
-                                SurfPoolStatus::Stopped => "SurfPool Stopped".to_string(),
-                                SurfPoolStatus::Error(_) => "SurfPool Error".to_string(),
-                            }
-                        }
-                    }
-
-                    // Validator controls
-                    div { style: "display: flex; gap: 8px;",
-                        if !matches!(validator_status(), SurfPoolStatus::Running { .. }) {
-                            button {
-                                style: "padding: 6px 12px; background: #22c55e; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;",
-                                onclick: start_validator,
-                                "Start Validator"
-                            }
-                        }
-                        if matches!(validator_status(), SurfPoolStatus::Running { .. }) {
-                            button {
-                                style: "padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;",
-                                onclick: stop_validator,
-                                "Stop Validator"
-                            }
-                        }
-                    }
-
-                    // Deployment statistics
-                    div { style: "display: flex; align-items: center; gap: 12px; padding: 4px 8px; background: #f3f4f6; border-radius: 4px;",
-                        span { style: "font-size: 12px; color: #6b7280;",
-                            format!("Deployments: {}/{} ({}%)",
-                                deployment_stats().successful_deployments,
-                                deployment_stats().total_deployments,
-                                deployment_stats().success_rate as usize
-                            )
-                        }
-                    }
+                button {
+                    onclick: move |_| active_tab.set("explorer".to_string()),
+                    style: "padding: 10px; background: #6b7280; color: white; border: none; border-radius: 4px;",
+                    "Explore Accounts"
                 }
             }
 
-            // Tab Navigation
-            div { style: "background: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 0 24px;",
-                div { style: "display: flex; gap: 32px;",
-                    button {
-                        onclick: move |_| active_tab.set("builder".to_string()),
-                        style: "padding: 16px 0; background: none; border: none; border-bottom: 2px solid {border_color}; font-size: 14px; font-weight: 500; color: {text_color}; cursor: pointer; transition: all 0.2s ease;",
-                        if active_tab() == "builder" { "#3b82f6" } else { "transparent" },
-                        if active_tab() == "builder" { "#3b82f6" } else { "#6b7280" },
-                        "Build Account"
-                    }
-                    button {
-                        onclick: move |_| active_tab.set("explorer".to_string()),
-                        style: "padding: 16px 0; background: none; border: none; border-bottom: 2px solid {border_color}; font-size: 14px; font-weight: 500; color: {text_color}; cursor: pointer; transition: all 0.2s ease;",
-                        if active_tab() == "explorer" { "#3b82f6" } else { "transparent" },
-                        if active_tab() == "explorer" { "#3b82f6" } else { "#6b7280" },
-                        "Explore Accounts"
-                    }
-                }
+            if !error_message().is_empty() {
+                div { style: "color: red; margin-bottom: 10px;", "{error_message}" }
             }
 
-            // Content Area
-            div { style: "flex: 1; padding: 24px; overflow-y: auto;",
-                // Error Message
-                if !error_message().is_empty() {
-                    div { style: "background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 14px;",
-                        "{error_message}"
-                    }
-                }
+            if !success_message().is_empty() {
+                div { style: "color: green; margin-bottom: 10px;", "{success_message}" }
+            }
 
-                // Success Message
-                if !success_message().is_empty() {
-                    div { style: "background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 14px;",
-                        "{success_message}"
-                    }
+            if active_tab() == "builder" {
+                AccountBuilderTab {
+                    builder: builder(),
+                    is_building: is_building(),
+                    is_deploying: is_deploying(),
+                    on_generate_keypair: generate_keypair,
+                    on_build: build_account,
+                    on_deploy: deploy_account,
+                    on_reset: reset_builder,
                 }
-
-                // Tab Content
-                if active_tab() == "builder" {
-                    AccountBuilderTab {
-                        builder: builder(),
-                        is_building: is_building(),
-                        is_deploying: is_deploying(),
-                        on_generate_keypair: generate_keypair,
-                        on_build: build_account,
-                        on_deploy: deploy_account,
-                        on_reset: reset_builder,
-                    }
-                } else {
-                    AccountExplorerTab {
-                        accounts: accounts(),
-                        surfpool_running: props.surfpool_running,
-                    }
+            } else {
+                AccountExplorerTab {
+                    accounts: accounts(),
+                    surfpool_running: props.surfpool_running,
                 }
             }
         }
@@ -761,103 +687,28 @@ fn AccountBuilderTab(
 #[component]
 fn AccountExplorerTab(accounts: Vec<AccountData>, surfpool_running: bool) -> Element {
     rsx! {
-        div { style: "display: flex; flex-direction: column; gap: 24px;",
-            // Status Banner
-            div { style: "padding: 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; color: #1e40af;",
-                div { style: "display: flex; align-items: flex-start; gap: 12px;",
-                    div {
-                        div { style: "font-weight: 600; color: #1e40af; margin-bottom: 4px;",
-                            "Account Explorer"
-                        }
-                        div { style: "font-size: 14px; color: #1e40af; line-height: 1.4;",
-                            if accounts.is_empty() {
-                                "No accounts built yet. Switch to the 'Build Account' tab to create your first account."
-                            } else {
-                                format!("Found {} account(s). Click on any account to view details.", accounts.len())
-                            }
-                        }
+        div { style: "padding: 20px;",
+            h2 { "Account Explorer" }
 
-                        // Show validator status
-                        div { style: "margin-top: 8px; padding: 8px; background: #fef3c7; border-radius: 4px; font-size: 12px; color: #92400e;",
-                            match validator_status() {
-                                SurfPoolStatus::Running { .. } => "✅ Validator is running and ready for deployments",
-                                SurfPoolStatus::Starting => "⏳ Validator is starting up...",
-                                SurfPoolStatus::Stopped => "⚠️ Validator is stopped. Start it to deploy accounts.",
-                                _ => "❌ Validator error. Check logs for details."
-                            }
-                        }
-
-                        // Import/Export controls
-                        div { style: "margin-top: 16px; display: flex; gap: 8px;",
-                            button {
-                                style: "padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;",
-                                onclick: move |_| {
-                                    let export_data = export_accounts(accounts.clone());
-                                    // In real implementation, this would trigger a file download
-                                    log::info!("Export data: {}", export_data);
-                                },
-                                "📤 Export Accounts"
-                            }
-
-                            button {
-                                style: "padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;",
-                                onclick: move |_| {
-                                    // In real implementation, this would open a file dialog
-                                    log::info!("Import accounts triggered");
-                                },
-                                "📥 Import Accounts"
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Accounts List
-            if !accounts.is_empty() {
-                div { style: "background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;",
-                    ul { style: "list-style: none; margin: 0; padding: 0;",
-                        for account in accounts.iter() {
-                            let account_balance = use_balance_monitor(account.pubkey);
-
-                            li {
-                                style: "padding: 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; transition: background-color 0.2s ease;",
-
-                                div { style: "flex: 1; min-width: 0;",
-                                    p { style: "font-size: 14px; font-weight: 500; color: #3b82f6; margin: 0 0 4px 0; word-break: break-all;",
-                                        "{account.pubkey}"
-                                    }
-                                    p { style: "font-size: 12px; color: #6b7280; margin: 0;",
-                                        "Owner: {account.owner} • {account_balance:.4} SOL"
-                                    }
-                                }
-
-                                div { style: "display: flex; align-items: center; gap: 8px;",
-                                    if account.executable {
-                                        span { style: "padding: 4px 8px; background: #dcfce7; color: #166534; border-radius: 12px; font-size: 10px; font-weight: 500;",
-                                            "Executable"
-                                        }
-                                    }
-                                    span { style: "padding: 4px 8px; background: #e0e7ff; color: #3730a3; border-radius: 12px; font-size: 10px; font-weight: 500;",
-                                        "{account.data.len()} bytes"
-                                    }
-                                    span { style: "padding: 4px 8px; background: #fbbf24; color: #92400e; border-radius: 12px; font-size: 10px; font-weight: 500;",
-                                        format!("🔄 {:.4} SOL", account_balance)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Empty State
             if accounts.is_empty() {
-                div { style: "text-align: center; padding: 48px 24px;",
-                    h3 { style: "font-size: 16px; font-weight: 600; color: #111827; margin: 0 0 8px 0;",
-                        "No accounts"
-                    }
-                    p { style: "font-size: 14px; color: #6b7280; margin: 0;",
-                        "Get started by building your first account."
+                div { style: "text-align: center; padding: 40px; background: #f9fafb; border-radius: 8px;",
+                    "No accounts built yet. Switch to the 'Build Account' tab to create your first account."
+                }
+            } else {
+                div { style: "margin-bottom: 20px;",
+                    "Found accounts. Click on any account to view details."
+                }
+
+                div { style: "background: white; border-radius: 8px; padding: 16px;",
+                    for account in accounts.iter() {
+                        div { style: "padding: 12px; border-bottom: 1px solid #e5e7eb;",
+                            div { style: "font-weight: 500; margin-bottom: 4px;",
+                                "{account.pubkey}"
+                            }
+                            div { style: "font-size: 12px; color: #6b7280;",
+                                "Owner: {account.owner} • {account.data.len()} bytes"
+                            }
+                        }
                     }
                 }
             }
