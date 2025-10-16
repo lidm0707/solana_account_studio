@@ -219,25 +219,22 @@ pub fn Input(props: InputProps) -> Element {
             // Input container
             div { class: "surf-input-container",
                 input {
-                    r#type: "{input_type}"
-                    class: "{css_classes}"
-                    placeholder: props.placeholder.clone().unwrap_or_default()
-                    value: "{input_value}"
-                    disabled: props.disabled
-                    required: props.required
-                    maxlength: props.max_length
-                    onfocus: handle_focus
-                    onblur: handle_blur
-                    oninput: move |evt: {
+                    r#type: "{input_type}",
+                    class: "{css_classes}",
+                    placeholder: props.placeholder.clone().unwrap_or_default(),
+                    value: "{input_value}",
+                    disabled: props.disabled,
+                    required: props.required,
+                    maxlength: props.max_length,
+                    onfocus: handle_focus,
+                    onblur: handle_blur,
+                    oninput: move |evt| {
                         let new_value = evt.value();
                         props.onchange.call(new_value);
-                    }
-                    onkeypress: props.onkeypress
+                    },
+                    onkeypress: props.onkeypress,
                 }
-                }
-
-                    // Extra attributes for number input
-                }
+            }
 
                 // Password visibility toggle
                 if matches!(props.input_type, InputType::Password) {
@@ -353,15 +350,15 @@ pub fn Textarea(props: TextareaProps) -> Element {
     rsx! {
         div { class: "surf-textarea-wrapper",
             textarea {
-                class: "{css_classes}"
-                placeholder: props.placeholder.clone().unwrap_or_default()
-                rows: props.rows
-                value: props.value
-                disabled: props.disabled
-                required: props.required
-                maxlength: props.max_length
-                onfocus: handle_focus
-                onblur: handle_blur
+                class: "{css_classes}",
+                placeholder: props.placeholder.clone().unwrap_or_default(),
+                rows: props.rows,
+                value: props.value,
+                disabled: props.disabled,
+                required: props.required,
+                maxlength: props.max_length,
+                onfocus: handle_focus,
+                onblur: handle_blur,
                 oninput: move |evt| {
                     let new_value = evt.value();
                     props.onchange.call(new_value);
@@ -500,7 +497,9 @@ pub fn validate_url(url: &str) -> ValidationResult {
     if url.starts_with("http://") || url.starts_with("https://") {
         ValidationResult::Valid
     } else {
-        ValidationResult::Invalid("Please enter a valid URL (starting with http:// or https://)".to_string())
+        ValidationResult::Invalid(
+            "Please enter a valid URL (starting with http:// or https://)".to_string(),
+        )
     }
 }
 

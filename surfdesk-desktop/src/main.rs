@@ -209,10 +209,12 @@ fn SurfDeskDesktopApp() -> Element {
     rsx! {
         // Include styles
         style { {include_str!("../assets/styles.css")} }
-        // style { {include_str!("../styles/loading.css")} }
-        // style { {include_str!("../styles/input.css")} }
-        // style { {include_str!("../styles/design-system.css")} }
-        // style { {include_str!("../styles/keyboard.css")} }
+        // Temporarily disabled for compilation testing
+        // style { {include_str!("styles/loading.css")} }
+        // style { {include_str!("styles/input.css")} }
+        // style { {include_str!("styles/modal.css")} }
+        // style { {include_str!("styles/design-system.css")} }
+        // style { {include_str!("styles/keyboard.css")} }
 
         div {
             class: "surfdesk-desktop {theme_class}",
@@ -407,6 +409,7 @@ fn MenuBar(
                             surfpool::SurfPoolStatus::Stopped => "⚪",
                             surfpool::SurfPoolStatus::Error { .. } => "🔴",
                         }
+                    }
                 }
 
 

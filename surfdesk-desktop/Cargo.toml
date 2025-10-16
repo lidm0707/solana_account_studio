@@ -33,10 +33,19 @@ env_logger = "0.11"
 clap = { workspace = true, features = ["derive"] }
 dotenvy = "0.15"
 
+# Time utilities
+chrono = { version = "0.4", features = ["serde"] }
+
 # GUI libraries (optional, depending on platform)
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 winit = "0.29"
 webbrowser = "0.8"
+
+# Web dependencies for enhanced modal functionality
+gloo-timers = "0.3"
+web-sys = "0.3"
+wasm-bindgen = "0.2"
+js-sys = "0.3"
 
 # Platform-specific dependencies
 [target.'cfg(windows)'.dependencies]

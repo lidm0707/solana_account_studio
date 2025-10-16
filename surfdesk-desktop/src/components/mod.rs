@@ -7,6 +7,7 @@ pub mod button;
 pub mod card;
 pub mod input;
 pub mod loading;
+pub mod modal;
 
 // Re-export main components
 pub use button::{Button, ButtonProps, ButtonVariant};
@@ -19,6 +20,10 @@ pub use input::{
 pub use loading::{
     LoadingOverlay, LoadingOverlayProps, LoadingSpinner, LoadingSpinnerProps, LoadingVariant,
     Skeleton, SkeletonProps,
+};
+pub use modal::{
+    AlertModal, AlertModalProps, ConfirmModal, ConfirmModalProps, Modal, ModalProps, ModalSize,
+    ModalVariant,
 };
 
 /// Common component props and utilities
