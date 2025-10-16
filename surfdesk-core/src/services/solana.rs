@@ -105,6 +105,17 @@ impl SolanaService {
         }
     }
 
+    /// Get accounts for environment (MVP implementation)
+    pub async fn get_accounts(
+        &self,
+        _environment: &crate::types::Environment,
+    ) -> Result<Vec<crate::types::Account>> {
+        // MVP: Return empty accounts list for now
+        // In a real implementation, this would fetch accounts from storage
+        // or from the environment configuration
+        Ok(vec![])
+    }
+
     /// Shutdown the service
     pub fn shutdown(&self) -> Result<()> {
         log::info!("SolanaService shutdown complete");

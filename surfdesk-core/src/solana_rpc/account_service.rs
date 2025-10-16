@@ -42,7 +42,6 @@ impl AccountService {
 
         Ok((account, Keypair::with_secret(keypair)))
     }
-    }
 
     /// Import account from secret key
     pub fn import_account(&mut self, secret_key: &str, label: String) -> Result<Account> {

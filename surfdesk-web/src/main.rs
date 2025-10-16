@@ -6,7 +6,8 @@
 
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
-use gloo_console::{log, log1};
+use gloo_console::log;
+
 use surfdesk_core::accounts::Account;
 use surfdesk_core::solana_rpc::{AccountService, AccountWithBalance, SolanaNetwork};
 use surfdesk_core::{current_platform, init_core};
@@ -154,10 +155,12 @@ fn Home() -> Element {
 
                 // Status indicator
                 div { class: "mb-8 text-center",
-                    div { class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-full shadow-sm",
-                        class: if *connection_status.read() == "Connected" { "bg-green-100 text-green-800" }
-                        else if *connection_status.read() == "Connecting" { "bg-yellow-100 text-yellow-800" }
-                        else { "bg-red-100 text-red-800" },
+                    div {
+                        class: format!("inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-full shadow-sm {}",
+                            if *connection_status.read() == "Connected" { "bg-green-100 text-green-800" }
+                            else if *connection_status.read() == "Connecting" { "bg-yellow-100 text-yellow-800" }
+                            else { "bg-red-100 text-red-800" }
+                        ),
                         span { class: "mr-2",
                             if *connection_status.read() == "Connected" { "✅" }
                             else if *connection_status.read() == "Connecting" { "⏳" }
@@ -345,7 +348,7 @@ fn Accounts() -> Element {
                                 onclick: move |_| {
                                     spawn_local(async move {
                                         if let Err(e) = load_accounts(&mut accounts, &mut is_loading, &mut error_message).await {
-                                            log!("Failed to refresh accounts: {:?}", e);
+                                            log!("Failed to refresh accounts: {}", e.to_string());
                                         }
                                     });
                                 },
@@ -404,8 +407,8 @@ fn Accounts() -> Element {
             // Loading state
             if *is_loading.read() {
                 div { style: "display: flex; justify-content: center; align-items: center; padding: 3rem 0;",
-                    div { style: "width: 3rem; height: 3rem; border: 4px solid #e5e7eb; border-top: 4px solid #4f46e5; border-radius: 50%; animation: spin 1s linear infinite;",
-                        style { "@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }" }
+                    div { style: "width: 3rem; height: 3rem; border: 4px solid #e5e7eb; border-top: 4px solid #4f46e5; border-radius: 50%;",
+                        "Loading..."
                     }
                 }
             }
@@ -420,7 +423,7 @@ fn Accounts() -> Element {
                     }
                 } else {
                     div { style: "display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));",
-                        for account in accounts.read().iter() {
+                        for account in accounts.read().iter().cloned() {
                             div { style: "background-color: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);",
                                 div { style: "padding: 1.5rem;",
                                     div { style: "display: flex; align-items: center;",
@@ -450,9 +453,10 @@ fn Accounts() -> Element {
                                         }
                                         button {
                                             onclick: move |_| {
+                                                let account_pubkey = account.account.pubkey.clone();
                                                 spawn_local(async move {
-                                                    if let Err(e) = request_airdrop(&account.account.pubkey, &mut success_message, &mut error_message).await {
-                                                        log!("Airdrop failed: {:?}", e);
+                                                    if let Err(e) = request_airdrop(&account_pubkey, &mut success_message, &mut error_message).await {
+                                                        log!("Airdrop failed: {}", e.to_string());
                                                     }
                                                 });
                                             },
@@ -495,7 +499,7 @@ fn Accounts() -> Element {
                                 if !label.is_empty() {
                                     spawn_local(async move {
                                         if let Err(e) = create_account(label, &mut accounts, &mut show_create_modal, &mut new_account_label, &mut success_message, &mut error_message).await {
-                                            log!("Failed to create account: {:?}", e);
+                                            log!("Failed to create account: {}", e.to_string());
                                         }
                                     });
                                 }
@@ -546,7 +550,7 @@ fn Accounts() -> Element {
                                 if !secret_key.is_empty() && !label.is_empty() {
                                     spawn_local(async move {
                                         if let Err(e) = import_account(secret_key, label, &mut accounts, &mut show_import_modal, &mut import_secret_key, &mut import_label, &mut success_message, &mut error_message).await {
-                                            log!("Failed to import account: {:?}", e);
+                                            log!("Failed to import account: {}", e.to_string());
                                         }
                                     });
                                 }
@@ -583,7 +587,7 @@ fn AccountDetail(pubkey: String) -> Element {
             )
             .await
             {
-                log::error!("Failed to load account details: {:?}", e);
+                log::error!("Failed to load account details: {}", e.to_string());
             }
         });
     });
@@ -712,7 +716,7 @@ fn AccountDetail(pubkey: String) -> Element {
                                 if !recipient.is_empty() && !amount.is_empty() {
                                     spawn_local(async move {
                                         if let Err(e) = send_sol_transfer(&from_pubkey, &recipient, &amount, &mut show_transfer_modal, &mut recipient_pubkey, &mut transfer_amount, &mut error_message).await {
-                                            log!("Failed to send SOL: {:?}", e);
+                                            log!("Failed to send SOL: {}", e.to_string());
                                         }
                                     });
                                 }
@@ -729,7 +733,7 @@ fn AccountDetail(pubkey: String) -> Element {
 
 // Helper functions for account management
 async fn load_accounts(
-    accounts: &mut Signal<Vec<Account>>,
+    accounts: &mut Signal<Vec<AccountWithBalance>>,
     is_loading: &mut Signal<bool>,
     error_message: &mut Signal<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -743,15 +747,19 @@ async fn load_accounts(
     // Update balances for all accounts
     let mut updated_accounts = Vec::new();
     for account in account_list {
-        match service.get_balance(&account.pubkey.to_string()).await {
+        match service.get_balance(&account.pubkey).await {
             Ok(balance) => {
                 let mut updated_account = account.clone();
                 updated_account.balance = balance;
-                updated_accounts.push(updated_account);
+                let account_with_balance =
+                    AccountWithBalance::new(updated_account.clone(), balance);
+                updated_accounts.push(account_with_balance);
             }
             Err(e) => {
                 log::warn!("Failed to fetch balance for {}: {}", account.pubkey, e);
-                updated_accounts.push(account);
+                // Still add the account even if balance fetch fails
+                let account_with_balance = AccountWithBalance::new(account.clone(), 0);
+                updated_accounts.push(account_with_balance);
             }
         }
     }
@@ -781,7 +789,8 @@ async fn load_account_details(
         let mut updated_account = found_account.clone();
 
         // Get real balance from network
-        match service.get_balance(pubkey).await {
+        let pubkey_obj = surfdesk_core::solana_rpc::Pubkey::from_string(pubkey);
+        match service.get_balance(&pubkey_obj).await {
             Ok(balance) => updated_account.balance = balance,
             Err(e) => {
                 log::warn!("Failed to fetch balance for {}: {}", pubkey, e);
@@ -799,7 +808,7 @@ async fn load_account_details(
 
 async fn create_account(
     label: String,
-    accounts: &mut Signal<Vec<Account>>,
+    accounts: &mut Signal<Vec<AccountWithBalance>>,
     show_modal: &mut Signal<bool>,
     label_input: &mut Signal<String>,
     success_message: &mut Signal<String>,
@@ -810,7 +819,8 @@ async fn create_account(
     match service.create_account(label.clone()) {
         Ok((new_account, _keypair)) => {
             let mut current_accounts = accounts.read().clone();
-            current_accounts.push(new_account);
+            let account_with_balance = AccountWithBalance::new(new_account, 0);
+            current_accounts.push(account_with_balance);
             accounts.set(current_accounts);
 
             show_modal.set(false);
@@ -827,7 +837,7 @@ async fn create_account(
 async fn import_account(
     secret_key: String,
     label: String,
-    accounts: &mut Signal<Vec<Account>>,
+    accounts: &mut Signal<Vec<AccountWithBalance>>,
     show_modal: &mut Signal<bool>,
     secret_input: &mut Signal<String>,
     label_input: &mut Signal<String>,
