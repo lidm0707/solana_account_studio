@@ -4,10 +4,13 @@
 //! It handles RPC connections, account management, transaction operations, and
 //! program interactions across all platforms.
 
+use crate::accounts::{Account, AccountManager, SolanaNetwork};
 use crate::error::{Result, SurfDeskError};
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{
-    commitment_config::CommitmentConfig, pubkey::Pubkey, signature::Signature,
+    commitment_config::CommitmentConfig,
+    pubkey::Pubkey,
+    signature::{Keypair, Signature, Signer},
     transaction::Transaction,
 };
 use std::sync::Arc;
@@ -405,6 +408,200 @@ impl SolanaService {
         *self.status.write().await = ConnectionStatus::Disconnected;
 
         Ok(())
+    }
+
+    /// Create and send SOL transfer transaction
+    pub async fn transfer_sol(
+        &self,
+        from_keypair: &Keypair,
+        to_pubkey: &Pubkey,
+        amount: u64,
+    ) -> Result<Signature> {
+        // Create transfer instruction
+        let transfer_instruction =
+            solana_sdk::system_instruction::transfer(&from_keypair.pubkey(), to_pubkey, amount);
+
+        // Get recent blockhash
+        let recent_blockhash = self.get_latest_blockhash().await?;
+
+        // Create transaction
+        let mut transaction =
+            Transaction::new_with_payer(&[transfer_instruction], Some(&from_keypair.pubkey()));
+
+        // Sign transaction
+        transaction.partial_sign(&[from_keypair], recent_blockhash);
+
+        // Send transaction
+        let signature = self.send_transaction(&transaction).await?;
+        Ok(signature)
+    }
+
+    /// Get transaction status
+    pub async fn get_transaction_status(&self, signature: &Signature) -> Result<bool> {
+        let status = tokio::task::spawn_blocking({
+            let client = self.rpc_client.clone();
+            let signature = *signature;
+            move || client.confirm_transaction(&signature)
+        })
+        .await
+        .map_err(|e| SurfDeskError::internal(format!("Task join error: {}", e)))?;
+
+        Ok(status.is_ok())
+    }
+}
+
+/// Enhanced Solana service with account management
+pub struct AccountService {
+    solana_service: SolanaService,
+    account_manager: AccountManager,
+}
+
+impl AccountService {
+    /// Create new account service
+    pub async fn new(network: SolanaNetwork) -> Result<Self> {
+        let solana_service = SolanaService::new(network.rpc_url()).await?;
+
+        Ok(Self {
+            solana_service,
+            account_manager: AccountManager::new(),
+        })
+    }
+
+    /// Create new account
+    pub fn create_account(&mut self, label: String) -> Result<(Account, Keypair)> {
+        let (account, keypair) = Account::new(label)
+            .map_err(|e| SurfDeskError::internal(format!("Failed to create account: {}", e)))?;
+        self.account_manager
+            .add_account(account.clone())
+            .map_err(|e| SurfDeskError::internal(format!("Failed to add account: {}", e)))?;
+        Ok((account, keypair))
+    }
+
+    /// Import account from secret key
+    pub fn import_account(&mut self, secret_key: &str, label: String) -> Result<Account> {
+        let account = Account::from_secret_key(secret_key, label)
+            .map_err(|e| SurfDeskError::internal(format!("Failed to import account: {}", e)))?;
+        self.account_manager
+            .add_account(account.clone())
+            .map_err(|e| SurfDeskError::internal(format!("Failed to add account: {}", e)))?;
+        Ok(account)
+    }
+
+    /// Get all accounts with updated balances
+    pub async fn get_accounts_with_balances(&mut self) -> Result<Vec<Account>> {
+        let mut accounts = self.account_manager.get_accounts().to_vec();
+
+        // Update balances for all accounts
+        for account in &mut accounts {
+            match self.solana_service.get_balance(&account.pubkey).await {
+                Ok(balance) => account.balance = balance,
+                Err(e) => {
+                    log::warn!("Failed to fetch balance for {}: {}", account.pubkey, e);
+                    // Keep existing balance on error
+                }
+            }
+        }
+
+        Ok(accounts)
+    }
+
+    /// Get account by pubkey with updated balance
+    pub async fn get_account_with_balance(&mut self, pubkey: &Pubkey) -> Result<Option<Account>> {
+        if let Some(account) = self.account_manager.get_account(pubkey) {
+            let mut updated_account = account.clone();
+            match self.solana_service.get_balance(pubkey).await {
+                Ok(balance) => updated_account.balance = balance,
+                Err(e) => {
+                    log::warn!("Failed to fetch balance for {}: {}", pubkey, e);
+                }
+            }
+            Ok(Some(updated_account))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Send SOL transfer
+    pub async fn send_sol(
+        &self,
+        from_keypair: &Keypair,
+        to_pubkey: &Pubkey,
+        amount: u64,
+    ) -> Result<Signature> {
+        self.solana_service
+            .transfer_sol(from_keypair, to_pubkey, amount)
+            .await
+    }
+
+    /// Remove account
+    pub fn remove_account(&mut self, pubkey: &Pubkey) -> bool {
+        self.account_manager.remove_account(pubkey)
+    }
+
+    /// Get current network
+    pub fn network(&self) -> &SolanaNetwork {
+        self.account_manager.get_network()
+    }
+
+    /// Switch network
+    pub async fn switch_network(&mut self, network: SolanaNetwork) -> Result<()> {
+        self.account_manager.set_network(network.clone());
+
+        // Recreate solana service with new network
+        self.solana_service = SolanaService::new(network.rpc_url()).await?;
+
+        Ok(())
+    }
+
+    /// Test connection
+    pub async fn test_connection(&self) -> Result<bool> {
+        match self.solana_service.get_latest_blockhash().await {
+            Ok(_) => Ok(true),
+            Err(e) => {
+                log::warn!("Failed to connect to Solana network: {}", e);
+                Ok(false)
+            }
+        }
+    }
+
+    /// Get account manager reference
+    pub fn account_manager(&self) -> &AccountManager {
+        &self.account_manager
+    }
+
+    /// Get mutable account manager reference
+    pub fn account_manager_mut(&mut self) -> &mut AccountManager {
+        &mut self.account_manager
+    }
+
+    /// Get solana service reference
+    pub fn solana_service(&self) -> &SolanaService {
+        &self.solana_service
+    }
+
+    /// Request airdrop (devnet/testnet only)
+    pub async fn request_airdrop(&self, pubkey: &Pubkey, lamports: u64) -> Result<Signature> {
+        self.solana_service.request_airdrop(pubkey, lamports).await
+    }
+}
+
+impl SolanaNetwork {
+    /// Get RPC URL for network
+    pub fn rpc_url(&self) -> String {
+        match self {
+            SolanaNetwork::Mainnet => "https://api.mainnet-beta.solana.com".to_string(),
+            SolanaNetwork::Devnet => "https://api.devnet.solana.com".to_string(),
+            SolanaNetwork::Testnet => "https://api.testnet.solana.com".to_string(),
+        }
+    }
+
+    /// Get display name for network
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            SolanaNetwork::Mainnet => "Mainnet Beta",
+            SolanaNetwork::Devnet => "Devnet",
+            SolanaNetwork::Testnet => "Testnet",
+        }
     }
 }
 

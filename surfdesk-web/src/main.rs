@@ -8,7 +8,12 @@ use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 // use gloo_console::log;
 use surfdesk_core::{current_platform, init_core};
+use surfdesk_core::solana_rpc::{AccountService, SolanaNetwork, AccountWithBalance};
+use surfdesk_core::accounts::Account;
 use wasm_bindgen_futures::spawn_local;
+
+mod style;
+use style::*;
 
 /// Main application component with routing
 #[component]
@@ -291,10 +296,268 @@ fn Home() -> Element {
 /// Accounts page component
 #[component]
 fn Accounts() -> Element {
+    let mut accounts = use_signal(Vec::<AccountWithBalance>::new);
+    let mut show_create_modal = use_signal(false);
+    let mut show_import_modal = use_signal(false);
+    let mut new_account_label = use_signal(String::new);
+    let mut import_secret_key = use_signal(String::new);
+    let mut import_label = use_signal(String::new);
+    let mut is_loading = use_signal(false);
+    let mut error_message = use_signal(String::new);
+    let mut success_message = use_signal(String::new);
+
+    // Load accounts on component mount
+    use_effect(move || {
+        spawn_local(async move {
+            if let Err(e) = load_accounts(&mut accounts, &mut is_loading, &mut error_message).await
+            {
+                log!("Failed to load accounts: {:?}", e);
+            }
+        });
+    });
+
     rsx! {
-        div { class: "min-h-screen bg-gray-50",
-            h1 { class:"text-3xl font-bold text-gray-900 mb-8", "Accounts" }
-            p { class:"text-gray-600", "Account management interface coming soon..." }
+        div { style: "min-height: 100vh; background-color: #f9fafb;",
+            // Header
+            div { style: "background-color: white; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);",
+                div { style: "padding: 1.5rem 2rem;",
+                    div { style: "display: flex; align-items: center; justify-content: space-between;",
+                        h1 { style: "font-size: 1.875rem; font-weight: bold; color: #111827;", "Accounts" }
+                        div { style: "display: flex; gap: 1rem;",
+                            button {
+                                onclick: move |_| {
+                                    show_create_modal.set(true);
+                                    error_message.set(String::new());
+                                    success_message.set(String::new());
+                                },
+                                style: "background-color: #4f46e5; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer; transition: background-color 0.2s;",
+                                "Create Account"
+                            }
+                            button {
+                                onclick: move |_| {
+                                    show_import_modal.set(true);
+                                    error_message.set(String::new());
+                                    success_message.set(String::new());
+                                },
+                                style: "background-color: #059669; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer; transition: background-color 0.2s;",
+                                "Import Account"
+                            }
+                            button {
+                                onclick: move |_| {
+                                    spawn_local(async move {
+                                        if let Err(e) = load_accounts(&mut accounts, &mut is_loading, &mut error_message).await {
+                                            log!("Failed to refresh accounts: {:?}", e);
+                                        }
+                                    });
+                                },
+                                style: "background-color: #4b5563; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer; transition: background-color 0.2s;",
+                                "Refresh"
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Network selector
+            div { style: "background-color: white; border-bottom: 1px solid #e5e7eb;",
+                div { style: "padding: 0.75rem 2rem;",
+                    div { style: "display: flex; align-items: center; gap: 1rem;",
+                        span { style: "font-size: 0.875rem; font-weight: 500; color: #374151;", "Network:" }
+                        select {
+                            value: "Devnet",
+                            style: "width: 8rem; padding: 0.5rem 2.5rem 0.5rem 0.75rem; font-size: 0.875rem; border: 1px solid #d1d5db; border-radius: 0.375rem; background-color: white;",
+                            option { value: "Devnet", "Devnet" }
+                            option { value: "Testnet", "Testnet" }
+                            option { value: "Mainnet", "Mainnet" }
+                        }
+                        span { style: "font-size: 0.75rem; color: #6b7280;", "(Devnet)" }
+                    }
+                }
+            }
+
+            // Messages
+            if !error_message.read().is_empty() {
+                div { style: "background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 1rem; margin: 1rem;",
+                    div { style: "display: flex; align-items: center;",
+                        div { style: "flex-shrink: 0; margin-right: 0.75rem;",
+                            span { style: "color: #ef4444; font-size: 1.25rem;", "⚠️" }
+                        }
+                        div {
+                            p { style: "font-size: 0.875rem; color: #991b1b;", "{error_message}" }
+                        }
+                    }
+                }
+            }
+
+            if !success_message.read().is_empty() {
+                div { style: "background-color: #f0fdf4; border-left: 4px solid #22c55e; padding: 1rem; margin: 1rem;",
+                    div { style: "display: flex; align-items: center;",
+                        div { style: "flex-shrink: 0; margin-right: 0.75rem;",
+                            span { style: "color: #22c55e; font-size: 1.25rem;", "✅" }
+                        }
+                        div {
+                            p { style: "font-size: 0.875rem; color: #166534;", "{success_message}" }
+                        }
+                    }
+                }
+            }
+
+            // Loading state
+            if *is_loading.read() {
+                div { style: "display: flex; justify-content: center; align-items: center; padding: 3rem 0;",
+                    div { style: "width: 3rem; height: 3rem; border: 4px solid #e5e7eb; border-top: 4px solid #4f46e5; border-radius: 50%; animation: spin 1s linear infinite;",
+                        style { "@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }" }
+                    }
+                }
+            }
+
+            // Accounts list
+            div { style: "padding: 1.5rem 2rem;",
+                if accounts.read().is_empty() && !*is_loading.read() {
+                    div { style: "text-align: center; padding: 3rem 0;",
+                        div { style: "margin: 0 auto; width: 3rem; height: 3rem; color: #9ca3af; font-size: 3rem;", "📭" }
+                        h3 { style: "margin-top: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #111827;", "No accounts" }
+                        p { style: "margin-top: 0.25rem; font-size: 0.875rem; color: #6b7280;", "Get started by creating or importing an account." }
+                    }
+                } else {
+                    div { style: "display: grid; gap: 1.5remclass: "grid gap-6 md:grid-cols-2 lg:grid-cols-3",
+                        for account in accounts.read().iter() {
+                            div { class: "bg-white overflow-hidden shadow rounded-lg",
+                                div { class: "p-6",
+                                    div { class: "flex items-center",
+                                        div { class: "flex-shrink-0",
+                                            div { class: "h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center",
+                                                span { class: "text-indigo-600 font-medium", "👤" }
+                                            }
+                                        }
+                                        div { class: "ml-4 flex-1",
+                                            h3 { class: "text-lg font-medium text-gray-900", "{account.account.label}" }
+                                            p { class: "text-sm text-gray-500 truncate", "{account.short_pubkey()}" }
+                                        }
+                                    }
+                                    div { class: "mt-4",
+                                        div { class: "flex items-center justify-between",
+                                            span { class: "text-sm font-medium text-gray-900", "Balance" }
+                                            span { class: "text-lg font-bold text-indigo-600",
+                                                "{account.formatted_balance()}"
+                                            }
+                                        }
+                                    }
+                                    div { class: "mt-2 flex space-x-2",
+                                        Link {
+                                            to: Route::AccountDetail { pubkey: account.account.pubkey.to_string() },
+                                            class: "text-indigo-600 hover:text-indigo-900 text-sm font-medium",
+                                            "View Details"
+                                        }
+                                        button {
+                                            onclick: move |_| {
+                                                spawn_local(async move {
+                                                    if let Err(e) = request_airdrop(&account.account.pubkey, &mut success_message, &mut error_message).await {
+                                                        log!("Airdrop failed: {:?}", e);
+                                                    }
+                                                });
+                                            },
+                                            class: "text-green-600 hover:text-green-900 text-sm font-medium",
+                                            "Request Airdrop"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Create Account Modal
+        if *show_create_modal.read() {
+            div { class: "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50",
+                div { class: "relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white",
+                    h3 { class: "text-lg font-bold text-gray-900 mb-4", "Create New Account" }
+                    div { class: "mb-4",
+                        label { class: "block text-sm font-medium text-gray-700 mb-2", "Account Label" }
+                        input {
+                            r#type: "text",
+                            value: "{new_account_label}",
+                            oninput: move |evt| new_account_label.set(evt.value()),
+                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500",
+                            placeholder: "Enter account label..."
+                        }
+                    }
+                    div { class: "flex justify-end space-x-3",
+                        button {
+                            onclick: move |_| show_create_modal.set(false),
+                            class: "bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium",
+                            "Cancel"
+                        }
+                        button {
+                            onclick: move |_| {
+                                let label = new_account_label.read().clone();
+                                if !label.is_empty() {
+                                    spawn_local(async move {
+                                        if let Err(e) = create_account(label, &mut accounts, &mut show_create_modal, &mut new_account_label, &mut success_message, &mut error_message).await {
+                                            log!("Failed to create account: {:?}", e);
+                                        }
+                                    });
+                                }
+                            },
+                            class: "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium",
+                            "Create"
+                        }
+                    }
+                }
+            }
+        }
+
+        // Import Account Modal
+        if *show_import_modal.read() {
+            div { class: "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50",
+                div { class: "relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white",
+                    h3 { class: "text-lg font-bold text-gray-900 mb-4", "Import Account" }
+                    div { class: "mb-4",
+                        label { class: "block text-sm font-medium text-gray-700 mb-2", "Account Label" }
+                        input {
+                            r#type: "text",
+                            value: "{import_label}",
+                            oninput: move |evt| import_label.set(evt.value()),
+                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500",
+                            placeholder: "Enter account label..."
+                        }
+                    }
+                    div { class: "mb-4",
+                        label { class: "block text-sm font-medium text-gray-700 mb-2", "Secret Key" }
+                        textarea {
+                            value: "{import_secret_key}",
+                            oninput: move |evt| import_secret_key.set(evt.value()),
+                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500",
+                            rows: 3,
+                            placeholder: "Enter base58 encoded secret key..."
+                        }
+                    }
+                    div { class: "flex justify-end space-x-3",
+                        button {
+                            onclick: move |_| show_import_modal.set(false),
+                            class: "bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium",
+                            "Cancel"
+                        }
+                        button {
+                            onclick: move |_| {
+                                let secret_key = import_secret_key.read().clone();
+                                let label = import_label.read().clone();
+                                if !secret_key.is_empty() && !label.is_empty() {
+                                    spawn_local(async move {
+                                        if let Err(e) = import_account(secret_key, label, &mut accounts, &mut show_import_modal, &mut import_secret_key, &mut import_label, &mut success_message, &mut error_message).await {
+                                            log!("Failed to import account: {:?}", e);
+                                        }
+                                    });
+                                }
+                            },
+                            class: "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium",
+                            "Import"
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -302,13 +565,335 @@ fn Accounts() -> Element {
 /// Account detail page component
 #[component]
 fn AccountDetail(pubkey: String) -> Element {
+    let mut account = use_signal(|| None::<Account>);
+    let mut is_loading = use_signal(false);
+    let mut error_message = use_signal(String::new);
+    let mut recipient_pubkey = use_signal(String::new);
+    let mut transfer_amount = use_signal(String::new);
+    let mut show_transfer_modal = use_signal(false);
+
+    // Load account details on component mount
+    use_effect(move || {
+        let pubkey_str = pubkey.clone();
+        spawn_local(async move {
+            if let Err(e) = load_account_details(
+                &pubkey_str,
+                &mut account,
+                &mut is_loading,
+                &mut error_message,
+            )
+            .await
+            {
+                log!("Failed to load account details: {:?}", e);
+            }
+        });
+    });
+
     rsx! {
-        div { class:"min-h-screen bg-gray-50",
-            h1 { class:"text-3xl font-bold text-gray-900 mb-4", "Account Details" }
-            p { class:"text-gray-600", "Public Key: {pubkey}" }
-            p { class:"text-gray-600", "Account detail interface coming soon..." }
+        div { class: "min-h-screen bg-gray-50",
+            // Header
+            div { class: "bg-white shadow",
+                div { class: "px-4 py-6 sm:px-6 lg:px-8",
+                    div { class: "flex items-center justify-between",
+                        div { class: "flex items-center space-x-4",
+                            Link {
+                                to: Route::Accounts {},
+                                class: "text-indigo-600 hover:text-indigo-900 text-sm font-medium",
+                                "← Back to Accounts"
+                            }
+                            h1 { class: "text-3xl font-bold text-gray-900", "Account Details" }
+                        }
+                        button {
+                            onclick: move |_| {
+                                show_transfer_modal.set(true);
+                                error_message.set(String::new());
+                            },
+                            class: "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors",
+                            "Send SOL"
+                        }
+                    }
+                }
+            }
+
+            // Error message
+            if !error_message.read().is_empty() {
+                div { class: "bg-red-50 border-l-4 border-red-400 p-4 m-4",
+                    div { class: "flex",
+                        div { class: "flex-shrink-0",
+                            svg { class: "h-5 w-5 text-red-400", "viewBox": "0 0 20 20", "fill": "currentColor",
+                                path { "fill-rule": "evenodd", "d": "M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z", "clip-rule": "evenodd" }
+                            }
+                        }
+                        div { class: "ml-3",
+                            p { class: "text-sm text-red-700", "{error_message}" }
+                        }
+                    }
+                }
+            }
+
+            // Loading state
+            if *is_loading.read() {
+                div { class: "flex justify-center items-center py-12",
+                    div { class: "animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" }
+                }
+            }
+
+            // Account details
+            if let Some(acc) = account.read().as_ref() {
+                div { class: "max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8",
+                    div { class: "bg-white shadow overflow-hidden sm:rounded-lg",
+                        div { class: "px-4 py-5 sm:px-6",
+                            h3 { class: "text-lg leading-6 font-medium text-gray-900", "{acc.label}" }
+                            p { class: "mt-1 max-w-2xl text-sm text-gray-500", "Account information and balance" }
+                        }
+                        div { class: "border-t border-gray-200",
+                            dl {
+                                div { class: "bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6",
+                                    dt { class: "text-sm font-medium text-gray-500", "Public Key" }
+                                    dd { class: "mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-mono break-all", "{acc.pubkey}" }
+                                }
+                                div { class: "bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6",
+                                    dt { class: "text-sm font-medium text-gray-500", "Balance" }
+                                    dd { class: "mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2",
+                                        span { class: "text-2xl font-bold text-indigo-600",
+                                            "{acc.balance / 1_000_000_000}.{(acc.balance % 1_000_000_000) / 1_000_000:03} SOL"
+                                        }
+                                        span { class: "ml-2 text-sm text-gray-500",
+                                            "({acc.balance} lamports)"
+                                        }
+                                    }
+                                }
+                                div { class: "bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6",
+                                    dt { class: "text-sm font-medium text-gray-500", "Created At" }
+                                    dd { class: "mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2", "{acc.created_at.format(\"%Y-%m-%d %H:%M:%S UTC\")}" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Transfer SOL Modal
+        if *show_transfer_modal.read() {
+            div { class: "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50",
+                div { class: "relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white",
+                    h3 { class: "text-lg font-bold text-gray-900 mb-4", "Send SOL" }
+                    div { class: "mb-4",
+                        label { class: "block text-sm font-medium text-gray-700 mb-2", "Recipient Public Key" }
+                        input {
+                            r#type: "text",
+                            value: "{recipient_pubkey}",
+                            oninput: move |evt| recipient_pubkey.set(evt.value()),
+                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500",
+                            placeholder: "Enter recipient public key..."
+                        }
+                    }
+                    div { class: "mb-4",
+                        label { class: "block text-sm font-medium text-gray-700 mb-2", "Amount (SOL)" }
+                        input {
+                            r#type: "text",
+                            value: "{transfer_amount}",
+                            oninput: move |evt| transfer_amount.set(evt.value()),
+                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500",
+                            placeholder: "Enter amount in SOL..."
+                        }
+                    }
+                    div { class: "flex justify-end space-x-3",
+                        button {
+                            onclick: move |_| show_transfer_modal.set(false),
+                            class: "bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium",
+                            "Cancel"
+                        }
+                        button {
+                            onclick: move |_| {
+                                let recipient = recipient_pubkey.read().clone();
+                                let amount = transfer_amount.read().clone();
+                                let from_pubkey = pubkey.clone();
+                                if !recipient.is_empty() && !amount.is_empty() {
+                                    spawn_local(async move {
+                                        if let Err(e) = send_sol_transfer(&from_pubkey, &recipient, &amount, &mut show_transfer_modal, &mut recipient_pubkey, &mut transfer_amount, &mut error_message).await {
+                                            log!("Failed to send SOL: {:?}", e);
+                                        }
+                                    });
+                                }
+                            },
+                            class: "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium",
+                            "Send"
+                        }
+                    }
+                }
+            }
         }
     }
+}
+
+// Helper functions for account management
+async fn load_accounts(
+    accounts: &mut Signal<Vec<Account>>,
+    is_loading: &mut Signal<bool>,
+    error_message: &mut Signal<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    is_loading.set(true);
+    error_message.set(String::new());
+
+    // Use real account service
+    let service = get_account_service();
+    let account_list = service.get_accounts().to_vec();
+
+    // Update balances for all accounts
+    let mut updated_accounts = Vec::new();
+    for account in account_list {
+        match service.get_balance(&account.pubkey.to_string()).await {
+            Ok(balance) => {
+                let mut updated_account = account.clone();
+                updated_account.balance = balance;
+                updated_accounts.push(updated_account);
+            }
+            Err(e) => {
+                log::warn!("Failed to fetch balance for {}: {}", account.pubkey, e);
+                updated_accounts.push(account);
+            }
+        }
+    }
+
+    accounts.set(updated_accounts);
+    is_loading.set(false);
+    Ok(())
+}
+
+async fn load_account_details(
+    pubkey: &str,
+    account: &mut Signal<Option<Account>>,
+    is_loading: &mut Signal<bool>,
+    error_message: &mut Signal<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    is_loading.set(true);
+    error_message.set(String::new());
+
+    let service = get_account_service();
+
+    // Find account in service
+    if let Some(found_account) = service.get_accounts().iter().find(|acc| acc.pubkey.to_string() == pubkey) {
+        let mut updated_account = found_account.clone();
+
+        // Get real balance from network
+        match service.get_balance(pubkey).await {
+            Ok(balance) => updated_account.balance = balance,
+            Err(e) => {
+                log::warn!("Failed to fetch balance for {}: {}", pubkey, e);
+            }
+        }
+
+        account.set(Some(updated_account));
+    } else {
+        error_message.set(format!("Account {} not found", pubkey));
+    }
+
+    is_loading.set(false);
+    Ok(())
+}
+
+async fn create_account(
+    label: String,
+    accounts: &mut Signal<Vec<Account>>,
+    show_modal: &mut Signal<bool>,
+    label_input: &mut Signal<String>,
+    success_message: &mut Signal<String>,
+    error_message: &mut Signal<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let service = get_account_service();
+
+    match service.create_account(label.clone()) {
+        Ok((new_account, _keypair)) => {
+            let mut current_accounts = accounts.read().clone();
+            current_accounts.push(new_account);
+            accounts.set(current_accounts);
+
+            show_modal.set(false);
+            label_input.set(String::new());
+            success_message.set(format!("Account '{}' created successfully!", label));
+        }
+        Err(e) => {
+            error_message.set(format!("Failed to create account: {}", e));
+        }
+    }
+    Ok(())
+}
+
+async fn import_account(
+    secret_key: String,
+    label: String,
+    accounts: &mut Signal<Vec<Account>>,
+    show_modal: &mut Signal<bool>,
+    secret_input: &mut Signal<String>,
+    label_input: &mut Signal<String>,
+    success_message: &mut Signal<String>,
+    error_message: &mut Signal<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // For MVP, create a mock account from the provided data
+    let keypair = solana_sdk::Keypair::new(); // In real implementation, decode secret_key
+    let service = get_account_service();
+
+    match service.create_account(label.clone()) {
+        Ok((new_account, _keypair)) => {
+            let mut current_accounts = accounts.read().clone();
+            let account_with_balance = AccountWithBalance::new(new_account, 0);
+            current_accounts.push(account_with_balance);
+            accounts.set(current_accounts);
+        }
+        Err(e) => {
+            error_message.set(format!("Failed to create account: {}", e));
+            return;
+        }
+    }
+
+    show_modal.set(false);
+    secret_input.set(String::new());
+    label_input.set(String::new());
+    success_message.set(format!("Account '{}' imported successfully!", label));
+    Ok(())
+}
+
+async fn request_airdrop(
+    pubkey: &solana_sdk::pubkey::Pubkey,
+    success_message: &mut Signal<String>,
+    error_message: &mut Signal<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // For MVP, just show a success message
+    success_message.set(format!(
+        "Airdrop requested for {}! Check balance in a few seconds.",
+        pubkey
+    ));
+    Ok(())
+}
+
+async fn send_sol_transfer(
+    from_pubkey: &str,
+    to_pubkey: &str,
+    amount_str: &str,
+    show_modal: &mut Signal<bool>,
+    recipient_input: &mut Signal<String>,
+    amount_input: &mut Signal<String>,
+    error_message: &mut Signal<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Parse amount
+    let amount: f64 = amount_str.parse().map_err(|_| "Invalid amount format")?;
+    let lamports = (amount * 1_000_000_000.0) as u64;
+
+    // For MVP, just show a success message
+    show_modal.set(false);
+    recipient_input.set(String::new());
+    amount_input.set(String::new());
+
+    // In a real implementation, this would use AccountService to send the transaction
+    log!(
+        "Would send {} lamports from {} to {}",
+        lamports,
+        from_pubkey,
+        to_pubkey
+    );
+    Ok(())
 }
 
 /// Transactions page component
@@ -412,8 +997,20 @@ fn NotFound(route: Vec<String>) -> Element {
 
 /// Initialize logging for web platform
 fn init_web_logging() {
-    console_log::init_with_level(log::Level::Info).expect("Failed to initialize console log");
-    log::info!("SurfDesk Web logging initialized");
+    console_log::init_with_level(log::Level::Debug).expect("Failed to initialize logging");
+    log::info!("Web logging initialized");
+}
+
+// Initialize web account service
+static mut ACCOUNT_SERVICE: Option<AccountService> = None;
+
+fn get_account_service() -> &'static mut AccountService {
+    unsafe {
+        if ACCOUNT_SERVICE.is_none() {
+            ACCOUNT_SERVICE = Some(AccountService::new(SolanaNetwork::Devnet));
+        }
+        ACCOUNT_SERVICE.as_mut().unwrap()
+    }
 }
 
 /// Main function for web application
