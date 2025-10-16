@@ -5,11 +5,17 @@
 
 pub mod button;
 pub mod card;
+pub mod input;
 pub mod loading;
 
 // Re-export main components
 pub use button::{Button, ButtonProps, ButtonVariant};
 pub use card::{Card, CardProps, CardVariant};
+pub use input::{
+    validate_email, validate_length, validate_number, validate_required, validate_url, Field,
+    FieldProps, Input, InputGroup, InputGroupProps, InputProps, InputType, Textarea, TextareaProps,
+    ValidationResult,
+};
 pub use loading::{
     LoadingOverlay, LoadingOverlayProps, LoadingSpinner, LoadingSpinnerProps, LoadingVariant,
     Skeleton, SkeletonProps,

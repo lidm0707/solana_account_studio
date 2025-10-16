@@ -198,73 +198,6 @@ fn SurfDeskDesktopApp() -> Element {
 
     // Provide context to child components
     use_context_provider(|| app_state.clone());
-        match action {
-            ShortcutAction::CreateAccount => {
-                log::info!("Create account shortcut triggered");
-                // TODO: Open account creation modal
-            }
-            ShortcutAction::Open => {
-                log::info!("Open shortcut triggered");
-                // TODO: Open import dialog
-            }
-            ShortcutAction::Save => {
-                log::info!("Save shortcut triggered");
-                // TODO: Save current state
-            }
-            ShortcutAction::GoToDashboard => {
-                app_state.current_view.set(DesktopView::Dashboard);
-            }
-            ShortcutAction::GoToAccounts => {
-                app_state.current_view.set(DesktopView::Accounts);
-            }
-            ShortcutAction::GoToTransactions => {
-                app_state.current_view.set(DesktopView::Transactions);
-            }
-            ShortcutAction::GoToSurfPool => {
-                app_state.current_view.set(DesktopView::SurfPool);
-            }
-            ShortcutAction::GoToAnalytics => {
-                app_state.current_view.set(DesktopView::Analytics);
-            }
-            ShortcutAction::GoToSettings => {
-                app_state.current_view.set(DesktopView::Settings);
-            }
-            ShortcutAction::RequestAirdrop => {
-                log::info!("Request airdrop shortcut triggered");
-                // TODO: Request airdrop
-            }
-            ShortcutAction::ToggleTheme => {
-                // Toggle theme
-                let current_theme = app_state.theme();
-                let new_theme = match current_theme {
-                    Theme::Light => Theme::Dark,
-                    Theme::Dark => Theme::Auto,
-                    Theme::Auto => Theme::Light,
-                };
-                app_state.theme.set(new_theme);
-            }
-            ShortcutAction::ShowHelp => {
-                log::info!("Show help shortcut triggered");
-                // TODO: Show help dialog
-            }
-            ShortcutAction::ShowShortcuts => {
-                log::info!("Show shortcuts shortcut triggered");
-                // TODO: Show shortcuts dialog
-            }
-            ShortcutAction::FocusSearch => {
-                log::info!("Focus search shortcut triggered");
-                // TODO: Focus search input
-            }
-            ShortcutAction::Refresh => {
-                log::info!("Refresh shortcut triggered");
-                // TODO: Refresh current data
-            }
-            ShortcutAction::Close => {
-                log::info!("Close shortcut triggered");
-                // TODO: Close current dialog/modal
-            }
-        }
-    };
 
     // Apply theme
     let theme_class = match app_state.theme() {
@@ -276,7 +209,8 @@ fn SurfDeskDesktopApp() -> Element {
     rsx! {
         // Include styles
         style { {include_str!("../assets/styles.css")} }
-        // style { {include_str!("styles/loading.css")} }
+        // style { {include_str!("../styles/loading.css")} }
+        // style { {include_str!("../styles/input.css")} }
         // style { {include_str!("../styles/design-system.css")} }
         // style { {include_str!("../styles/keyboard.css")} }
 
@@ -363,8 +297,8 @@ fn SurfDeskDesktopApp() -> Element {
             }
 
             // Notification system
-            div {
-                "SurfDesk Desktop Application"
+            NotificationCenter {
+                notifications: app_state.notifications,
             }
         }
     }
@@ -473,17 +407,8 @@ fn MenuBar(
                             surfpool::SurfPoolStatus::Stopped => "⚪",
                             surfpool::SurfPoolStatus::Error { .. } => "🔴",
                         }
-                    }
-                    span { class: "surfpool-text",
-                        match surfpool_status() {
-                            surfpool::SurfPoolStatus::Running { port, .. } => format!("Port {}", port),
-                            surfpool::SurfPoolStatus::Starting => "Starting".to_string(),
-                            surfpool::SurfPoolStatus::Stopping => "Stopping".to_string(),
-                            surfpool::SurfPoolStatus::Stopped => "Stopped".to_string(),
-                            surfpool::SurfPoolStatus::Error { .. } => "Error".to_string(),
-                        }
-                    }
                 }
+
 
                 // Window controls
                 div { class: "window-controls",
@@ -530,88 +455,88 @@ fn Sidebar(
     on_view_change: EventHandler<DesktopView>,
 ) -> Element {
     rsx! {
-        aside { class: "sidebar",
+            aside { class: "sidebar",
 
-            // Quick actions
-            div { class: "sidebar-section",
-                h3 { class: "sidebar-title", "Quick Actions" }
+                // Quick actions
+                div { class: "sidebar-section",
+                    h3 { class: "sidebar-title", "Quick Actions" }
 
-                div { class: "quick-actions",
-                    Button {
-                        variant: ButtonVariant::Primary,
-                        size: Size::Small,
-                        full_width: true,
-                        icon: Some("🚀".to_string()),
-                        onclick: move |_| {
-                            // Quick account creation
-                        },
-                        "Create Account"
-                    }
+                    div { class: "quick-actions",
+                        Button {
+                            variant: ButtonVariant::Primary,
+                            size: Size::Small,
+                            full_width: true,
+                            icon: Some("🚀".to_string()),
+                            onclick: move |_| {
+                                // Quick account creation
+                            },
+                            "Create Account"
+                        }
 
-                    Button {
-                        variant: ButtonVariant::Secondary,
-                        size: Size::Small,
-                        full_width: true,
-                        icon: Some("📥".to_string()),
-                        onclick: move |_| {
-                            // Import account
-                        },
-                        "Import Account"
-                    }
+                        Button {
+                            variant: ButtonVariant::Secondary,
+                            size: Size::Small,
+                            full_width: true,
+                            icon: Some("📥".to_string()),
+                            onclick: move |_| {
+                                // Import account
+                            },
+                            "Import Account"
+                        }
 
-                    Button {
-                        variant: ButtonVariant::Tertiary,
-                        size: Size::Small,
-                        full_width: true,
-                        icon: Some("💰".to_string()),
-                        onclick: move |_| {
-                            // Request airdrop
-                        },
-                        "Request Airdrop"
-                    }
-                }
-            // }
-
-            // Recent activity
-            div { class: "sidebar-section",
-                h3 { class: "sidebar-title", "Recent Activity" }
-
-                div { class: "activity-list",
-                    // Mock activity items
-                    div { class: "activity-item",
-                        span { class: "activity-icon", "✅" }
-                        div { class: "activity-content",
-                            span { class: "activity-title", "Account Created" }
-                            span { class: "activity-time", "2 min ago" }
+                        Button {
+                            variant: ButtonVariant::Tertiary,
+                            size: Size::Small,
+                            full_width: true,
+                            icon: Some("💰".to_string()),
+                            onclick: move |_| {
+                                // Request airdrop
+                            },
+                            "Request Airdrop"
                         }
                     }
+                // }
 
-                    div { class: "activity-item",
-                        span { class: "activity-icon", "💸" }
-                        div { class: "activity-content",
-                            span { class: "activity-title", "Transaction Sent" }
-                            span { class: "activity-time", "5 min ago" }
+                // Recent activity
+                div { class: "sidebar-section",
+                    h3 { class: "sidebar-title", "Recent Activity" }
+
+                    div { class: "activity-list",
+                        // Mock activity items
+                        div { class: "activity-item",
+                            span { class: "activity-icon", "✅" }
+                            div { class: "activity-content",
+                                span { class: "activity-title", "Account Created" }
+                                span { class: "activity-time", "2 min ago" }
+                            }
                         }
-                    }
 
-                    div { class: "activity-item",
-                        span { class: "activity-icon", "🔄" }
-                        div { class: "activity-content",
-                            span { class: "activity-title", "Balance Updated" }
-                            span { class: "activity-time", "10 min ago" }
+                        div { class: "activity-item",
+                            span { class: "activity-icon", "💸" }
+                            div { class: "activity-content",
+                                span { class: "activity-title", "Transaction Sent" }
+                                span { class: "activity-time", "5 min ago" }
+                            }
+                        }
+
+                        div { class: "activity-item",
+                            span { class: "activity-icon", "🔄" }
+                            div { class: "activity-content",
+                                span { class: "activity-title", "Balance Updated" }
+                                span { class: "activity-time", "10 min ago" }
+                            }
                         }
                     }
                 }
             }
         }
     }
-}
 
-// /// Status bar component
-// #[component]
-// fn StatusBar(surfpool_manager: Arc<SurfPoolManager>) -> Element {
-//     let surfpool_status = use_signal(|| surfpool_manager.get_status());
-//     let current_time = use_signal(|| "12:34:56".to_string());
+    // /// Status bar component
+    // #[component]
+    // fn StatusBar(surfpool_manager: Arc<SurfPoolManager>) -> Element {
+    //     let surfpool_status = use_signal(|| surfpool_manager.get_status());
+    //     let current_time = use_signal(|| "12:34:56".to_string());
 
     // Update time
     // use_coroutine(|_| {
