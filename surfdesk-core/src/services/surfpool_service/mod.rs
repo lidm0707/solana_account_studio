@@ -99,10 +99,7 @@ impl DeploymentRequest {
     }
 
     /// Create deployment request with custom instruction
-    pub fn with_custom_instruction(
-        mut self,
-        instruction: Instruction,
-    ) -> Self {
+    pub fn with_custom_instruction(mut self, instruction: Instruction) -> Self {
         self.custom_instruction = Some(instruction);
         self
     }
@@ -179,7 +176,10 @@ impl SurfPoolService {
 
     /// Check if validator is running
     pub async fn is_validator_running(&self) -> bool {
-        matches!(self.get_validator_status().await, Ok(SurfPoolStatus::Running { .. }))
+        matches!(
+            self.get_validator_status().await,
+            Ok(SurfPoolStatus::Running { .. })
+        )
     }
 
     /// Deploy an account to the local validator
@@ -238,7 +238,9 @@ impl SurfPoolService {
         match self.simulate_deployment(&transaction).await {
             Ok(signature) => {
                 Ok(DeploymentResult {
-                    status: DeploymentStatus::Completed { signature: signature.clone() },
+                    status: DeploymentStatus::Completed {
+                        signature: signature.clone(),
+                    },
                     signature: Some(signature),
                     pubkey: request.pubkey,
                     timestamp,
@@ -246,23 +248,24 @@ impl SurfPoolService {
                     block_height: Some(100), // Simulated block height
                 })
             }
-            Err(e) => {
-                Ok(DeploymentResult {
-                    status: DeploymentStatus::Failed {
-                        error: format!("Deployment failed: {}", e),
-                    },
-                    signature: None,
-                    pubkey: request.pubkey,
-                    timestamp,
-                    error: Some(format!("Deployment failed: {}", e)),
-                    block_height: None,
-                })
-            }
+            Err(e) => Ok(DeploymentResult {
+                status: DeploymentStatus::Failed {
+                    error: format!("Deployment failed: {}", e),
+                },
+                signature: None,
+                pubkey: request.pubkey,
+                timestamp,
+                error: Some(format!("Deployment failed: {}", e)),
+                block_height: None,
+            }),
         }
     }
 
     /// Create deployment transaction
-    async fn create_deployment_transaction(&self, request: &DeploymentRequest) -> Result<Transaction> {
+    async fn create_deployment_transaction(
+        &self,
+        request: &DeploymentRequest,
+    ) -> Result<Transaction> {
         let config = self.config.read().await;
         let client = solana_client::rpc_client::RpcClient::new_builder()
             .url(format!("http://localhost:{}", config.rpc_port))
@@ -284,7 +287,8 @@ impl SurfPoolService {
         };
 
         // Create transaction
-        let mut transaction = Transaction::new_with_payer(&instructions, Some(&request.payer.pubkey()));
+        let mut transaction =
+            Transaction::new_with_payer(&instructions, Some(&request.payer.pubkey()));
 
         // Get recent blockhash
         let recent_blockhash = client.get_latest_blockhash().await?;
@@ -362,14 +366,24 @@ impl SurfPoolService {
     pub async fn get_deployment_statistics(&self) -> Result<DeploymentStatistics> {
         let results = self.deployment_results.read().await;
         let total = results.len();
-        let successful = results.iter().filter(|r| matches!(r.status, DeploymentStatus::Completed { .. })).count();
-        let failed = results.iter().filter(|r| matches!(r.status, DeploymentStatus::Failed { .. })).count();
+        let successful = results
+            .iter()
+            .filter(|r| matches!(r.status, DeploymentStatus::Completed { .. }))
+            .count();
+        let failed = results
+            .iter()
+            .filter(|r| matches!(r.status, DeploymentStatus::Failed { .. }))
+            .count();
 
         Ok(DeploymentStatistics {
             total_deployments: total,
             successful_deployments: successful,
             failed_deployments: failed,
-            success_rate: if total > 0 { (successful as f64 / total as f64) * 100.0 } else { 0.0 },
+            success_rate: if total > 0 {
+                (successful as f64 / total as f64) * 100.0
+            } else {
+                0.0
+            },
         })
     }
 
@@ -488,6 +502,3 @@ mod tests {
         assert_eq!(service.get_deployment_queue_length().await.unwrap(), 0);
     }
 }
-```
-
-Now let me add this service to the components module to enable integration with the Account Builder:
