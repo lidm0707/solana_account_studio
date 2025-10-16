@@ -23,6 +23,7 @@ wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
 js-sys = "0.3"
 gloo-console = "0.3"
+gloo-timers = { version = "0.3", features = ["futures"] }
 dioxus-web = "0.6"
 wasm-bindgen-futures = "0.4"
 

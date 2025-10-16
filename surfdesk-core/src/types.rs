@@ -133,6 +133,12 @@ pub enum SolanaNetwork {
     Custom,
 }
 
+impl Default for SolanaNetwork {
+    fn default() -> Self {
+        SolanaNetwork::Devnet
+    }
+}
+
 impl SolanaNetwork {
     /// Get the RPC URL for this network
     pub fn rpc_url(&self) -> &'static str {

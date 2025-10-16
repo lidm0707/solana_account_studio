@@ -131,13 +131,17 @@ fn Home() -> Element {
                         div { class: "rounded-md shadow",
                             button {
                                 onclick: move |_| {
-                                    spawn(async move {
-                                        // Test connection
-                                        connection_status.set("Connecting...");
-                                        // Simulate connection test
-                                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                                        connection_status.set("Connected");
-                                        account_count.set(12345);
+                                    // Test connection (simplified for web)
+                                    connection_status.set("Connecting...".to_string());
+                                    // Use web-compatible timeout simulation
+                                    use wasm_bindgen_futures::spawn_local;
+                                    let mut connection_status_clone = connection_status.clone();
+                                    let mut account_count_clone = account_count.clone();
+                                    spawn_local(async move {
+                                        // Simulate network delay
+                                        gloo_timers::future::sleep(std::time::Duration::from_secs(1)).await;
+                                        connection_status_clone.set("Connected".to_string());
+                                        account_count_clone.set(12345);
                                     });
                                 },
                                 class: "w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10 transition-colors",
@@ -182,8 +186,8 @@ fn Home() -> Element {
                                     h3 { class: "text-lg font-medium text-gray-900", "Solana Integration" }
                                 }
                             }
-                            div { class="mt-4",
-                                p { class="text-sm text-gray-500",
+                            div { class: "mt-4",
+                                p { class: "text-sm text-gray-500",
                                     "Connect to Solana mainnet, devnet, testnet, or local validator with full RPC support."
                                 }
                             }
@@ -193,14 +197,14 @@ fn Home() -> Element {
                         div { class: "p-6",
                             div { class: "flex items-center",
                                 div { class: "flex-shrink-0 bg-green-500 rounded-md p-3",
-                                    span { class: "text-2xl", "🏦" }
+                                    span { class: "text-2xl", "📊" }
                                 }
-                                div { class="ml-4",
-                                    h3 { class="text-lg font-medium text-gray-900", "Account Management" }
+                                div { class: "ml-4",
+                                    h3 { class: "text-lg font-medium text-gray-900", "Account Management" }
                                 }
                             }
-                            div { class="mt-4",
-                                p { class="text-sm text-gray-500",
+                            div { class: "mt-4",
+                                p { class: "text-sm text-gray-500",
                                     "Explore, analyze, and manage Solana accounts with real-time data visualization."
                                 }
                             }
@@ -212,12 +216,12 @@ fn Home() -> Element {
                                 div { class: "flex-shrink-0 bg-yellow-500 rounded-md p-3",
                                     span { class: "text-2xl", "🔧" }
                                 }
-                                div { class="ml-4",
-                                    h3 { class="text-lg font-medium text-gray-900", "Transaction Builder" }
+                                div { class: "ml-4",
+                                    h3 { class: "text-lg font-medium text-gray-900", "Transaction Builder" }
                                 }
                             }
-                            div { class="mt-4",
-                                p { class="text-sm text-gray-500",
+                            div { class: "mt-4",
+                                p { class: "text-sm text-gray-500",
                                     "Build, simulate, and send transactions with confidence in your browser."
                                 }
                             }
@@ -227,14 +231,14 @@ fn Home() -> Element {
                         div { class: "p-6",
                             div { class: "flex items-center",
                                 div { class: "flex-shrink-0 bg-purple-500 rounded-md p-3",
-                                    span { class: "text-2xl", "🤖" }
+                                    span { class: "text-2xl", "⚙️" }
                                 }
-                                div { class="ml-4",
-                                    h3 { class="text-lg font-medium text-gray-900", "AI-Powered Testing" }
+                                div { class: "ml-4",
+                                    h3 { class: "text-lg font-medium text-gray-900", "AI-Powered Testing" }
                                 }
                             }
-                            div { class="mt-4",
-                                p { class="text-sm text-gray-500",
+                            div { class: "mt-4",
+                                p { class: "text-sm text-gray-500",
                                     "Generate intelligent test cases and analyze results with AI assistance."
                                 }
                             }
@@ -243,21 +247,21 @@ fn Home() -> Element {
                 }
 
                 // Quick stats
-                div { class="bg-white overflow-hidden shadow rounded-lg mb-12",
-                    div { class="px-4 py-5 sm:p-6",
-                        h3 { class="text-lg leading-6 font-medium text-gray-900 mb-4", "Quick Stats" }
-                        dl { class="grid grid-cols-1 gap-5 sm:grid-cols-3",
-                            div { class="px-4 py-5 bg-gray-50 sm:px-6 sm:py-4 rounded-lg",
-                                dt { class="text-sm font-medium text-gray-500 truncate", "Platform" }
-                                dd { class="mt-1 text-3xl font-semibold text-gray-900", "Web" }
+                div { class: "bg-white overflow-hidden shadow rounded-lg mb-12",
+                    div { class: "px-4 py-5 sm:p-6",
+                        h3 { class: "text-lg leading-6 font-medium text-gray-900 mb-4", "Quick Stats" }
+                        dl { class: "grid grid-cols-1 gap-5 sm:grid-cols-3",
+                            div { class: "px-4 py-5 bg-gray-50 sm:px-6 sm:py-4 rounded-lg",
+                                dt { class: "text-sm font-medium text-gray-500 truncate", "Platform" }
+                                dd { class: "mt-1 text-3xl font-semibold text-gray-900", "Web" }
                             }
-                            div { class="px-4 py-5 bg-gray-50 sm:px-6 sm:py-4 rounded-lg",
-                                dt { class="text-sm font-medium text-gray-500 truncate", "Framework" }
-                                dd { class="mt-1 text-3xl font-semibold text-gray-900", "Dioxus" }
+                            div { class: "px-4 py-5 bg-gray-50 sm:px-6 sm:py-4 rounded-lg",
+                                dt { class: "text-sm font-medium text-gray-500 truncate", "Framework" }
+                                dd { class: "mt-1 text-3xl font-semibold text-gray-900", "Dioxus" }
                             }
-                            div { class="px-4 py-5 bg-gray-50 sm:px-6 sm:py-4 rounded-lg",
-                                dt { class="text-sm font-medium text-gray-500 truncate", "Version" }
-                                dd { class="mt-1 text-3xl font-semibold text-gray-900", "{surfdesk_core::VERSION}" }
+                            div { class: "px-4 py-5 bg-gray-50 sm:px-6 sm:py-4 rounded-lg",
+                                dt { class: "text-sm font-medium text-gray-500 truncate", "Version" }
+                                dd { class: "mt-1 text-3xl font-semibold text-gray-900", "{surfdesk_core::VERSION}" }
                             }
                         }
                     }
@@ -265,15 +269,15 @@ fn Home() -> Element {
             }
 
             // Footer
-            footer { class="bg-white",
-                div { class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8",
-                    div { class="mt-8 border-t border-gray-200 pt-8 md:flex md:items-center md:justify-between",
-                        div { class="flex space-x-6 md:order-2",
-                            a { href: "https://github.com/your-org/surfdesk", class="text-gray-400 hover:text-gray-500", "GitHub" }
-                            span { class="text-gray-300", " • " }
-                            a { href: "https://docs.surfdesk.dev", class="text-gray-400 hover:text-gray-500", "Documentation" }
-                            span { class="text-gray-300", " • " }
-                            a { href: "https://discord.gg/surfdesk", class="text-gray-400 hover:text-gray-500", "Discord" }
+            footer { class: "bg-white",
+                div { class: "max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8",
+                    div { class: "mt-8 border-t border-gray-200 pt-8 md:flex md:items-center md:justify-between",
+                        div { class: "flex space-x-6 md:order-2",
+                            a { href: "https://github.com/your-org/surfdesk", class: "text-gray-400 hover:text-gray-500", "GitHub" }
+                            span { class: "text-gray-300", " • " }
+                            a { href: "https://docs.surfdesk.dev", class: "text-gray-400 hover:text-gray-500", "Documentation" }
+                            span { class: "text-gray-300", " • " }
+                            a { href: "https://discord.gg/surfdesk", class: "text-gray-400 hover:text-gray-500", "Discord" }
                         }
                         p { class: "mt-8 text-base text-gray-400 md:mt-0 md:order-1",
                             "© 2024 SurfDesk. Built with Dioxus & Rust. "

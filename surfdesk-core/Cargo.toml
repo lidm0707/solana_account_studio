@@ -23,6 +23,7 @@ solana-client = { workspace = true, optional = true }
 solana-account-decoder = { workspace = true, optional = true }
 anchor-lang = { workspace = true, optional = true }
 anchor-client = { workspace = true, optional = true }
+bs58 = "0.5"
 
 # Async runtime and utilities
 tokio = { workspace = true }

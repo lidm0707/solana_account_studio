@@ -48,6 +48,24 @@ pub struct AppState {
     pub error: Signal<Option<crate::error::SurfDeskError>>,
 }
 
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            projects: Signal::new(Vec::new()),
+            active_project_id: Signal::new(None),
+            environments: Signal::new(Vec::new()),
+            active_environment_id: Signal::new(None),
+            accounts: Signal::new(Vec::new()),
+            transactions: Signal::new(Vec::new()),
+            solana_service: Signal::new(None),
+            connection_status: Signal::new(ConnectionStatus::Disconnected),
+            current_network: Signal::new(crate::types::SolanaNetwork::Devnet),
+            loading: Signal::new(LoadingState::default()),
+            error: Signal::new(None),
+        }
+    }
+}
+
 /// Connection status enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConnectionStatus {
@@ -59,6 +77,12 @@ pub enum ConnectionStatus {
     Connected,
     /// Error
     Error,
+}
+
+impl Default for ConnectionStatus {
+    fn default() -> Self {
+        ConnectionStatus::Disconnected
+    }
 }
 
 impl ConnectionStatus {

@@ -347,6 +347,11 @@ impl PlatformAdapter {
             }
         }
 
+        /// Get the current platform at runtime (convenience function)
+        pub fn current_platform() -> Platform {
+            Platform::current()
+        }
+
         #[cfg(not(target_arch = "wasm32"))]
         {
             if let Ok(hostname) = std::env::var("HOSTNAME") {

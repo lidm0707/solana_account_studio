@@ -3717,6 +3717,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "gloo-timers"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbb143cf96099802033e0d4f4963b19fd2e0b728bcf076cd9cf7f6634f092994"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "gloo-utils"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8730,6 +8742,7 @@ dependencies = [
  "anchor-lang",
  "anyhow",
  "async-trait",
+ "bs58 0.5.1",
  "chrono",
  "config",
  "console_log 1.0.0",
@@ -8790,6 +8803,7 @@ dependencies = [
  "chrono",
  "clap 4.5.49",
  "crossterm 0.27.0",
+ "dotenvy",
  "env_logger 0.11.8",
  "log",
  "ratatui 0.26.3",
@@ -8812,6 +8826,7 @@ dependencies = [
  "dioxus-router",
  "dioxus-web",
  "gloo-console",
+ "gloo-timers",
  "js-sys",
  "log",
  "reqwest 0.11.27",

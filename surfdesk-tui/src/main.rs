@@ -21,7 +21,7 @@ use ratatui::{
     Frame, Terminal,
 };
 use std::{io, time::Duration};
-use surfdesk_core::{init_core, current_platform, Platform};
+use surfdesk_core::{current_platform, init_core, Platform};
 
 /// Command line arguments for the TUI application
 #[derive(Parser, Debug)]
@@ -130,11 +130,15 @@ fn ui(f: &mut Frame, app: &mut App) {
             Constraint::Min(0),
             Constraint::Length(3),
         ])
-        .split(f.area());
+        .split(f.size());
 
     // Header
     let header = Paragraph::new("🏄 SurfDesk Terminal UI")
-        .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )
         .block(Block::default().borders(Borders::ALL).title("Header"));
     f.render_widget(header, chunks[0]);
 
@@ -159,8 +163,7 @@ fn ui(f: &mut Frame, app: &mut App) {
         })
         .collect();
 
-    let menu = List::new(menu_items)
-        .block(Block::default().borders(Borders::ALL).title("Menu"));
+    let menu = List::new(menu_items).block(Block::default().borders(Borders::ALL).title("Menu"));
     f.render_widget(menu, main_chunks[0]);
 
     // Right panel - Content
@@ -175,7 +178,11 @@ fn ui(f: &mut Frame, app: &mut App) {
         .split(main_chunks[1]);
 
     // Status bar
-    let status_text = format!("Status: {} | Platform: {}", app.connection_status, current_platform());
+    let status_text = format!(
+        "Status: {} | Platform: {}",
+        app.connection_status,
+        current_platform()
+    );
     let status = Paragraph::new(status_text)
         .style(Style::default().fg(Color::Yellow))
         .block(Block::default().borders(Borders::ALL).title("Status"));
@@ -324,7 +331,10 @@ fn load_config(config_path: &str) -> Result<()> {
         dotenvy::from_filename(config_path)?;
         info!("Configuration loaded from: {}", config_path);
     } else {
-        info!("Configuration file not found: {} (using defaults)", config_path);
+        info!(
+            "Configuration file not found: {} (using defaults)",
+            config_path
+        );
     }
     Ok(())
 }
@@ -347,9 +357,10 @@ fn main() -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
         if let Err(e) = init_core().await {
-            error!("Failed to initialize core library: {}", e);
+            error!("Failed to initialize core: {}", e);
             return Err(e);
         }
+        Ok(())
     })?;
 
     // Setup terminal
@@ -430,7 +441,8 @@ mod tests {
             "--mouse",
             "--refresh-rate",
             "200",
-        ]).unwrap();
+        ])
+        .unwrap();
 
         assert_eq!(args.log_level, "debug");
         assert!(args.mouse);

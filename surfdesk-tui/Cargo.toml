@@ -36,6 +36,7 @@ clap = { workspace = true, features = ["derive"] }
 unicode-width = "0.1"
 tui-input = "0.8"
 tui-textarea = "0.4"
+dotenvy = "0.15"
 
 # Time utilities
 chrono = { workspace = true }
