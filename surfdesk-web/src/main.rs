@@ -568,162 +568,17 @@ fn Accounts() -> Element {
 /// Account detail page component
 #[component]
 fn AccountDetail(pubkey: String) -> Element {
-    let mut account = use_signal(|| None::<Account>);
-    let mut is_loading = use_signal(|| false);
-    let mut error_message = use_signal(String::new);
-    let mut recipient_pubkey = use_signal(String::new);
-    let mut transfer_amount = use_signal(String::new);
-    let mut show_transfer_modal = use_signal(|| false);
-
-    // Load account details on component mount
-    use_effect(move || {
-        let pubkey_str = pubkey.clone();
-        spawn_local(async move {
-            if let Err(e) = load_account_details(
-                &pubkey_str,
-                &mut account,
-                &mut is_loading,
-                &mut error_message,
-            )
-            .await
-            {
-                log::error!("Failed to load account details: {}", e.to_string());
-            }
-        });
-    });
-
     rsx! {
         div { class: "min-h-screen bg-gray-50",
-            // Header
-            div { class: "bg-white shadow",
-                div { class: "px-4 py-6 sm:px-6 lg:px-8",
-                    div { class: "flex items-center justify-between",
-                        div { class: "flex items-center space-x-4",
-                            Link {
-                                to: Route::Accounts {},
-                                class: "text-indigo-600 hover:text-indigo-900 text-sm font-medium",
-                                "← Back to Accounts"
-                            }
-                            h1 { class: "text-3xl font-bold text-gray-900", "Account Details" }
-                        }
-                        button {
-                            onclick: move |_| {
-                                show_transfer_modal.set(true);
-                                error_message.set(String::new());
-                            },
-                            class: "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors",
-                            "Send SOL"
-                        }
+            div { class: "max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8",
+                h1 { class: "text-3xl font-bold text-gray-900 mb-4", "Account Details" }
+                div { class: "bg-white shadow overflow-hidden sm:rounded-lg",
+                    div { class: "px-4 py-5 sm:px-6",
+                        h3 { class: "text-lg leading-6 font-medium text-gray-900", "Account: {pubkey}" }
+                        p { class: "mt-1 max-w-2xl text-sm text-gray-500", "Account information and balance details" }
                     }
-                }
-            }
-
-            // Error message
-            if !error_message.read().is_empty() {
-                div { class: "bg-red-50 border-l-4 border-red-400 p-4 m-4",
-                    div { class: "flex",
-                        div { class: "flex-shrink-0",
-                            svg { class: "h-5 w-5 text-red-400", "viewBox": "0 0 20 20", "fill": "currentColor",
-                                path { "fill-rule": "evenodd", "d": "M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z", "clip-rule": "evenodd" }
-                            }
-                        }
-                        div { class: "ml-3",
-                            p { class: "text-sm text-red-700", "{error_message}" }
-                        }
-                    }
-                }
-            }
-
-            // Loading state
-            if *is_loading.read() {
-                div { class: "flex justify-center items-center py-12",
-                    div { class: "animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" }
-                }
-            }
-
-            // Account details
-            if let Some(acc) = account.read().as_ref() {
-                div { class: "max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8",
-                    div { class: "bg-white shadow overflow-hidden sm:rounded-lg",
-                        div { class: "px-4 py-5 sm:px-6",
-                            h3 { class: "text-lg leading-6 font-medium text-gray-900", "{acc.label}" }
-                            p { class: "mt-1 max-w-2xl text-sm text-gray-500", "Account information and balance" }
-                        }
-                        div { class: "border-t border-gray-200",
-                            dl {
-                                div { class: "bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6",
-                                    dt { class: "text-sm font-medium text-gray-500", "Public Key" }
-                                    dd { class: "mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-mono break-all", "{acc.pubkey}" }
-                                }
-                                div { class: "bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6",
-                                    dt { class: "text-sm font-medium text-gray-500", "Balance" }
-                                    dd { class: "mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2",
-                                        span { class: "text-2xl font-bold text-indigo-600",
-                                            "{acc.balance / 1_000_000_000}.{(acc.balance % 1_000_000_000) / 1_000_000:03} SOL"
-                                        }
-                                        span { class: "ml-2 text-sm text-gray-500",
-                                            "({acc.balance} lamports)"
-                                        }
-                                    }
-                                }
-                                div { class: "bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6",
-                                    dt { class: "text-sm font-medium text-gray-500", "Created At" }
-                                    dd { class: "mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2", "{acc.created_at.format(\"%Y-%m-%d %H:%M:%S UTC\")}" }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Transfer SOL Modal
-        if *show_transfer_modal.read() {
-            div { class: "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50",
-                div { class: "relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white",
-                    h3 { class: "text-lg font-bold text-gray-900 mb-4", "Send SOL" }
-                    div { class: "mb-4",
-                        label { class: "block text-sm font-medium text-gray-700 mb-2", "Recipient Public Key" }
-                        input {
-                            r#type: "text",
-                            value: "{recipient_pubkey}",
-                            oninput: move |evt| recipient_pubkey.set(evt.value()),
-                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500",
-                            placeholder: "Enter recipient public key..."
-                        }
-                    }
-                    div { class: "mb-4",
-                        label { class: "block text-sm font-medium text-gray-700 mb-2", "Amount (SOL)" }
-                        input {
-                            r#type: "text",
-                            value: "{transfer_amount}",
-                            oninput: move |evt| transfer_amount.set(evt.value()),
-                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500",
-                            placeholder: "Enter amount in SOL..."
-                        }
-                    }
-                    div { class: "flex justify-end space-x-3",
-                        button {
-                            onclick: move |_| show_transfer_modal.set(false),
-                            class: "bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium",
-                            "Cancel"
-                        }
-                        button {
-                            onclick: move |_| {
-                                let recipient = recipient_pubkey.read().clone();
-                                let amount = transfer_amount.read().clone();
-                                let from_pubkey = pubkey.clone();
-                                if !recipient.is_empty() && !amount.is_empty() {
-                                    spawn_local(async move {
-                                        if let Err(e) = send_sol_transfer(&from_pubkey, &recipient, &amount, &mut show_transfer_modal, &mut recipient_pubkey, &mut transfer_amount, &mut error_message).await {
-                                            log!("Failed to send SOL: {}", e.to_string());
-                                        }
-                                    });
-                                }
-                            },
-                            class: "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium",
-                            "Send"
-                        }
+                    div { class: "border-t border-gray-200 px-4 py-5 sm:px-6",
+                        p { class: "text-sm text-gray-600", "Account details will be loaded here..." }
                     }
                 }
             }
