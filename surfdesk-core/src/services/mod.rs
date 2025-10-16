@@ -8,7 +8,6 @@ pub mod config;
 pub mod events;
 pub mod logger;
 
-pub mod rpc;
 #[cfg(feature = "solana")]
 pub mod solana;
 

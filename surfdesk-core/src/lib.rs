@@ -17,12 +17,14 @@
 #![warn(clippy::all)]
 #![warn(rust_2018_idioms)]
 
+pub mod accounts;
 pub mod app;
 pub mod components;
 pub mod database;
 pub mod error;
 pub mod platform;
 pub mod services;
+pub mod solana_rpc;
 pub mod state;
 pub mod surfpool;
 pub mod types;
@@ -150,5 +152,4 @@ mod tests {
         }
     }
 }
-pub mod accounts;
 pub mod transactions;

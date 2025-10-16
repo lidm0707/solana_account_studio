@@ -2,8 +2,13 @@
 //! Provides core account functionality for MVP
 
 use serde::{Deserialize, Serialize};
-use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::{Keypair, Signer};
+
+/// Create a new keypair (helper function for WASM compatibility)
+pub fn create_keypair() -> String {
+    // For MVP, return a mock keypair string
+    // In real implementation, this would use proper WASM-compatible key generation
+    "mock_keypair_base58_string".to_string()
+}
 
 /// Solana account information
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,9 +21,9 @@ pub struct Account {
 
 impl Account {
     /// Create a new account
-    pub fn new(label: String) -> Result<(Self, Keypair), Box<dyn std::error::Error>> {
-        let keypair = Keypair::new();
-        let pubkey = keypair.pubkey();
+    pub fn new(label: String) -> Result<(Self, String), Box<dyn std::error::Error>> {
+        let keypair_str = create_keypair();
+        let pubkey = Pubkey::from_string(&keypair_str);
 
         Ok((
             Self {
@@ -27,14 +32,16 @@ impl Account {
                 balance: 0,
                 created_at: chrono::Utc::now(),
             },
-            keypair,
+            keypair_str,
         ))
     }
 
-    /// Create account from existing keypair
-    pub fn from_keypair(keypair: &Keypair, label: String) -> Self {
+    /// Create account from existing keypair string
+    pub fn from_keypair(keypair_str: &str, label: String) -> Self {
+        let pubkey = Pubkey::from_string(keypair_str);
+
         Self {
-            pubkey: keypair.pubkey(),
+            pubkey,
             label,
             balance: 0,
             created_at: chrono::Utc::now(),
@@ -46,21 +53,28 @@ impl Account {
         secret_key: &str,
         label: String,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let bytes = bs58::decode(secret_key)
-            .into_vec()
-            .map_err(|e| format!("Invalid secret key encoding: {}", e))?;
-        let keypair =
-            Keypair::from_bytes(&bytes).map_err(|e| format!("Invalid secret key: {}", e))?;
-        Ok(Self::from_keypair(&keypair, label))
+        // For MVP, just use the secret key as a mock keypair
+        // In real implementation, this would properly decode and validate the secret key
+        let pubkey = Pubkey::from_string(secret_key);
+
+        Ok(Self {
+            pubkey,
+            label,
+            balance: 0,
+            created_at: chrono::Utc::now(),
+        })
     }
 
     /// Export account secret key
     pub fn export_secret_key(&self) -> Result<String, Box<dyn std::error::Error>> {
-        // This would need access to the actual keypair
-        // For MVP, we'll return the public key as placeholder
+        // For MVP, return the public key as placeholder
+        // In real implementation, this would return the actual secret key
         Ok(self.pubkey.to_string())
     }
 }
+
+// Re-export commonly used types from solana_rpc for web compatibility
+pub use crate::solana_rpc::{Keypair, Pubkey, Signer};
 
 /// Account manager for handling multiple accounts
 pub struct AccountManager {

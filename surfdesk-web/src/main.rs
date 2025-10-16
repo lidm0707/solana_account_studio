@@ -6,14 +6,13 @@
 
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
-// use gloo_console::log;
-use surfdesk_core::{current_platform, init_core};
-use surfdesk_core::solana_rpc::{AccountService, SolanaNetwork, AccountWithBalance};
+use gloo_console::{log, log1};
 use surfdesk_core::accounts::Account;
+use surfdesk_core::solana_rpc::{AccountService, AccountWithBalance, SolanaNetwork};
+use surfdesk_core::{current_platform, init_core};
 use wasm_bindgen_futures::spawn_local;
 
 mod style;
-use style::*;
 
 /// Main application component with routing
 #[component]
@@ -297,12 +296,12 @@ fn Home() -> Element {
 #[component]
 fn Accounts() -> Element {
     let mut accounts = use_signal(Vec::<AccountWithBalance>::new);
-    let mut show_create_modal = use_signal(false);
-    let mut show_import_modal = use_signal(false);
+    let mut show_create_modal = use_signal(|| false);
+    let mut show_import_modal = use_signal(|| false);
     let mut new_account_label = use_signal(String::new);
     let mut import_secret_key = use_signal(String::new);
     let mut import_label = use_signal(String::new);
-    let mut is_loading = use_signal(false);
+    let mut is_loading = use_signal(|| false);
     let mut error_message = use_signal(String::new);
     let mut success_message = use_signal(String::new);
 
@@ -311,7 +310,7 @@ fn Accounts() -> Element {
         spawn_local(async move {
             if let Err(e) = load_accounts(&mut accounts, &mut is_loading, &mut error_message).await
             {
-                log!("Failed to load accounts: {:?}", e);
+                log::error!("Failed to load accounts: {:?}", e);
             }
         });
     });
@@ -420,33 +419,33 @@ fn Accounts() -> Element {
                         p { style: "margin-top: 0.25rem; font-size: 0.875rem; color: #6b7280;", "Get started by creating or importing an account." }
                     }
                 } else {
-                    div { style: "display: grid; gap: 1.5remclass: "grid gap-6 md:grid-cols-2 lg:grid-cols-3",
+                    div { style: "display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));",
                         for account in accounts.read().iter() {
-                            div { class: "bg-white overflow-hidden shadow rounded-lg",
-                                div { class: "p-6",
-                                    div { class: "flex items-center",
-                                        div { class: "flex-shrink-0",
-                                            div { class: "h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center",
-                                                span { class: "text-indigo-600 font-medium", "👤" }
+                            div { style: "background-color: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);",
+                                div { style: "padding: 1.5rem;",
+                                    div { style: "display: flex; align-items: center;",
+                                        div { style: "flex-shrink: 0;",
+                                            div { style: "width: 2.5rem; height: 2.5rem; border-radius: 50%; background-color: #ede9fe; display: flex; align-items: center; justify-content: center;",
+                                                span { style: "color: #4f46e5; font-weight: 500;", "👤" }
                                             }
                                         }
-                                        div { class: "ml-4 flex-1",
-                                            h3 { class: "text-lg font-medium text-gray-900", "{account.account.label}" }
-                                            p { class: "text-sm text-gray-500 truncate", "{account.short_pubkey()}" }
+                                        div { style: "margin-left: 1rem; flex: 1;",
+                                            h3 { style: "font-size: 1.125rem; font-weight: 500; color: #111827;", "{account.account.label}" }
+                                            p { style: "font-size: 0.875rem; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", "{account.short_pubkey()}" }
                                         }
                                     }
-                                    div { class: "mt-4",
-                                        div { class: "flex items-center justify-between",
-                                            span { class: "text-sm font-medium text-gray-900", "Balance" }
-                                            span { class: "text-lg font-bold text-indigo-600",
+                                    div { style: "margin-top: 1rem;",
+                                        div { style: "display: flex; align-items: center; justify-content: space-between;",
+                                            span { style: "font-size: 0.875rem; font-weight: 500; color: #111827;", "Balance" }
+                                            span { style: "font-size: 1.125rem; font-weight: bold; color: #4f46e5;",
                                                 "{account.formatted_balance()}"
                                             }
                                         }
                                     }
-                                    div { class: "mt-2 flex space-x-2",
+                                    div { style: "margin-top: 0.5rem; display: flex; gap: 0.5rem;",
                                         Link {
                                             to: Route::AccountDetail { pubkey: account.account.pubkey.to_string() },
-                                            class: "text-indigo-600 hover:text-indigo-900 text-sm font-medium",
+                                            style: "color: #4f46e5; text-decoration: none; font-size: 0.875rem; font-weight: 500;",
                                             "View Details"
                                         }
                                         button {
@@ -457,7 +456,7 @@ fn Accounts() -> Element {
                                                     }
                                                 });
                                             },
-                                            class: "text-green-600 hover:text-green-900 text-sm font-medium",
+                                            style: "color: #059669; cursor: pointer; font-size: 0.875rem; font-weight: 500; border: none; background: none;",
                                             "Request Airdrop"
                                         }
                                     }
@@ -471,23 +470,23 @@ fn Accounts() -> Element {
 
         // Create Account Modal
         if *show_create_modal.read() {
-            div { class: "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50",
-                div { class: "relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white",
-                    h3 { class: "text-lg font-bold text-gray-900 mb-4", "Create New Account" }
-                    div { class: "mb-4",
-                        label { class: "block text-sm font-medium text-gray-700 mb-2", "Account Label" }
+            div { style: "position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 50; display: flex; align-items: center; justify-content: center;",
+                div { style: "background-color: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); max-width: 24rem; width: 90%;",
+                    h3 { style: "font-size: 1.125rem; font-weight: bold; color: #111827; margin-bottom: 1rem;", "Create New Account" }
+                    div { style: "margin-bottom: 1rem;",
+                        label { style: "display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.5rem;", "Account Label" }
                         input {
                             r#type: "text",
                             value: "{new_account_label}",
                             oninput: move |evt| new_account_label.set(evt.value()),
-                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500",
+                            style: "width: 100%; padding: 0.5rem 0.75rem; font-size: 0.875rem; border: 1px solid #d1d5db; border-radius: 0.375rem; background-color: white; outline: none;",
                             placeholder: "Enter account label..."
                         }
                     }
-                    div { class: "flex justify-end space-x-3",
+                    div { style: "display: flex; justify-content: flex-end; gap: 0.75rem;",
                         button {
                             onclick: move |_| show_create_modal.set(false),
-                            class: "bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium",
+                            style: "background-color: #d1d5db; color: #374151; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer;",
                             "Cancel"
                         }
                         button {
@@ -501,7 +500,7 @@ fn Accounts() -> Element {
                                     });
                                 }
                             },
-                            class: "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium",
+                            style: "background-color: #4f46e5; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer;",
                             "Create"
                         }
                     }
@@ -511,33 +510,33 @@ fn Accounts() -> Element {
 
         // Import Account Modal
         if *show_import_modal.read() {
-            div { class: "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50",
-                div { class: "relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white",
-                    h3 { class: "text-lg font-bold text-gray-900 mb-4", "Import Account" }
-                    div { class: "mb-4",
-                        label { class: "block text-sm font-medium text-gray-700 mb-2", "Account Label" }
+            div { style: "position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 50; display: flex; align-items: center; justify-content: center;",
+                div { style: "background-color: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); max-width: 24rem; width: 90%;",
+                    h3 { style: "font-size: 1.125rem; font-weight: bold; color: #111827; margin-bottom: 1rem;", "Import Account" }
+                    div { style: "margin-bottom: 1rem;",
+                        label { style: "display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.5rem;", "Account Label" }
                         input {
                             r#type: "text",
                             value: "{import_label}",
                             oninput: move |evt| import_label.set(evt.value()),
-                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500",
+                            style: "width: 100%; padding: 0.5rem 0.75rem; font-size: 0.875rem; border: 1px solid #d1d5db; border-radius: 0.375rem; background-color: white; outline: none;",
                             placeholder: "Enter account label..."
                         }
                     }
-                    div { class: "mb-4",
-                        label { class: "block text-sm font-medium text-gray-700 mb-2", "Secret Key" }
+                    div { style: "margin-bottom: 1rem;",
+                        label { style: "display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.5rem;", "Secret Key" }
                         textarea {
                             value: "{import_secret_key}",
                             oninput: move |evt| import_secret_key.set(evt.value()),
-                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500",
+                            style: "width: 100%; padding: 0.5rem 0.75rem; font-size: 0.875rem; border: 1px solid #d1d5db; border-radius: 0.375rem; background-color: white; outline: none; resize: vertical;",
                             rows: 3,
                             placeholder: "Enter base58 encoded secret key..."
                         }
                     }
-                    div { class: "flex justify-end space-x-3",
+                    div { style: "display: flex; justify-content: flex-end; gap: 0.75rem;",
                         button {
                             onclick: move |_| show_import_modal.set(false),
-                            class: "bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium",
+                            style: "background-color: #d1d5db; color: #374151; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer;",
                             "Cancel"
                         }
                         button {
@@ -552,7 +551,7 @@ fn Accounts() -> Element {
                                     });
                                 }
                             },
-                            class: "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium",
+                            style: "background-color: #4f46e5; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer;",
                             "Import"
                         }
                     }
@@ -566,11 +565,11 @@ fn Accounts() -> Element {
 #[component]
 fn AccountDetail(pubkey: String) -> Element {
     let mut account = use_signal(|| None::<Account>);
-    let mut is_loading = use_signal(false);
+    let mut is_loading = use_signal(|| false);
     let mut error_message = use_signal(String::new);
     let mut recipient_pubkey = use_signal(String::new);
     let mut transfer_amount = use_signal(String::new);
-    let mut show_transfer_modal = use_signal(false);
+    let mut show_transfer_modal = use_signal(|| false);
 
     // Load account details on component mount
     use_effect(move || {
@@ -584,7 +583,7 @@ fn AccountDetail(pubkey: String) -> Element {
             )
             .await
             {
-                log!("Failed to load account details: {:?}", e);
+                log::error!("Failed to load account details: {:?}", e);
             }
         });
     });
@@ -774,7 +773,11 @@ async fn load_account_details(
     let service = get_account_service();
 
     // Find account in service
-    if let Some(found_account) = service.get_accounts().iter().find(|acc| acc.pubkey.to_string() == pubkey) {
+    if let Some(found_account) = service
+        .get_accounts()
+        .iter()
+        .find(|acc| acc.pubkey.to_string() == pubkey)
+    {
         let mut updated_account = found_account.clone();
 
         // Get real balance from network
@@ -832,7 +835,7 @@ async fn import_account(
     error_message: &mut Signal<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // For MVP, create a mock account from the provided data
-    let keypair = solana_sdk::Keypair::new(); // In real implementation, decode secret_key
+    let keypair = surfdesk_core::accounts::create_keypair(); // In real implementation, decode secret_key
     let service = get_account_service();
 
     match service.create_account(label.clone()) {
@@ -844,7 +847,7 @@ async fn import_account(
         }
         Err(e) => {
             error_message.set(format!("Failed to create account: {}", e));
-            return;
+            return Ok(());
         }
     }
 
@@ -856,7 +859,7 @@ async fn import_account(
 }
 
 async fn request_airdrop(
-    pubkey: &solana_sdk::pubkey::Pubkey,
+    pubkey: &surfdesk_core::accounts::Pubkey,
     success_message: &mut Signal<String>,
     error_message: &mut Signal<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -887,7 +890,7 @@ async fn send_sol_transfer(
     amount_input.set(String::new());
 
     // In a real implementation, this would use AccountService to send the transaction
-    log!(
+    log::info!(
         "Would send {} lamports from {} to {}",
         lamports,
         from_pubkey,
