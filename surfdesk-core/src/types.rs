@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 use solana_sdk::pubkey::Pubkey;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt, str::FromStr};
 use uuid::Uuid;
 
 /// Project identifier
@@ -25,23 +25,28 @@ pub type TransactionId = Uuid;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SolanaPubkey(#[serde(with = "solana_pubkey_serde")] Pubkey);
 
+// str
+impl fmt::Display for SolanaPubkey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+impl FromStr for SolanaPubkey {
+    type Err = crate::error::SurfDeskError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // พยายาม parse string ให้เป็น Solana Pubkey
+        Pubkey::from_str(s)
+            .map(SolanaPubkey)
+            .map_err(|_| crate::error::SurfDeskError::InvalidPubkey(s.to_string()))
+    }
+}
+
 impl SolanaPubkey {
     /// Create a new SolanaPubkey from a string
-    pub fn from_str(s: &str) -> Result<Self, crate::error::SurfDeskError> {
-        let pubkey = s
-            .parse::<Pubkey>()
-            .map_err(|_| crate::error::SurfDeskError::validation("Invalid Solana public key"))?;
-        Ok(Self(pubkey))
-    }
-
     /// Get the underlying Pubkey
     pub fn inner(&self) -> &Pubkey {
         &self.0
-    }
-
-    /// Get the string representation
-    pub fn to_string(&self) -> String {
-        self.0.to_string()
     }
 }
 
@@ -119,11 +124,12 @@ impl Default for ProjectSettings {
 }
 
 /// Solana network types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum SolanaNetwork {
     /// Mainnet-beta
     Mainnet,
     /// Devnet
+    #[default]
     Devnet,
     /// Testnet
     Testnet,
@@ -131,12 +137,6 @@ pub enum SolanaNetwork {
     Local,
     /// Custom endpoint
     Custom,
-}
-
-impl Default for SolanaNetwork {
-    fn default() -> Self {
-        SolanaNetwork::Devnet
-    }
 }
 
 impl SolanaNetwork {

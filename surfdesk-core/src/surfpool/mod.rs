@@ -122,13 +122,13 @@ impl Default for SurfPoolConfig {
             rpc_port: 8899,
             ws_port: 8900,
             ledger_path: dirs::cache_dir()
-                .unwrap_or_else(|| std::env::temp_dir())
+                .unwrap_or_else(std::env::temp_dir)
                 .join("surfdesk")
                 .join("ledger")
                 .to_string_lossy()
                 .to_string(),
             accounts_path: dirs::cache_dir()
-                .unwrap_or_else(|| std::env::temp_dir())
+                .unwrap_or_else(std::env::temp_dir)
                 .join("surfdesk")
                 .join("accounts")
                 .to_string_lossy()
@@ -454,7 +454,7 @@ pub async fn install_surfpool() -> Result<(), SurfDeskError> {
 
     // Try to install using cargo
     let output = Command::new("cargo")
-        .args(&["install", "surfpool"])
+        .args(["install", "surfpool"])
         .output()
         .map_err(|e| SurfDeskError::platform(format!("Failed to install SurfPool: {}", e)))?;
 

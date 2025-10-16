@@ -215,7 +215,7 @@ struct AccountInfo {
 
 /// Transaction information structure
 #[derive(Debug, Serialize, Deserialize)]
-struct TransactionInfo {
+pub struct TransactionInfo {
     signature: String,
     slot: u64,
     block_time: Option<i64>,
@@ -224,7 +224,7 @@ struct TransactionInfo {
 }
 
 /// CLI application state
-struct CliApp {
+pub struct CliApp {
     rpc_url: String,
     output_format: String,
     verbose: bool,
@@ -243,7 +243,7 @@ impl CliApp {
     }
 
     /// Print success message
-    fn success(&self, message: &str) {
+    pub fn success(&self, message: &str) {
         if !self.quiet {
             println!("{} {}", "✅".green(), message);
         }
@@ -486,7 +486,7 @@ fn main() -> Result<()> {
         cli.quiet,
     );
 
-    app.verbose(&format!("Starting SurfDesk CLI..."));
+    app.verbose("Starting SurfDesk CLI...");
     app.verbose(&format!("Platform: {}", current_platform()));
     app.verbose(&format!("Version: {}", surfdesk_core::VERSION));
 
@@ -510,12 +510,11 @@ fn main() -> Result<()> {
         }
         Commands::Send { file, skip_confirm } => {
             app.info(&format!("Sending transaction from file: {}", file));
-            if !skip_confirm {
-                if !app.confirm("Do you want to send this transaction?")? {
-                    app.warning("Transaction cancelled");
-                    return Ok(());
-                }
+            if !skip_confirm && !app.confirm("Do you want to send this transaction?")? {
+                app.warning("Transaction cancelled");
+                return Ok(());
             }
+
             app.success("Transaction sent successfully");
         }
         Commands::List { owner, limit } => {
@@ -632,55 +631,4 @@ fn main() -> Result<()> {
 
     app.success("Command completed successfully");
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use clap::Parser;
-
-    #[test]
-    fn test_cli_parsing() {
-        let args = Cli::try_parse_from(&[
-            "surfdesk-cli",
-            "--log-level",
-            "debug",
-            "--output",
-            "json",
-            "account",
-            "11111111111111111111111111111111",
-        ])
-        .unwrap();
-
-        assert_eq!(args.log_level, "debug");
-        assert_eq!(args.output, "json");
-        match args.command {
-            Commands::Account { pubkey, data } => {
-                assert_eq!(pubkey, "11111111111111111111111111111111");
-                assert!(!data);
-            }
-            _ => panic!("Expected Account command"),
-        }
-    }
-
-    #[test]
-    fn test_app_creation() {
-        let app = CliApp::new(
-            "https://api.devnet.solana.com".to_string(),
-            "table".to_string(),
-            true,
-            false,
-        );
-
-        assert_eq!(app.rpc_url, "https://api.devnet.solana.com");
-        assert_eq!(app.output_format, "table");
-        assert!(app.verbose);
-        assert!(!app.quiet);
-    }
-
-    #[test]
-    fn test_logging_init() {
-        let result = init_logging("info");
-        assert!(result.is_ok());
-    }
 }

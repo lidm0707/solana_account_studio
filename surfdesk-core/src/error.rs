@@ -10,8 +10,12 @@ use thiserror::Error;
 pub type Result<T> = std::result::Result<T, SurfDeskError>;
 
 /// Comprehensive error type for SurfDesk
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum SurfDeskError {
+    /// Invalid Solana public key error
+    #[error("Invalid Solana pubkey: {0}")]
+    InvalidPubkey(String),
+
     /// Configuration related errors
     #[error("Configuration error: {0}")]
     Config(String),
@@ -256,6 +260,7 @@ impl SurfDeskError {
     /// Get the error category for logging/metrics
     pub fn category(&self) -> &'static str {
         match self {
+            Self::InvalidPubkey(_) => "Solona",
             Self::Config(_) => "config",
             Self::Database(_) | Self::DatabaseConnection(_) => "database",
             Self::SolanaRpc(_) | Self::SolanaSdk(_) | Self::Anchor(_) => "solana",
@@ -310,43 +315,6 @@ impl SurfDeskError {
             }
             Self::Internal(msg) => format!("Internal error: {}. Please report this issue.", msg),
             _ => self.to_string(),
-        }
-    }
-}
-
-impl Clone for SurfDeskError {
-    fn clone(&self) -> Self {
-        match self {
-            Self::Config(msg) => Self::Config(msg.clone()),
-            Self::Database(msg) => Self::Database(msg.clone()),
-            Self::DatabaseConnection(msg) => Self::DatabaseConnection(msg.clone()),
-            Self::SolanaRpc(msg) => Self::SolanaRpc(msg.clone()),
-            Self::SolanaSdk(msg) => Self::SolanaSdk(msg.clone()),
-            Self::Anchor(msg) => Self::Anchor(msg.clone()),
-            Self::Serialization(msg) => Self::Serialization(msg.clone()),
-            Self::TomlSerialization(msg) => Self::TomlSerialization(msg.clone()),
-            Self::TomlDeserialization(msg) => Self::TomlDeserialization(msg.clone()),
-            Self::Io(msg) => Self::Io(msg.clone()),
-            Self::Network(msg) => Self::Network(msg.clone()),
-            Self::Validation(msg) => Self::Validation(msg.clone()),
-            Self::Platform(msg) => Self::Platform(msg.clone()),
-            Self::Component(msg) => Self::Component(msg.clone()),
-            Self::Service(msg) => Self::Service(msg.clone()),
-            Self::State(msg) => Self::State(msg.clone()),
-            Self::Authentication(msg) => Self::Authentication(msg.clone()),
-            Self::Permission(msg) => Self::Permission(msg.clone()),
-            Self::Timeout(msg) => Self::Timeout(msg.clone()),
-            Self::NotFound(msg) => Self::NotFound(msg.clone()),
-            Self::AlreadyExists(msg) => Self::AlreadyExists(msg.clone()),
-            Self::Unsupported(msg) => Self::Unsupported(msg.clone()),
-            Self::Internal(msg) => Self::Internal(msg.clone()),
-            Self::Anyhow(msg) => Self::Anyhow(msg.clone()),
-            Self::Uuid(err) => Self::Uuid(err.clone()),
-            Self::Chrono(err) => Self::Chrono(err.clone()),
-            Self::WithContext { message, source } => Self::WithContext {
-                message: message.clone(),
-                source: source.clone(),
-            },
         }
     }
 }

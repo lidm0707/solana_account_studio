@@ -8,6 +8,7 @@ use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 // use gloo_console::log;
 use surfdesk_core::{current_platform, init_core};
+use wasm_bindgen_futures::spawn_local;
 
 /// Main application component with routing
 #[component]
@@ -70,7 +71,7 @@ enum Route {
 fn Home() -> Element {
     let solana_url = use_signal(|| "https://api.devnet.solana.com".to_string());
     let mut connection_status = use_signal(|| "Disconnected".to_string());
-    let account_count = use_signal(|| 0u64);
+    let mut account_count = use_signal(|| 0u64);
 
     rsx! {
         div { class: "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100",
@@ -133,14 +134,11 @@ fn Home() -> Element {
                                     // Test connection (simplified for web)
                                     connection_status.set("Connecting...".to_string());
                                     // Use web-compatible timeout simulation
-                                    use wasm_bindgen_futures::spawn_local;
-                                    let mut connection_status_clone = connection_status.clone();
-                                    let mut account_count_clone = account_count.clone();
                                     spawn_local(async move {
                                         // Simulate network delay
                                         gloo_timers::future::sleep(std::time::Duration::from_secs(1)).await;
-                                        connection_status_clone.set("Connected".to_string());
-                                        account_count_clone.set(12345);
+                                        connection_status.set("Connected".to_string());
+                                        account_count.set(12345);
                                     });
                                 },
                                 class: "w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10 transition-colors",

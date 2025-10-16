@@ -210,11 +210,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_footer_default_props() {
-        assert!(true); // Simple test for now
-    }
-
-    #[test]
     fn test_footer_link() {
         let link = FooterLink {
             text: "Documentation".to_string(),
@@ -236,7 +231,7 @@ mod tests {
         // Verify component parameters are valid
         assert!(!text.is_empty());
         assert!(class.is_some());
-        assert_eq!(class.unwrap(), "custom-class");
+        assert_eq!(class, Some("custom-class".to_string()));
     }
 
     #[test]

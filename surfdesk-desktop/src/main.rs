@@ -221,7 +221,7 @@ mod tests {
     fn test_args_parsing() {
         use clap::Parser;
 
-        let args = Args::try_parse_from(&[
+        let args = Args::try_parse_from([
             "surfdesk-desktop",
             "--log-level",
             "debug",

@@ -45,22 +45,20 @@ pub enum Breakpoint {
 /// Main App Shell component with responsive multi-platform layout
 #[component]
 pub fn AppShell(props: AppShellProps) -> Element {
-    let current_breakpoint = use_signal(|| Breakpoint::Desktop);
-    let sidebar_collapsed = use_signal(|| false);
+    let mut current_breakpoint = use_signal(|| Breakpoint::Desktop);
+    let mut sidebar_collapsed = use_signal(|| false);
     let mut active_section = use_signal(|| "dashboard".to_string());
 
     // Detect viewport size and set breakpoint
-    let mut current_breakpoint_clone = current_breakpoint.clone();
     use_effect(move || {
         // In a real implementation, this would use window resize events
         // For now, we'll keep a simple implementation
-        current_breakpoint_clone.set(Breakpoint::Desktop);
+        current_breakpoint.set(Breakpoint::Desktop);
     });
 
-    let mut sidebar_collapsed_clone = sidebar_collapsed.clone();
     let on_sidebar_toggle = EventHandler::new(move |_: MouseEvent| {
-        let current = *sidebar_collapsed_clone.read();
-        sidebar_collapsed_clone.set(!current);
+        let current = *sidebar_collapsed.read();
+        sidebar_collapsed.set(!current);
     });
 
     let on_section_change = EventHandler::new(move |section: String| {
@@ -75,7 +73,7 @@ pub fn AppShell(props: AppShellProps) -> Element {
 
             // Header with navigation
             Header {
-                platform: props.platform.clone(),
+                platform: props.platform,
                 on_sidebar_toggle: Some(on_sidebar_toggle),
                 active_section: active_section.read().clone(),
             }
@@ -85,7 +83,7 @@ pub fn AppShell(props: AppShellProps) -> Element {
 
                 // Sidebar (desktop/tablet) or overlay (mobile)
                 Sidebar {
-                    platform: props.platform.clone(),
+                    platform: props.platform,
                     collapsed: *sidebar_collapsed.read(),
                     active_section: active_section.read().clone(),
                     on_section_change: Some(on_section_change),
@@ -100,13 +98,13 @@ pub fn AppShell(props: AppShellProps) -> Element {
                         "dashboard" => rsx! {
                             Dashboard {
                                 state: props.state,
-                                platform: props.platform.clone(),
+                                platform: props.platform,
                             }
                         },
                         "surfpool" => rsx! {
                             SurfPoolControl {
                                 state: props.state,
-                                platform: props.platform.clone(),
+                                platform: props.platform,
                                 on_status_change: None,
                             }
                         },
@@ -122,7 +120,7 @@ pub fn AppShell(props: AppShellProps) -> Element {
 
             // Footer
             Footer {
-                platform: props.platform.clone(),
+                platform: props.platform,
             }
         }
     }
@@ -136,7 +134,7 @@ pub fn ResponsiveLayout(
     #[props(default = false)] collapsible: bool,
 ) -> Element {
     let is_collapsed = use_signal(|| false);
-    let mut is_collapsed_clone = is_collapsed.clone();
+    let mut is_collapsed_clone = is_collapsed;
 
     let breakpoint_class = match breakpoint {
         Breakpoint::Mobile => "mobile",

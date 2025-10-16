@@ -90,13 +90,13 @@ impl Default for EnvironmentConfig {
             rpc_port: 8899,
             ws_port: 8900,
             ledger_path: dirs::cache_dir()
-                .unwrap_or_else(|| std::env::temp_dir())
+                .unwrap_or_else(std::env::temp_dir)
                 .join("surfdesk")
                 .join("ledger")
                 .to_string_lossy()
                 .to_string(),
             accounts_path: dirs::cache_dir()
-                .unwrap_or_else(|| std::env::temp_dir())
+                .unwrap_or_else(std::env::temp_dir)
                 .join("surfdesk")
                 .join("accounts")
                 .to_string_lossy()
@@ -146,13 +146,13 @@ impl EnvironmentManager {
                 rpc_port: 8900,
                 ws_port: 8901,
                 ledger_path: dirs::cache_dir()
-                    .unwrap_or_else(|| std::env::temp_dir())
+                    .unwrap_or_else(std::env::temp_dir)
                     .join("surfdesk")
                     .join("mainnet-fork-ledger")
                     .to_string_lossy()
                     .to_string(),
                 accounts_path: dirs::cache_dir()
-                    .unwrap_or_else(|| std::env::temp_dir())
+                    .unwrap_or_else(std::env::temp_dir)
                     .join("surfdesk")
                     .join("mainnet-fork-accounts")
                     .to_string_lossy()
@@ -247,7 +247,7 @@ impl EnvironmentManager {
         }
 
         // Validate ports are in valid range
-        if config.rpc_port < 1024 || config.rpc_port > 65535 {
+        if config.rpc_port < 1024 {
             return Err(SurfDeskError::platform(
                 "RPC port must be between 1024 and 65535",
             ));

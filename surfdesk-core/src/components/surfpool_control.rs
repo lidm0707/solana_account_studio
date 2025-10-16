@@ -22,33 +22,26 @@ pub struct SurfPoolControlProps {
 /// Main SurfPool control component
 #[component]
 pub fn SurfPoolControl(props: SurfPoolControlProps) -> Element {
-    let controller = use_surfpool_controller(props.platform.clone());
-    let status = use_signal(|| ControllerStatus::Stopped);
-    let error_message = use_signal(|| Option::<String>::None);
+    let controller = use_surfpool_controller(props.platform);
+    let mut status = use_signal(|| ControllerStatus::Stopped);
+    let mut error_message = use_signal(|| Option::<String>::None);
 
     // Manual status checking (simplified approach)
     let check_status = move |_| {
         let controller = controller.read().clone();
-        let mut status = status.clone();
 
         spawn(async move {
-            match controller.get_status().await {
-                new_status => {
-                    status.set(new_status.clone());
+            let new_status = controller.get_status().await;
+            status.set(new_status.clone());
 
-                    // Call the callback if provided
-                    if let Some(handler) = &props.on_status_change {
-                        handler.call(new_status);
-                    }
-                }
+            if let Some(handler) = &props.on_status_change {
+                handler.call(new_status);
             }
         });
     };
 
     let on_start = move |_| {
         let controller = controller.read().clone();
-        let mut status = status.clone();
-        let mut error_message = error_message.clone();
 
         spawn(async move {
             match controller.start().await {
@@ -66,8 +59,6 @@ pub fn SurfPoolControl(props: SurfPoolControlProps) -> Element {
 
     let on_stop = move |_| {
         let controller = controller.read().clone();
-        let mut status = status.clone();
-        let mut error_message = error_message.clone();
 
         spawn(async move {
             match controller.stop().await {

@@ -69,17 +69,12 @@ pub struct AccountManager {
 }
 
 /// Solana network types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum SolanaNetwork {
     Mainnet,
+    #[default]
     Devnet,
     Testnet,
-}
-
-impl Default for SolanaNetwork {
-    fn default() -> Self {
-        SolanaNetwork::Devnet
-    }
 }
 
 impl AccountManager {

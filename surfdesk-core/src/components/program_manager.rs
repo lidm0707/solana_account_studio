@@ -196,7 +196,7 @@ pub fn DeployProgramDialog(
     #[props(optional)] on_close: Option<EventHandler<()>>,
     #[props(optional)] on_deploy: Option<EventHandler<String>>,
 ) -> Element {
-    let mut program_path = use_signal(|| String::new());
+    let mut program_path = use_signal(String::new);
 
     if !open {
         return rsx! { "" };

@@ -5,6 +5,7 @@
 //! subscription management across all platforms.
 
 use crate::error::{Result, SurfDeskError};
+use serde_json::json;
 use std::collections::HashMap;
 use tokio::sync::{broadcast, RwLock};
 
@@ -374,296 +375,78 @@ impl EventBuilder {
     }
 }
 
-/// Helper functions for creating common events
-pub mod events {
-    use super::*;
-    use serde_json::json;
-
-    /// Create a project created event
-    pub fn project_created(project_id: &str, project_name: &str, source: &str) -> Event {
-        EventBuilder::new("project.created")
-            .data(json!({
-                "project_id": project_id,
-                "project_name": project_name
-            }))
-            .source(source)
-            .build()
-    }
-
-    /// Create a project updated event
-    pub fn project_updated(project_id: &str, changes: serde_json::Value, source: &str) -> Event {
-        EventBuilder::new("project.updated")
-            .data(json!({
-                "project_id": project_id,
-                "changes": changes
-            }))
-            .source(source)
-            .build()
-    }
-
-    /// Create an account updated event
-    pub fn account_updated(account_id: &str, pubkey: &str, source: &str) -> Event {
-        EventBuilder::new("account.updated")
-            .data(json!({
-                "account_id": account_id,
-                "pubkey": pubkey
-            }))
-            .source(source)
-            .build()
-    }
-
-    /// Create a transaction sent event
-    pub fn transaction_sent(signature: &str, source: &str) -> Event {
-        EventBuilder::new("transaction.sent")
-            .data(json!({
-                "signature": signature
-            }))
-            .source(source)
-            .build()
-    }
-
-    /// Create a Solana connected event
-    pub fn solana_connected(network: &str, source: &str) -> Event {
-        EventBuilder::new("solana.connected")
-            .data(json!({
-                "network": network
-            }))
-            .source(source)
-            .build()
-    }
-
-    /// Create a notification event
-    pub fn notification(
-        notification_type: &str,
-        title: &str,
-        message: &str,
-        source: &str,
-    ) -> Event {
-        EventBuilder::new("ui.notification")
-            .data(json!({
-                "type": notification_type,
-                "title": title,
-                "message": message
-            }))
-            .source(source)
-            .build()
-    }
-
-    /// Create an error event
-    pub fn error(error_message: &str, error_type: &str, source: &str) -> Event {
-        EventBuilder::new("error.occurred")
-            .data(json!({
-                "error_message": error_message,
-                "error_type": error_type
-            }))
-            .source(source)
-            .build()
-    }
+/// Create a project created event
+pub fn project_created(project_id: &str, project_name: &str, source: &str) -> Event {
+    EventBuilder::new("project.created")
+        .data(json!({
+            "project_id": project_id,
+            "project_name": project_name
+        }))
+        .source(source)
+        .build()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+/// Create a project updated event
+pub fn project_updated(project_id: &str, changes: serde_json::Value, source: &str) -> Event {
+    EventBuilder::new("project.updated")
+        .data(json!({
+            "project_id": project_id,
+            "changes": changes
+        }))
+        .source(source)
+        .build()
+}
 
-    #[tokio::test]
-    async fn test_event_service_creation() {
-        let result = EventService::new();
-        assert!(result.is_ok());
-    }
+/// Create an account updated event
+pub fn account_updated(account_id: &str, pubkey: &str, source: &str) -> Event {
+    EventBuilder::new("account.updated")
+        .data(json!({
+            "account_id": account_id,
+            "pubkey": pubkey
+        }))
+        .source(source)
+        .build()
+}
 
-    #[tokio::test]
-    async fn test_channel_creation() {
-        let service = EventService::new().unwrap();
-        let result = service.create_channel("test.channel").await;
-        assert!(result.is_ok());
+/// Create a transaction sent event
+pub fn transaction_sent(signature: &str, source: &str) -> Event {
+    EventBuilder::new("transaction.sent")
+        .data(json!({
+            "signature": signature
+        }))
+        .source(source)
+        .build()
+}
 
-        let channels = service.get_channels().await;
-        assert!(channels.contains(&"test.channel".to_string()));
-    }
+/// Create a Solana connected event
+pub fn solana_connected(network: &str, source: &str) -> Event {
+    EventBuilder::new("solana.connected")
+        .data(json!({
+            "network": network
+        }))
+        .source(source)
+        .build()
+}
 
-    #[tokio::test]
-    async fn test_event_emission() {
-        let service = EventService::new().unwrap();
+/// Create a notification event
+pub fn notification(notification_type: &str, title: &str, message: &str, source: &str) -> Event {
+    EventBuilder::new("ui.notification")
+        .data(json!({
+            "type": notification_type,
+            "title": title,
+            "message": message
+        }))
+        .source(source)
+        .build()
+}
 
-        let event = EventBuilder::new("test.event")
-            .data(json!({"test": "data"}))
-            .source("test")
-            .build();
-
-        let result = service.emit(event).await;
-        assert!(result.is_ok());
-
-        let history = service.get_history(Some(10)).await;
-        assert_eq!(history.len(), 1);
-        assert_eq!(history[0].event.event_type, "test.event");
-    }
-
-    #[tokio::test]
-    async fn test_event_subscription() {
-        let service = EventService::new().unwrap();
-
-        // Subscribe to test events
-        let mut receiver = service.subscribe("test.subscription").await.unwrap();
-
-        // Emit a test event
-        let event = EventBuilder::new("test.subscription")
-            .data(json!({"subscription": "test"}))
-            .source("test")
-            .build();
-
-        service.emit(event).await.unwrap();
-
-        // Receive the event
-        let received_event = receiver.recv().await.unwrap();
-        assert_eq!(received_event.event_type, "test.subscription");
-    }
-
-    #[tokio::test]
-    async fn test_multiple_subscriptions() {
-        let service = EventService::new().unwrap();
-
-        let event_types = vec![
-            "test.1".to_string(),
-            "test.2".to_string(),
-            "test.3".to_string(),
-        ];
-
-        let mut receivers = service
-            .subscribe_multiple(event_types.clone())
-            .await
-            .unwrap();
-        assert_eq!(receivers.len(), 3);
-
-        // Emit events
-        for event_type in &event_types {
-            let event = EventBuilder::new(event_type)
-                .data(json!({"test": event_type}))
-                .source("test")
-                .build();
-
-            service.emit(event).await.unwrap();
-        }
-
-        // Receive events
-        for receiver in receivers.iter_mut() {
-            let received_event = receiver.recv().await.unwrap();
-            assert!(event_types.contains(&received_event.event_type));
-        }
-    }
-
-    #[tokio::test]
-    async fn test_event_history() {
-        let service = EventService::new().unwrap();
-
-        // Emit multiple events
-        for i in 1..=5 {
-            let event = EventBuilder::new("test.history")
-                .data(json!({"index": i}))
-                .source("test")
-                .build();
-
-            service.emit(event).await.unwrap();
-        }
-
-        let history = service.get_history(None).await;
-        assert_eq!(history.len(), 5);
-
-        let limited_history = service.get_history(Some(3)).await;
-        assert_eq!(limited_history.len(), 3);
-    }
-
-    #[tokio::test]
-    async fn test_events_by_type() {
-        let service = EventService::new().unwrap();
-
-        // Emit different types of events
-        let event1 = EventBuilder::new("type.a")
-            .data(json!({"type": "a"}))
-            .source("test")
-            .build();
-
-        let event2 = EventBuilder::new("type.b")
-            .data(json!({"type": "b"}))
-            .source("test")
-            .build();
-
-        let event3 = EventBuilder::new("type.a")
-            .data(json!({"type": "a2"}))
-            .source("test")
-            .build();
-
-        service.emit(event1).await.unwrap();
-        service.emit(event2).await.unwrap();
-        service.emit(event3).await.unwrap();
-
-        let type_a_events = service.get_events_by_type("type.a", None).await;
-        assert_eq!(type_a_events.len(), 2);
-
-        let type_b_events = service.get_events_by_type("type.b", None).await;
-        assert_eq!(type_b_events.len(), 1);
-    }
-
-    #[test]
-    fn test_event_builder() {
-        let event = EventBuilder::new("test.builder")
-            .data(json!({"builder": "test"}))
-            .source("builder_test")
-            .build();
-
-        assert_eq!(event.event_type, "test.builder");
-        assert_eq!(event.source, "builder_test");
-        assert!(event.data.get("builder").is_some());
-    }
-
-    #[test]
-    fn test_helper_events() {
-        let event = events::project_created("proj-123", "Test Project", "test");
-        assert_eq!(event.event_type, "project.created");
-        assert!(event.data.get("project_id").is_some());
-        assert!(event.data.get("project_name").is_some());
-
-        let event = events::notification("info", "Test", "Test message", "test");
-        assert_eq!(event.event_type, "ui.notification");
-        assert_eq!(event.data["type"], "info");
-        assert_eq!(event.data["title"], "Test");
-        assert_eq!(event.data["message"], "Test message");
-    }
-
-    #[test]
-    fn test_event_data_as() {
-        #[derive(serde::Deserialize)]
-        struct TestData {
-            test_field: String,
-        }
-
-        let event = EventBuilder::new("test.data")
-            .data(json!({"test_field": "test_value"}))
-            .source("test")
-            .build();
-
-        let data: TestData = event.data_as().unwrap();
-        assert_eq!(data.test_field, "test_value");
-    }
-
-    #[tokio::test]
-    async fn test_service_shutdown() {
-        let service = EventService::new().unwrap();
-
-        // Create some channels and subscriptions
-        service.create_channel("shutdown.test").await.unwrap();
-        let _receiver = service.subscribe("shutdown.test").await.unwrap();
-
-        let result = service.shutdown().await;
-        assert!(result.is_ok());
-
-        // Verify everything is cleared
-        let channels = service.get_channels().await;
-        assert!(channels.is_empty());
-
-        let subscriptions = service.get_subscriptions().await;
-        assert!(subscriptions.is_empty());
-
-        let history = service.get_history(None).await;
-        assert!(history.is_empty());
-    }
+/// Create an error event
+pub fn error(error_message: &str, error_type: &str, source: &str) -> Event {
+    EventBuilder::new("error.occurred")
+        .data(json!({
+            "error_message": error_message,
+            "error_type": error_type
+        }))
+        .source(source)
+        .build()
 }

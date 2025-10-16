@@ -67,9 +67,10 @@ impl Default for AppState {
 }
 
 /// Connection status enum
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ConnectionStatus {
     /// Disconnected
+    #[default]
     Disconnected,
     /// Connecting
     Connecting,
@@ -77,12 +78,6 @@ pub enum ConnectionStatus {
     Connected,
     /// Error
     Error,
-}
-
-impl Default for ConnectionStatus {
-    fn default() -> Self {
-        ConnectionStatus::Disconnected
-    }
 }
 
 impl ConnectionStatus {

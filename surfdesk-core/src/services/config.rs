@@ -74,8 +74,8 @@ impl ConfigService {
             crate::platform::Platform::Desktop | crate::platform::Platform::Terminal => {
                 if path.exists() {
                     let content = std::fs::read_to_string(path)?;
-                    let config: Config = toml::from_str(&content)
-                        .map_err(|e| SurfDeskError::TomlDeserialization(e))?;
+                    let config: Config =
+                        toml::from_str(&content).map_err(SurfDeskError::TomlDeserialization)?;
                     log::info!("Configuration loaded from: {}", path.display());
                     Ok(config)
                 } else {
@@ -113,7 +113,7 @@ impl ConfigService {
         match platform {
             crate::platform::Platform::Desktop | crate::platform::Platform::Terminal => {
                 let content = toml::to_string_pretty(&self.config)
-                    .map_err(|e| SurfDeskError::TomlSerialization(e))?;
+                    .map_err(SurfDeskError::TomlSerialization)?;
                 std::fs::write(&self.config_path, content)?;
                 log::info!("Configuration saved to: {}", self.config_path.display());
             }
@@ -184,7 +184,7 @@ impl ConfigService {
 }
 
 /// Main configuration structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     /// Project settings
     pub project: crate::types::ProjectSettings,
@@ -198,19 +198,6 @@ pub struct Config {
     pub platform: PlatformConfig,
     /// Security settings
     pub security: SecurityConfig,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            project: crate::types::ProjectSettings::default(),
-            solana: SolanaConfig::default(),
-            ui: UISettings::default(),
-            logging: LoggingSettings::default(),
-            platform: PlatformConfig::default(),
-            security: SecurityConfig::default(),
-        }
-    }
 }
 
 /// Solana-specific configuration
@@ -403,7 +390,7 @@ impl LogLevel {
 }
 
 /// Platform-specific configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PlatformConfig {
     /// Desktop-specific settings
     pub desktop: DesktopConfig,
@@ -411,16 +398,6 @@ pub struct PlatformConfig {
     pub web: WebConfig,
     /// Terminal-specific settings
     pub terminal: TerminalConfig,
-}
-
-impl Default for PlatformConfig {
-    fn default() -> Self {
-        Self {
-            desktop: DesktopConfig::default(),
-            web: WebConfig::default(),
-            terminal: TerminalConfig::default(),
-        }
-    }
 }
 
 /// Desktop platform configuration

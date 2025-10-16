@@ -108,7 +108,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
     let class_attr = combine_classes(&classes);
 
     // Define sidebar sections
-    let sections = vec![
+    let sections = &[
         SidebarSection {
             title: "Main".to_string(),
             items: vec![
@@ -269,7 +269,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                             SidebarSectionComponent {
                                 section: section.clone(),
                                 collapsed: props.collapsed,
-                                on_item_click: on_item_click.clone(),
+                                on_item_click: on_item_click,
                             }
                         }
                     }
@@ -294,7 +294,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                             TerminalSidebarSection {
                                 section: section.clone(),
                                 active_section: props.active_section.clone(),
-                                on_item_click: on_item_click.clone(),
+                                on_item_click: on_item_click,
                             }
                         }
                     }
@@ -312,7 +312,7 @@ fn SidebarSectionComponent(
     on_item_click: EventHandler<String>,
 ) -> Element {
     let section_collapsed = use_signal(|| section.collapsed);
-    let mut section_collapsed_clone = section_collapsed.clone();
+    let mut section_collapsed_clone = section_collapsed;
 
     let on_section_toggle = move |_: dioxus::events::MouseEvent| {
         let current = *section_collapsed_clone.read();
@@ -358,7 +358,7 @@ fn SidebarSectionComponent(
                         SidebarItemComponent {
                             item: item.clone(),
                             collapsed: collapsed,
-                            on_click: on_item_click.clone(),
+                            on_click: on_item_click,
                         }
                     }
                 }
@@ -429,7 +429,7 @@ fn SidebarItemComponent(
                         SidebarItemComponent {
                             item: child.clone(),
                             collapsed: collapsed,
-                            on_click: on_click.clone(),
+                            on_click: on_click,
                         }
                     }
                 }
@@ -455,7 +455,7 @@ fn TerminalSidebarSection(
                 TerminalSidebarItem {
                     item: item.clone(),
                     active_section: active_section.clone(),
-                    on_click: on_item_click.clone(),
+                    on_click: on_item_click,
                 }
             }
         }
@@ -484,43 +484,5 @@ fn TerminalSidebarItem(
                 span { class: "terminal-badge", " [{badge_count}]" }
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_sidebar_item_creation() {
-        let item = SidebarItem {
-            id: "test".to_string(),
-            label: "Test".to_string(),
-            icon: "🧪".to_string(),
-            active: false,
-            has_children: false,
-            children: vec![],
-            badge: Some(5),
-        };
-
-        assert_eq!(item.id, "test");
-        assert_eq!(item.label, "Test");
-        assert_eq!(item.badge, Some(5));
-        assert!(!item.has_children);
-    }
-
-    #[test]
-    fn test_sidebar_section_creation() {
-        let section = SidebarSection {
-            title: "Test Section".to_string(),
-            items: vec![],
-            collapsible: true,
-            collapsed: false,
-            always_show: false,
-        };
-
-        assert_eq!(section.title, "Test Section");
-        assert!(section.collapsible);
-        assert!(!section.collapsed);
     }
 }

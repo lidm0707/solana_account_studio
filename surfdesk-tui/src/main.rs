@@ -233,8 +233,8 @@ fn ui(f: &mut Frame, app: &mut App) {
 /// Handle keyboard events
 fn handle_key_events(key_event: crossterm::event::KeyEvent, app: &mut App) -> Result<bool> {
     if app.input_mode {
-        match key_event.kind {
-            KeyEventKind::Press => match key_event.code {
+        if let KeyEventKind::Press = key_event.kind {
+            match key_event.code {
                 KeyCode::Enter => {
                     if !app.input.is_empty() {
                         app.add_message(format!("Input: {}", app.input));
@@ -242,66 +242,49 @@ fn handle_key_events(key_event: crossterm::event::KeyEvent, app: &mut App) -> Re
                     }
                     app.input_mode = false;
                 }
-                KeyCode::Esc => {
-                    app.input_mode = false;
-                }
-                KeyCode::Char(c) => {
-                    app.input.push(c);
-                }
+                KeyCode::Esc => app.input_mode = false,
+                KeyCode::Char(c) => app.input.push(c),
                 KeyCode::Backspace => {
                     app.input.pop();
                 }
                 _ => {}
-            },
-            _ => {}
+            }
         }
-    } else {
-        match key_event.kind {
-            KeyEventKind::Press => match key_event.code {
-                KeyCode::Up => app.previous(),
-                KeyCode::Down => app.next(),
-                KeyCode::Enter => {
-                    match app.selected_item() {
-                        "🔗 Connect to Solana" => {
-                            app.connection_status = "Connecting...".to_string();
-                            app.add_message("Connecting to Solana network...".to_string());
-                            // Simulate connection
-                            app.progress = 100;
-                            app.connection_status = "Connected".to_string();
-                            app.add_message("✅ Connected to Solana devnet".to_string());
-                        }
-                        "🏦 Browse Accounts" => {
-                            app.add_message("Opening account browser...".to_string());
-                        }
-                        "🔧 Build Transaction" => {
-                            app.add_message("Opening transaction builder...".to_string());
-                        }
-                        "🤖 AI Assistant" => {
-                            app.add_message("Opening AI assistant...".to_string());
-                        }
-                        "⚙️  Settings" => {
-                            app.add_message("Opening settings...".to_string());
-                        }
-                        "❌ Quit" => {
-                            return Ok(true); // Signal to quit
-                        }
-                        _ => {}
-                    }
+    }
+
+    if let KeyEventKind::Press = key_event.kind {
+        match key_event.code {
+            KeyCode::Up => app.previous(),
+            KeyCode::Down => app.next(),
+            KeyCode::Enter => match app.selected_item() {
+                "🔗 Connect to Solana" => {
+                    app.connection_status = "Connecting...".to_string();
+                    app.add_message("Connecting to Solana network...".to_string());
+                    app.progress = 100;
+                    app.connection_status = "Connected".to_string();
+                    app.add_message("✅ Connected to Solana devnet".to_string());
                 }
-                KeyCode::Char('q') => return Ok(true), // Quit
-                KeyCode::Char('i') => app.input_mode = true, // Input mode
-                KeyCode::Char('r') => {
-                    // Reset progress
-                    app.progress = 0;
-                    app.connection_status = "Disconnected".to_string();
-                    app.add_message("Reset connection status".to_string());
+                "🏦 Browse Accounts" => app.add_message("Opening account browser...".to_string()),
+                "🔧 Build Transaction" => {
+                    app.add_message("Opening transaction builder...".to_string())
                 }
+                "🤖 AI Assistant" => app.add_message("Opening AI assistant...".to_string()),
+                "⚙️  Settings" => app.add_message("Opening settings...".to_string()),
+                "❌ Quit" => return Ok(true),
                 _ => {}
             },
+            KeyCode::Char('q') => return Ok(true),
+            KeyCode::Char('i') => app.input_mode = true,
+            KeyCode::Char('r') => {
+                app.progress = 0;
+                app.connection_status = "Disconnected".to_string();
+                app.add_message("Reset connection status".to_string());
+            }
             _ => {}
         }
     }
-    Ok(false) // Don't quit
+
+    Ok(false)
 }
 
 /// Initialize logging
@@ -433,7 +416,7 @@ mod tests {
     fn test_args_parsing() {
         use clap::Parser;
 
-        let args = Args::try_parse_from(&[
+        let args = Args::try_parse_from([
             "surfdesk-tui",
             "--log-level",
             "debug",
