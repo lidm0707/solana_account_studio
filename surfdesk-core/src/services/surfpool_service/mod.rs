@@ -5,22 +5,78 @@
 //! for the SurfDesk desktop application.
 
 use crate::error::Result;
-use crate::surfpool::{SurfPoolConfig, SurfPoolController, SurfPoolStatus};
-use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 use solana_sdk::{
-    commitment_config::CommitmentConfig,
-    compute_unit_price,
     instruction::Instruction,
-    message::Message,
     pubkey::Pubkey,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
-use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::{sleep, Duration};
+
+// Mock types for compilation - will be replaced with real integration
+#[derive(Debug, Clone)]
+pub struct SurfPoolConfig {
+    pub rpc_port: u16,
+    pub ws_port: u16,
+    pub ledger_path: String,
+}
+
+impl Default for SurfPoolConfig {
+    fn default() -> Self {
+        Self {
+            rpc_port: 8899,
+            ws_port: 8900,
+            ledger_path: "/tmp/surfdesk-ledger".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SurfPoolStatus {
+    Starting,
+    Running { block_height: u64 },
+    Stopping,
+    Stopped,
+    Error(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct SurfPoolController {
+    config: SurfPoolConfig,
+    status: Arc<RwLock<SurfPoolStatus>>,
+}
+
+impl SurfPoolController {
+    pub async fn new(config: SurfPoolConfig) -> Result<Self> {
+        Ok(Self {
+            config,
+            status: Arc::new(RwLock::new(SurfPoolStatus::Stopped)),
+        })
+    }
+
+    pub async fn start(&self) -> Result<()> {
+        *self.status.write().await = SurfPoolStatus::Starting;
+        // Simulate startup
+        sleep(Duration::from_millis(1000)).await;
+        *self.status.write().await = SurfPoolStatus::Running { block_height: 0 };
+        Ok(())
+    }
+
+    pub async fn stop(&self) -> Result<()> {
+        *self.status.write().await = SurfPoolStatus::Stopping;
+        // Simulate shutdown
+        sleep(Duration::from_millis(500)).await;
+        *self.status.write().await = SurfPoolStatus::Stopped;
+        Ok(())
+    }
+
+    pub async fn get_status(&self) -> SurfPoolStatus {
+        self.status.read().await.clone()
+    }
+}
 
 /// Deployment status for account creation
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -124,7 +180,7 @@ impl SurfPoolService {
     /// Create a new SurfPool service
     pub async fn new() -> Result<Self> {
         let config = SurfPoolConfig::default();
-        let controller = Arc::new(SurfPoolController::new(config.clone()));
+        let controller = Arc::new(SurfPoolController::new(config).await?);
 
         Ok(Self {
             controller,
@@ -133,6 +189,23 @@ impl SurfPoolService {
             deployment_results: Arc::new(RwLock::new(Vec::new())),
             active_deployments: Arc::new(Mutex::new(Vec::new())),
         })
+    }
+
+    /// Create a mock SurfPool service for development
+    pub fn new_mock() -> Self {
+        let config = SurfPoolConfig::default();
+        let controller = Arc::new(SurfPoolController {
+            config: config.clone(),
+            status: Arc::new(RwLock::new(SurfPoolStatus::Stopped)),
+        });
+
+        Self {
+            controller,
+            config: Arc::new(RwLock::new(config)),
+            deployment_queue: Arc::new(Mutex::new(Vec::new())),
+            deployment_results: Arc::new(RwLock::new(Vec::new())),
+            active_deployments: Arc::new(Mutex::new(Vec::new())),
+        }
     }
 
     /// Initialize the SurfPool service
@@ -146,8 +219,263 @@ impl SurfPoolService {
         Ok(())
     }
 
+    /// Check if validator is running
+    pub async fn is_validator_running(&self) -> bool {
+        matches!(self.controller.get_status().await, SurfPoolStatus::Running { .. })
+    }
+
+    /// Get validator status
+    pub async fn get_validator_status(&self) -> Result<SurfPoolStatus> {
+        Ok(self.controller.get_status().await)
+    }
+
     /// Start the SurfPool validator
     pub async fn start_validator(&self) -> Result<()> {
+        log::info!("Starting SurfPool validator");
+        self.controller.start().await
+    }
+
+    /// Stop the SurfPool validator
+    pub async fn stop_validator(&self) -> Result<()> {
+        log::info!("Stopping SurfPool validator");
+        self.controller.stop().await
+    }
+
+    /// Add deployment request to queue
+    pub async fn queue_deployment(&self, request: DeploymentRequest) -> Result<()> {
+        let mut queue = self.deployment_queue.lock().await;
+        queue.push(request);
+        log::info!("Deployment request queued. Queue length: {}", queue.len());
+        Ok(())
+    }
+
+    /// Get deployment queue length
+    pub async fn get_deployment_queue_length(&self) -> Result<usize> {
+        let queue = self.deployment_queue.lock().await;
+        Ok(queue.len())
+    }
+
+    /// Clear deployment queue
+    pub async fn clear_deployment_queue(&self) -> Result<()> {
+        let mut queue = self.deployment_queue.lock().await;
+        queue.clear();
+        log::info!("Deployment queue cleared");
+        Ok(())
+    }
+
+    /// Deploy an account to the local validator
+    pub async fn deploy_account(&self, request: &DeploymentRequest) -> Result<DeploymentResult> {
+        let timestamp = chrono::Utc::now();
+
+        // Check if validator is running
+        if !self.is_validator_running().await {
+            return Ok(DeploymentResult {
+                status: DeploymentStatus::Failed {
+                    error: "SurfPool validator is not running".to_string(),
+                },
+                signature: None,
+                pubkey: request.pubkey,
+                timestamp,
+                error: Some("SurfPool validator is not running".to_string()),
+                block_height: None,
+            });
+        }
+
+        // Simulate deployment process
+        log::info!("Deploying account: {}", request.pubkey);
+
+        // Simulate building transaction
+        let transaction = self.create_deployment_transaction(request).await?;
+
+        // Simulate deployment
+        match self.simulate_deployment(&transaction).await {
+            Ok(signature) => {
+                Ok(DeploymentResult {
+                    status: DeploymentStatus::Completed {
+                        signature: signature.clone(),
+                    },
+                    signature: Some(signature.clone()),
+                    pubkey: request.pubkey,
+                    timestamp,
+                    error: None,
+                    block_height: Some(100), // Simulated block height
+                })
+            }
+            Err(e) => {
+                Ok(DeploymentResult {
+                    status: DeploymentStatus::Failed {
+                        error: format!("Deployment failed: {}", e),
+                    },
+                    signature: None,
+                    pubkey: request.pubkey,
+                    timestamp,
+                    error: Some(format!("Deployment failed: {}", e)),
+                    block_height: None,
+                })
+            }
+        }
+    }
+
+    /// Create deployment transaction
+    async fn create_deployment_transaction(&self, request: &DeploymentRequest) -> Result<Transaction> {
+        // Simulate creating a transaction
+        let mut instructions = Vec::new();
+
+        // Add system program instruction for account creation
+        let account_instruction = solana_sdk::system_program::create_account(
+            &request.payer.pubkey(),
+            &request.pubkey,
+            request.lamports,
+            request.space as usize,
+            &request.owner,
+        );
+        instructions.push(account_instruction);
+
+        // Add custom instruction if provided
+        if let Some(custom_instruction) = &request.custom_instruction {
+            instructions.push(custom_instruction.clone());
+        }
+
+        let mut transaction = Transaction::new_with_payer(&instructions, Some(&request.payer.pubkey()));
+
+        // Get recent blockhash (mock implementation)
+        let recent_blockhash = solana_sdk::hash::Hash::default();
+        transaction.sign(&[&request.payer], recent_blockhash);
+
+        Ok(transaction)
+    }
+
+    /// Simulate deployment transaction
+    async fn simulate_deployment(&self, _transaction: &Transaction) -> Result<String> {
+        // Simulate network delay
+        sleep(Duration::from_millis(500)).await;
+
+        // Simulate success with a mock signature
+        let signature = "5j7s8f9K3Y9B4w8Q3vH7m2pX9cT6kL8mN5vR3hJ2qW8pF1rB7yE4tM6nD3cV9xZ2";
+        Ok(signature.to_string())
+    }
+
+    /// Get deployment results
+    pub async fn get_deployment_results(&self) -> Result<Vec<DeploymentResult>> {
+        let results = self.deployment_results.read().await;
+        Ok(results.clone())
+    }
+
+    /// Add deployment result
+    pub async fn add_deployment_result(&self, result: DeploymentResult) -> Result<()> {
+        let mut results = self.deployment_results.write().await;
+        results.push(result);
+        Ok(())
+    }
+
+    /// Clear deployment results
+    pub async fn clear_deployment_results(&self) -> Result<()> {
+        let mut results = self.deployment_results.write().await;
+        results.clear();
+        Ok(())
+    }
+
+    /// Get deployment statistics
+    pub async fn get_deployment_statistics(&self) -> Result<DeploymentStatistics> {
+        let results = self.deployment_results.read().await;
+        let total = results.len();
+        let successful = results
+            .iter()
+            .filter(|r| matches!(r.status, DeploymentStatus::Completed { .. }))
+            .count();
+        let failed = results
+            .iter()
+            .filter(|r| matches!(r.status, DeploymentStatus::Failed { .. }))
+            .count();
+
+        Ok(DeploymentStatistics {
+            total_deployments: total,
+            successful_deployments: successful,
+            failed_deployments: failed,
+            success_rate: if total > 0 {
+                (successful as f64 / total as f64) * 100.0
+            } else {
+                0.0
+            },
+        })
+    }
+}
+
+/// Deployment statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeploymentStatistics {
+    pub total_deployments: usize,
+    pub successful_deployments: usize,
+    pub failed_deployments: usize,
+    pub success_rate: f64,
+}
+
+/// Hook for using SurfPool service in Dioxus components
+pub fn use_surfpool_service() -> Result<Arc<SurfPoolService>> {
+    // For now, return a mock service
+    // In a real implementation, this would use Dioxus context or state management
+    tokio::spawn(async {
+        let service = SurfPoolService::new().await.unwrap();
+        // Store service in context
+    });
+
+    // Return a placeholder for now
+    Err(crate::error::SurfDeskError::internal("Service not yet implemented"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio;
+
+    #[tokio::test]
+    async fn test_surfpool_service_creation() {
+        let service = SurfPoolService::new().await;
+        assert!(service.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_validator_status() {
+        let service = SurfPoolService::new().await.unwrap();
+        let status = service.get_validator_status().await.unwrap();
+        assert!(matches!(status, SurfPoolStatus::Stopped));
+    }
+
+    #[tokio::test]
+    async fn test_deployment_request_creation() {
+        let payer = Keypair::new();
+        let pubkey = Pubkey::new_unique();
+        let owner = Pubkey::new_unique();
+
+        let request = DeploymentRequest::new(
+            pubkey,
+            owner,
+            1_000_000_000, // 1 SOL
+            100,
+            false,
+            vec![],
+            payer,
+        );
+
+        assert_eq!(request.pubkey, pubkey);
+        assert_eq!(request.owner, owner);
+        assert_eq!(request.lamports, 1_000_000_000);
+        assert_eq!(request.space, 100);
+        assert!(!request.executable);
+    }
+
+    #[tokio::test]
+    async fn test_deployment_queue_management() {
+        let service = SurfPoolService::new().await.unwrap();
+
+        // Test empty queue
+        assert_eq!(service.get_deployment_queue_length().await.unwrap(), 0);
+
+        // Test clearing empty queue
+        assert!(service.clear_deployment_queue().await.is_ok());
+        assert_eq!(service.get_deployment_queue_length().await.unwrap(), 0);
+    }
+}
         log::info!("Starting SurfPool validator");
 
         let mut controller = self.controller.clone();

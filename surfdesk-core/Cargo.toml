@@ -28,31 +28,25 @@ gloo-console = "0.3"
 solana-sdk = { workspace = true, optional = true }
 solana-client = { workspace = true, optional = true }
 solana-account-decoder = { workspace = true, optional = true }
+
+# Additional utilities
+bs58 = "0.5"
+chrono = { version = "0.4", features = ["serde"] }
+log = "0.4"
+
+# Workspace dependencies
 anchor-lang = { workspace = true, optional = true }
 anchor-client = { workspace = true, optional = true }
-bs58 = "0.5"
-
-# Async runtime and utilities (desktop only)
 tokio = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 toml = "0.8"
 uuid = { workspace = true }
-
-# Database
 diesel = { workspace = true, optional = true }
 diesel_migrations = { workspace = true, optional = true }
-chrono = { workspace = true, features = ["wasmbind"] }
-
-# Error handling
 anyhow = { workspace = true }
 thiserror = { workspace = true }
-
-# Configuration
 config = { workspace = true }
-
-# Logging
-log = { workspace = true }
 console_log = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true, optional = true }
 web-sys = { workspace = true, optional = true }

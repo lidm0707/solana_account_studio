@@ -2,8 +2,73 @@
 //!
 //! Simple account management for SurfDesk with clean architecture.
 
+use crate::services::surfpool_service::{
+    DeploymentRequest, DeploymentResult, DeploymentStatistics, DeploymentStatus, SurfPoolService,
+    SurfPoolStatus,
+};
 use dioxus::prelude::*;
-use solana_sdk::{pubkey::Pubkey, system_program};
+use solana_sdk::{pubkey::Pubkey, signature::Keypair, system_program, transaction::Transaction};
+use std::sync::Arc;
+
+// Hook for accessing SurfPool service (simplified for compilation)
+fn use_surfpool_service() -> Arc<SurfPoolService> {
+    // Simplified mock service for development
+    static mut SERVICE: Option<Arc<SurfPoolService>> = None;
+    unsafe {
+        if SERVICE.is_none() {
+            SERVICE = Some(Arc::new(SurfPoolService::new_mock()));
+        }
+        SERVICE.clone().unwrap()
+    }
+}
+
+// Hook for validator status (simplified)
+fn use_validator_status() -> SurfPoolStatus {
+    let _service = use_surfpool_service();
+    let mut status = use_signal(|| SurfPoolStatus::Stopped);
+
+    use_coroutine(move |_| {
+        let status_signal = status.clone();
+        async move {
+            // Simulate status updates
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                // For now, just keep it as stopped
+                status_signal.set(SurfPoolStatus::Stopped);
+            }
+        }
+    });
+
+    status()
+}
+
+// Hook for deployment statistics (simplified)
+fn use_deployment_stats() -> DeploymentStatistics {
+    let mut stats = use_signal(|| DeploymentStatistics {
+        total_deployments: 0,
+        successful_deployments: 0,
+        failed_deployments: 0,
+        success_rate: 0.0,
+    });
+
+    use_coroutine(move |_| {
+        let stats_signal = stats.clone();
+        async move {
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
+                // Return mock statistics for now
+                stats_signal.set(DeploymentStatistics {
+                    total_deployments: 0,
+                    successful_deployments: 0,
+                    failed_deployments: 0,
+                    success_rate: 0.0,
+                });
+            }
+        }
+    });
+
+    stats()
+}
 
 /// Account data structure
 #[derive(Debug, Clone, PartialEq)]
@@ -78,10 +143,42 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     let mut error_message = use_signal(String::new);
     let mut success_message = use_signal(String::new);
 
-    // Generate new keypair
+    // Get simplified services for now
+    let surfpool_service = use_surfpool_service();
+    let validator_status = use_validator_status();
+    let deployment_stats = use_deployment_stats();
+
+    // Start validator action (simplified)
+    let start_validator = move |_| {
+        let success_msg = success_message.clone();
+        use_coroutine(move |_| {
+            let success = success_msg.clone();
+            async move {
+                // Simulate validator startup
+                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                success.set("SurfPool validator started successfully (mock)".to_string());
+            }
+        });
+    };
+
+    // Stop validator action (simplified)
+    let stop_validator = move |_| {
+        let success_msg = success_message.clone();
+        use_coroutine(move |_| {
+            let success = success_msg.clone();
+            async move {
+                // Simulate validator shutdown
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                success.set("SurfPool validator stopped successfully (mock)".to_string());
+            }
+        });
+    };
+
+    // Generate new keypair (simplified)
     let generate_keypair = move |_| {
         let mut new_builder = builder();
-        new_builder.keypair = Some("generated_keypair_placeholder".to_string());
+        // Simplified keypair generation for now
+        new_builder.keypair = Some("generated_keypair_mock".to_string());
         new_builder.deployment_status = DeploymentStatus::Queued;
         builder.set(new_builder);
         success_message.set("New keypair generated successfully".to_string());
@@ -171,13 +268,28 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         error_message.set(String::new());
         success_message.set(String::new());
 
+        // Create simplified deployment request
+        let deployment_request = DeploymentRequest::new(
+            current_builder.account_data.as_ref().unwrap().pubkey,
+            system_program::id(),
+            (current_builder.initial_balance * 1_000_000_000.0) as u64,
+            current_builder.space as u64,
+            current_builder.executable,
+            current_builder.account_data.as_ref().unwrap().data.clone(),
+        );
+
+        // Deploy using simplified workflow
         use_coroutine(|_| {
             let builder_state = builder.clone();
             let is_deploying_signal = is_deploying.clone();
+            let deployment_req = deployment_request;
+            let on_deploy = props.on_deploy.clone();
+            let on_deployment_result = props.on_deployment_result.clone();
             let success_msg = success_message.clone();
             let error_msg = error_message.clone();
 
             async move {
+                // Simulate deployment process
                 tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
 
                 let mut current = builder_state();
@@ -186,7 +298,24 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                 };
                 builder_state.set(current);
 
-                success_msg.set("Account deployed successfully!".to_string());
+                // Create mock transaction
+                let mock_transaction = Transaction::new_with_payer(&[], None);
+                on_deploy.call(mock_transaction);
+
+                // Create mock deployment result
+                let deployment_result = DeploymentResult {
+                    status: DeploymentStatus::Completed {
+                        signature: "mock_signature_12345".to_string(),
+                    },
+                    signature: Some("mock_signature_12345".to_string()),
+                    pubkey: deployment_req.pubkey,
+                    timestamp: chrono::Utc::now(),
+                    error: None,
+                    block_height: Some(100),
+                };
+                on_deployment_result.call(deployment_result);
+
+                success_msg.set("Account deployed successfully! (mock deployment)".to_string());
                 is_deploying_signal.set(false);
             }
         });
@@ -206,12 +335,57 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                 h1 { style: "font-size: 20px; font-weight: 600; color: #111827; margin: 0;",
                     "Account Explorer"
                 }
-                div { style: "display: flex; align-items: center; gap: 8px;",
-                    div { style: "width: 8px; height: 8px; border-radius: 50%; background: {status_color};",
-                        if props.surfpool_running { "#22c55e" } else { "#ef4444" }
+
+                div { style: "display: flex; align-items: center; gap: 16px;",
+                    // Validator status indicator
+                    div { style: "display: flex; align-items: center; gap: 8px;",
+                        div { style: "width: 8px; height: 8px; border-radius: 50%; background: {};",
+                            match validator_status() {
+                                SurfPoolStatus::Running { .. } => "#22c55e",
+                                SurfPoolStatus::Starting => "#f59e0b",
+                                _ => "#ef4444"
+                            }
+                        }
+                        span { style: "font-size: 14px; color: #6b7280;",
+                            match validator_status() {
+                                SurfPoolStatus::Running { block_height } => {
+                                    format!("SurfPool Running (Block: {})", block_height)
+                                }
+                                SurfPoolStatus::Starting => "SurfPool Starting...".to_string(),
+                                SurfPoolStatus::Stopping => "SurfPool Stopping...".to_string(),
+                                SurfPoolStatus::Stopped => "SurfPool Stopped".to_string(),
+                                SurfPoolStatus::Error(_) => "SurfPool Error".to_string(),
+                            }
+                        }
                     }
-                    span { style: "font-size: 14px; color: #6b7280;",
-                        if props.surfpool_running { "SurfPool Connected" } else { "SurfPool Disconnected" }
+
+                    // Validator controls
+                    div { style: "display: flex; gap: 8px;",
+                        if !matches!(validator_status(), SurfPoolStatus::Running { .. }) {
+                            button {
+                                style: "padding: 6px 12px; background: #22c55e; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;",
+                                onclick: start_validator,
+                                "Start Validator"
+                            }
+                        }
+                        if matches!(validator_status(), SurfPoolStatus::Running { .. }) {
+                            button {
+                                style: "padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;",
+                                onclick: stop_validator,
+                                "Stop Validator"
+                            }
+                        }
+                    }
+
+                    // Deployment statistics
+                    div { style: "display: flex; align-items: center; gap: 12px; padding: 4px 8px; background: #f3f4f6; border-radius: 4px;",
+                        span { style: "font-size: 12px; color: #6b7280;",
+                            format!("Deployments: {}/{} ({}%)",
+                                deployment_stats().successful_deployments,
+                                deployment_stats().total_deployments,
+                                deployment_stats().success_rate as usize
+                            )
+                        }
                     }
                 }
             }
@@ -544,7 +718,17 @@ fn AccountExplorerTab(accounts: Vec<AccountData>, surfpool_running: bool) -> Ele
                             if accounts.is_empty() {
                                 "No accounts built yet. Switch to the 'Build Account' tab to create your first account."
                             } else {
-                                "Found accounts. Click on any account to view details."
+                                format!("Found {} account(s). Click on any account to view details.", accounts.len())
+                            }
+                        }
+
+                        // Show validator status
+                        div { style: "margin-top: 8px; padding: 8px; background: #fef3c7; border-radius: 4px; font-size: 12px; color: #92400e;",
+                            match validator_status() {
+                                SurfPoolStatus::Running { .. } => "✅ Validator is running and ready for deployments",
+                                SurfPoolStatus::Starting => "⏳ Validator is starting up...",
+                                SurfPoolStatus::Stopped => "⚠️ Validator is stopped. Start it to deploy accounts.",
+                                _ => "❌ Validator error. Check logs for details."
                             }
                         }
                     }
@@ -597,13 +781,5 @@ fn AccountExplorerTab(accounts: Vec<AccountData>, surfpool_running: bool) -> Ele
     }
 }
 
-/// Deployment result structure
-#[derive(Debug, Clone)]
-pub struct DeploymentResult {
-    pub status: DeploymentStatus,
-    pub signature: Option<String>,
-    pub pubkey: Pubkey,
-    pub timestamp: u64,
-    pub error: Option<String>,
-    pub block_height: Option<u64>,
-}
+// Re-export from surfpool_service to maintain compatibility
+pub use crate::services::surfpool_service::DeploymentResult;
