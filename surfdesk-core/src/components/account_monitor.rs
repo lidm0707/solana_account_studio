@@ -177,7 +177,7 @@ pub fn AccountMonitor(props: AccountMonitorProps) -> Element {
                 h3 { class: "monitor-title", "Account Monitor" }
                 div { class: "connection-status",
                     span {
-                        class: "status-indicator {if connection_status.read().contains("Connected") { "connected" } else { "disconnected" }}",
+                        class: format!("status-indicator {}", if connection_status.read().contains("Connected") { "connected" } else { "disconnected" }),
                         "{connection_status}"
                     }
                 }
@@ -333,8 +333,8 @@ fn AddAccountForm(
                 button {
                     onclick: handle_add_account,
                     disabled: is_adding.read().clone() || websocket_manager.is_none(),
-                    class: "add-button {if is_adding.read().clone() { "loading" } else { "" }}",
-                    "{if is_adding.read().clone() { "Adding..." } else { "Add Account " }}"
+                    class: format!("add-button {}", if is_adding.read().clone() { "loading" } else { "" }),
+                    {if is_adding.read().clone() { "Adding..." } else { "Add Account " }}
                 }
             }
 

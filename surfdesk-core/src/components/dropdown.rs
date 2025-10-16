@@ -6,6 +6,7 @@
 use super::css_class;
 use dioxus::prelude::*;
 use std::collections::HashSet;
+#[cfg(feature = "web")]
 use wasm_bindgen::prelude::Closure;
 
 /// Dropdown option value type
@@ -439,17 +440,16 @@ pub fn MultiSelectDropdown(props: MultiSelectDropdownProps) -> Element {
         format!("{} items selected", selected_labels.len())
     };
 
-    let dropdown_classes = css_class(
-        "dropdown",
-        &[
-            "multi-select",
-            if is_open() { "open" } else { "closed" },
-            if props.disabled {
-                "disabled"
-            } else {
-                "enabled"
-            },
-        ],
+    let dropdown_classes = format!(
+        "dropdown {} {} {} {}",
+        "multi-select",
+        if is_open() { "open" } else { "closed" },
+        if props.disabled {
+            "disabled"
+        } else {
+            "enabled"
+        },
+        css_class("")
     );
 
     let final_classes = match &props.class {
@@ -794,7 +794,10 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
                     // Options list
                     div { class: "dropdown-options",
                         for (index, option) in filtered_options().iter().enumerate() {
-                            let is_selected = props.value.as_ref() == Some(&option.value);
+                            let is_selected = match &props.value {
+                                Some(value) => value == &option.value,
+                                None => false,
+                            };
 
                             button {
                                 class: css_class("dropdown-option", &[
