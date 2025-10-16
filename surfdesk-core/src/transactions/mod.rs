@@ -1,15 +1,47 @@
 //! Transaction Builder Module
 //! Provides transaction creation and signing for MVP
 
+use crate::solana_rpc::{Keypair, Pubkey};
 use serde::{Deserialize, Serialize};
-use solana_sdk::instruction::Instruction;
-use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::{Keypair, Signer};
-use solana_sdk::transaction::Transaction;
+
+/// Transaction instruction for Solana operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransactionInstruction {
+    /// Program ID to execute
+    pub program_id: Pubkey,
+    /// Accounts involved in the instruction
+    pub accounts: Vec<AccountMeta>,
+    /// Instruction data
+    pub data: Vec<u8>,
+}
+
+/// Account metadata for transaction instructions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountMeta {
+    /// Account public key
+    pub pubkey: Pubkey,
+    /// Whether the account is a signer
+    pub is_signer: bool,
+    /// Whether the account is writable
+    pub is_writable: bool,
+}
+
+/// Transaction representation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Transaction {
+    /// Transaction signatures
+    pub signatures: Vec<String>,
+    /// Transaction instructions
+    pub instructions: Vec<TransactionInstruction>,
+    /// Recent blockhash
+    pub recent_blockhash: String,
+    /// Fee payer
+    pub fee_payer: Pubkey,
+}
 
 /// Transaction builder for creating Solana transactions
 pub struct TransactionBuilder {
-    instructions: Vec<Instruction>,
+    instructions: Vec<TransactionInstruction>,
     signers: Vec<Keypair>,
     payer: Pubkey,
     recent_blockhash: String,
@@ -27,7 +59,7 @@ impl TransactionBuilder {
     }
 
     /// Add instruction to transaction
-    pub fn add_instruction(&mut self, instruction: Instruction) -> &mut Self {
+    pub fn add_instruction(&mut self, instruction: TransactionInstruction) -> &mut Self {
         self.instructions.push(instruction);
         self
     }
@@ -47,10 +79,12 @@ impl TransactionBuilder {
 
     /// Build transaction
     pub fn build(&self) -> Result<Transaction, Box<dyn std::error::Error>> {
-        let transaction = Transaction::new_with_payer(&self.instructions, Some(&self.payer));
-
-        // Set recent blockhash (placeholder for MVP)
-        // transaction.sign(&self.signers, blockhash);
+        let transaction = Transaction {
+            signatures: Vec::new(), // Would be populated during signing
+            instructions: self.instructions.clone(),
+            recent_blockhash: self.recent_blockhash.clone(),
+            fee_payer: self.payer,
+        };
 
         Ok(transaction)
     }

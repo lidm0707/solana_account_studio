@@ -5,8 +5,10 @@
 //! for the SurfDesk desktop application with actual Solana RPC integration.
 
 use crate::error::{Result, SurfDeskError};
-use crate::solana_rpc::{Keypair, Pubkey, RpcCommitment, Signature, SolanaRpcClient};
+use crate::solana_rpc::{Keypair, Pubkey, Signature, Signer, SolanaRpcClient};
+use crate::transactions::{TransactionInstruction, TransactionStatus};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
@@ -52,46 +54,7 @@ pub struct CompiledInstruction {
     pub instructions: Vec<Instruction>,
 }
 
-// Custom keypair implementation
-#[derive(Debug, Clone)]
-pub struct Keypair {
-    pub pubkey: Pubkey,
-    secret: [u8; 32],
-}
-
-impl Keypair {
-    pub fn new() -> Self {
-        let secret = rand::random::<[u8; 32]>();
-        let pubkey = Pubkey::from_string(&format!("{:x}", rand::random::<u128>()));
-        Self { pubkey, secret }
-    }
-
-    pub fn pubkey(&self) -> &Pubkey {
-        &self.pubkey
-    }
-}
-
-impl Default for Keypair {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-pub trait Signer {
-    fn pubkey(&self) -> &Pubkey;
-    fn try_sign_message(&self, message: &[u8]) -> Result<Vec<u8>>;
-}
-
-impl Signer for Keypair {
-    fn pubkey(&self) -> &Pubkey {
-        &self.pubkey
-    }
-
-    fn try_sign_message(&self, _message: &[u8]) -> Result<Vec<u8>> {
-        // Mock signature
-        Ok(vec![0u8; 64])
-    }
-}
+// Keypair and Signer are imported from solana_rpc module
 
 // System program constants
 pub mod system_program {
@@ -112,7 +75,7 @@ pub mod system_instruction {
         owner: &Pubkey,
     ) -> Instruction {
         Instruction {
-            program_id: system_program::id(),
+            program_id: Pubkey::from_string("11111111111111111111111111111111"), // System program
             accounts: vec![
                 AccountMeta {
                     pubkey: from_pubkey.clone(),
@@ -421,6 +384,42 @@ pub struct DeploymentResult {
     pub error: Option<String>,
     /// Block height when deployed
     pub block_height: Option<u64>,
+}
+
+/// Account deployment configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountDeploymentConfig {
+    /// Account public key
+    pub pubkey: Pubkey,
+    /// Account owner program
+    pub owner: Pubkey,
+    /// Account balance in lamports
+    pub lamports: u64,
+    /// Account space in bytes
+    pub space: u64,
+    /// Whether account is executable
+    pub executable: bool,
+    /// Account seed for derivation
+    pub seed: Vec<u8>,
+    /// Payer keypair for transaction fees
+    pub payer: Arc<Keypair>,
+}
+
+/// Account metadata for deployment
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountMetadata {
+    /// Account public key
+    pub pubkey: Pubkey,
+    /// Account owner
+    pub owner: Pubkey,
+    /// Account balance
+    pub lamports: u64,
+    /// Account data size
+    pub data_len: usize,
+    /// Whether account is executable
+    pub executable: bool,
+    /// Account rent epoch
+    pub rent_epoch: u64,
 }
 
 /// Account deployment request
@@ -741,7 +740,6 @@ pub fn use_surfpool_service() -> Result<Arc<SurfPoolService>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use solana_sdk::signature::Keypair;
 
     #[tokio::test]
     async fn test_surfpool_service_creation() {
