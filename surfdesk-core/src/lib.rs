@@ -24,6 +24,7 @@ pub mod error;
 pub mod platform;
 pub mod services;
 pub mod state;
+pub mod surfpool;
 pub mod types;
 
 // Re-export commonly used items

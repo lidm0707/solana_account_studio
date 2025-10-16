@@ -5,22 +5,23 @@
 //! accounts, and recent activity.
 
 use super::{combine_classes, Card};
-use crate::{state::AppState, types::UIState};
+use crate::platform::Platform;
+use crate::state::AppState;
 use dioxus::prelude::*;
 
 /// Dashboard component properties
-#[derive(Props, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Props)]
 pub struct DashboardProps {
+    /// Application state
+    pub state: Signal<AppState>,
+    /// Current platform
+    pub platform: Platform,
     /// Component class name
     #[props(optional)]
     pub class: Option<String>,
     /// Component ID
     #[props(optional)]
     pub id: Option<String>,
-    /// Application state
-    pub state: Signal<AppState>,
-    /// UI state
-    pub ui_state: Signal<UIState>,
 }
 
 /// Dashboard component

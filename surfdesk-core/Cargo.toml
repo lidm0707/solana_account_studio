@@ -57,9 +57,10 @@ proptest = { workspace = true }
 tokio-test = "0.4"
 
 [features]
-default = ["database", "solana"]
+default = ["database", "solana", "surfpool"]
 database = ["diesel", "diesel_migrations"]
 solana = ["solana-sdk", "solana-client", "solana-account-decoder", "anchor-lang", "anchor-client"]
+surfpool = []
 web = ["dioxus/web", "console_log", "wasm-bindgen", "web-sys"]
 desktop = ["dioxus/desktop"]
 tui = []

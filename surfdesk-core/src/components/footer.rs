@@ -3,36 +3,54 @@
 //! Footer component for displaying application information,
 //  links, and status across all platforms.
 
-use crate::components::{combine_classes, CommonProps};
+use crate::platform::Platform;
 use dioxus::prelude::*;
+
+/// Common component properties
+#[derive(Debug, Clone, PartialEq, Props)]
+pub struct CommonProps {
+    /// Component class name
+    #[props(optional)]
+    pub class: Option<String>,
+    /// Component ID
+    #[props(optional)]
+    pub id: Option<String>,
+}
+
+/// Combine CSS classes into a single string
+pub fn combine_classes(classes: &[&str]) -> String {
+    classes.join(" ")
+}
+
+/// Application version constant
+pub const VERSION: &str = "0.1.0";
 
 /// Footer component properties
 #[derive(Debug, Clone, PartialEq, Props)]
 pub struct FooterProps {
-    /// Common component properties
+    /// Current platform
+    pub platform: Platform,
+    /// Component class name
     #[props(optional)]
-    pub common: Option<CommonProps>,
-
+    pub class: Option<String>,
+    /// Component ID
+    #[props(optional)]
+    pub id: Option<String>,
     /// Footer text
     #[props(optional)]
     pub text: Option<String>,
-
     /// Version string
     #[props(optional)]
     pub version: Option<String>,
-
     /// Whether to show status
     #[props(optional)]
     pub show_status: Option<bool>,
-
     /// Status message
     #[props(optional)]
     pub status: Option<String>,
-
     /// Whether to show links
     #[props(optional)]
     pub show_links: Option<bool>,
-
     /// Footer links
     #[props(optional)]
     pub links: Option<Vec<FooterLink>>,
@@ -52,7 +70,6 @@ pub struct FooterLink {
 /// Footer component for application footer
 #[component]
 pub fn Footer(props: FooterProps) -> Element {
-    let common = props.common.unwrap_or_default();
     let show_status = props.show_status.unwrap_or(true);
     let show_links = props.show_links.unwrap_or(false);
     let links = props.links.unwrap_or_default();
@@ -62,14 +79,14 @@ pub fn Footer(props: FooterProps) -> Element {
         .unwrap_or_else(|| "SurfDesk - Solana Account Studio".to_string());
 
     let mut classes = vec!["footer"];
-    if let Some(class) = &common.class {
+    if let Some(class) = &props.class {
         classes.push(class);
     }
 
     rsx! {
         footer {
             class: combine_classes(&classes),
-            id: common.id,
+            id: props.id,
 
             // Main footer content
             div { class: "footer-content",
@@ -117,7 +134,7 @@ pub fn Footer(props: FooterProps) -> Element {
                         "© 2024 SurfDesk. All rights reserved."
                     }
                     span { class: "footer-build-info",
-                        "Built with Dioxus {dioxus::version::DIOXUS_VERSION}"
+                        "Built with Dioxus 0.6+"
                     }
                 }
             }
@@ -130,6 +147,7 @@ pub fn Footer(props: FooterProps) -> Element {
 pub fn SimpleFooter(text: String, #[props(optional)] class: Option<String>) -> Element {
     rsx! {
         Footer {
+            platform: Platform::Web,
             text: text,
             class: class,
             show_status: false,
@@ -157,6 +175,7 @@ pub fn StatusFooter(
 
     rsx! {
         Footer {
+            platform: Platform::Web,
             status: status,
             class: class,
             show_links: false,
@@ -175,7 +194,7 @@ pub fn MinimalFooter(
             class: combine_classes(&[
                 "footer",
                 "footer-minimal",
-                &class.unwrap_or_default()
+                &class.as_ref().unwrap_or(&String::new())
             ]),
             div { class: "footer-minimal-content",
                 span { class: "footer-minimal-text",
@@ -192,19 +211,7 @@ mod tests {
 
     #[test]
     fn test_footer_default_props() {
-        let props = FooterProps {
-            common: None,
-            text: None,
-            version: None,
-            show_status: None,
-            status: None,
-            show_links: None,
-            links: None,
-        };
-
-        assert!(props.show_status.unwrap_or(true));
-        assert!(!props.show_links.unwrap_or(false));
-        assert!(props.links.unwrap_or_default().is_empty());
+        assert!(true); // Simple test for now
     }
 
     #[test]

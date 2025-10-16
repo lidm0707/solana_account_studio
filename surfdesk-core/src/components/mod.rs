@@ -20,7 +20,7 @@ pub mod app_shell;
 pub mod button;
 pub mod card;
 pub mod dashboard;
-// pub mod footer;  // Temporarily commented out
+pub mod footer;
 // pub mod form;  // Temporarily commented out due to syntax issues
 pub mod header;
 pub mod input;
@@ -32,6 +32,7 @@ pub mod program_manager;
 // pub mod settings;  // Temporarily commented out
 pub mod sidebar;
 pub mod status_bar;
+pub mod surfpool_control;
 pub mod table;
 pub mod transaction_builder;
 
@@ -44,7 +45,8 @@ pub use button::Button;
 pub use card::Card;
 pub use dashboard::Dashboard;
 // pub use footer::Footer;  // Temporarily commented out
-// pub use form::Form;  // Temporarily commented out
+pub use footer::Footer;
+// pub use form::Form; // Temporarily commented out
 pub use header::Header;
 pub use input::Input;
 pub use loading::Loading;
@@ -53,9 +55,9 @@ pub use modal::Modal;
 pub use notification::Notification;
 pub use program_manager::ProgramManager;
 // pub use settings::Settings;  // Temporarily commented out
-// Sidebar and StatusBar will be implemented later
-// pub use sidebar::Sidebar;  // TODO: Implement
+pub use sidebar::Sidebar;
 // pub use status_bar::StatusBar;  // TODO: Implement
+pub use surfpool_control::SurfPoolControl;
 pub use table::Table; // TODO: Implement
 pub use transaction_builder::TransactionBuilder; // TODO: Implement
 

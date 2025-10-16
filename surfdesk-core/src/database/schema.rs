@@ -4,6 +4,9 @@
 //! It includes tables for projects, environments, accounts, and other
 //! core entities using Diesel ORM.
 
+use diesel::sql_types::*;
+use diesel::table;
+
 diesel::table! {
     projects (id) {
         id -> Text,

@@ -16,7 +16,7 @@ fn SurfDeskWebApp() -> Element {
     rsx! {
         style { {include_str!("../assets/styles.css")} }
 
-        Router::<Route>::new()
+        Router::<Route> {}
     }
 }
 
@@ -73,7 +73,7 @@ fn Home() -> Element {
                                 span { class: "ml-2 text-lg text-gray-600 hidden sm:block", "Web" }
                             }
                         }
-                        div { class="hidden md:flex items-center space-x-8",
+                        div { class:"hidden md:flex items-center space-x-8",
                             Link {
                                 to: Route::Home {},
                                 class: "text-gray-900 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors",
@@ -279,8 +279,8 @@ fn Home() -> Element {
 fn Accounts() -> Element {
     rsx! {
         div { class: "min-h-screen bg-gray-50",
-            h1 { class="text-3xl font-bold text-gray-900 mb-8", "Accounts" }
-            p { class="text-gray-600", "Account management interface coming soon..." }
+            h1 { class:"text-3xl font-bold text-gray-900 mb-8", "Accounts" }
+            p { class:"text-gray-600", "Account management interface coming soon..." }
         }
     }
 }
@@ -289,10 +289,10 @@ fn Accounts() -> Element {
 #[component]
 fn AccountDetail(pubkey: String) -> Element {
     rsx! {
-        div { class="min-h-screen bg-gray-50",
-            h1 { class="text-3xl font-bold text-gray-900 mb-4", "Account Details" }
-            p { class="text-gray-600", "Public Key: {pubkey}" }
-            p { class="text-gray-600", "Account detail interface coming soon..." }
+        div { class:"min-h-screen bg-gray-50",
+            h1 { class:"text-3xl font-bold text-gray-900 mb-4", "Account Details" }
+            p { class:"text-gray-600", "Public Key: {pubkey}" }
+            p { class:"text-gray-600", "Account detail interface coming soon..." }
         }
     }
 }
@@ -301,9 +301,9 @@ fn AccountDetail(pubkey: String) -> Element {
 #[component]
 fn Transactions() -> Element {
     rsx! {
-        div { class="min-h-screen bg-gray-50",
-            h1 { class="text-3xl font-bold text-gray-900 mb-8", "Transactions" }
-            p { class="text-gray-600", "Transaction management interface coming soon..." }
+        div { class:"min-h-screen bg-gray-50",
+            h1 { class:"text-3xl font-bold text-gray-900 mb-8", "Transactions" }
+            p { class:"text-gray-600", "Transaction management interface coming soon..." }
         }
     }
 }
@@ -312,10 +312,10 @@ fn Transactions() -> Element {
 #[component]
 fn TransactionDetail(signature: String) -> Element {
     rsx! {
-        div { class="min-h-screen bg-gray-50",
-            h1 { class="text-3xl font-bold text-gray-900 mb-4", "Transaction Details" }
-            p { class="text-gray-600", "Signature: {signature}" }
-            p { class="text-gray-600", "Transaction detail interface coming soon..." }
+        div { class:"min-h-screen bg-gray-50",
+            h1 { class:"text-3xl font-bold text-gray-900 mb-4", "Transaction Details" }
+            p { class:"text-gray-600", "Signature: {signature}" }
+            p { class:"text-gray-600", "Transaction detail interface coming soon..." }
         }
     }
 }
@@ -324,9 +324,9 @@ fn TransactionDetail(signature: String) -> Element {
 #[component]
 fn Programs() -> Element {
     rsx! {
-        div { class="min-h-screen bg-gray-50",
-            h1 { class="text-3xl font-bold text-gray-900 mb-8", "Programs" }
-            p { class="text-gray-600", "Program management interface coming soon..." }
+        div { class:"min-h-screen bg-gray-50",
+            h1 { class:"text-3xl font-bold text-gray-900 mb-8", "Programs" }
+            p { class:"text-gray-600", "Program management interface coming soon..." }
         }
     }
 }
@@ -335,10 +335,10 @@ fn Programs() -> Element {
 #[component]
 fn ProgramDetail(program_id: String) -> Element {
     rsx! {
-        div { class="min-h-screen bg-gray-50",
-            h1 { class="text-3xl font-bold text-gray-900 mb-4", "Program Details" }
-            p { class="text-gray-600", "Program ID: {program_id}" }
-            p { class="text-gray-600", "Program detail interface coming soon..." }
+        div { class:"min-h-screen bg-gray-50",
+            h1 { class:"text-3xl font-bold text-gray-900 mb-4", "Program Details" }
+            p { class:"text-gray-600", "Program ID: {program_id}" }
+            p { class:"text-gray-600", "Program detail interface coming soon..." }
         }
     }
 }
@@ -347,9 +347,9 @@ fn ProgramDetail(program_id: String) -> Element {
 #[component]
 fn Settings() -> Element {
     rsx! {
-        div { class="min-h-screen bg-gray-50",
-            h1 { class="text-3xl font-bold text-gray-900 mb-8", "Settings" }
-            p { class="text-gray-600", "Settings interface coming soon..." }
+        div { class:"min-h-screen bg-gray-50",
+            h1 { class:"text-3xl font-bold text-gray-900 mb-8", "Settings" }
+            p { class:"text-gray-600", "Settings interface coming soon..." }
         }
     }
 }
@@ -358,19 +358,19 @@ fn Settings() -> Element {
 #[component]
 fn About() -> Element {
     rsx! {
-        div { class="min-h-screen bg-gray-50",
-            h1 { class="text-3xl font-bold text-gray-900 mb-8", "About SurfDesk" }
-            div { class="max-w-3xl mx-auto",
-                p { class="text-gray-600 mb-4",
+        div { class:"min-h-screen bg-gray-50",
+            h1 { class:"text-3xl font-bold text-gray-900 mb-8", "About SurfDesk" }
+            div { class:"max-w-3xl mx-auto",
+                p { class:"text-gray-600 mb-4",
                     "SurfDesk is a comprehensive Solana account studio built with modern Rust technologies."
                 }
-                p { class="text-gray-600 mb-4",
+                p { class:"text-gray-600 mb-4",
                     "Version: {surfdesk_core::VERSION}"
                 }
-                p { class="text-gray-600 mb-4",
+                p { class:"text-gray-600 mb-4",
                     "Platform: {current_platform()}"
                 }
-                p { class="text-gray-600",
+                p { class:"text-gray-600",
                     "Built with Dioxus for cross-platform compatibility."
                 }
             }
@@ -382,10 +382,10 @@ fn About() -> Element {
 #[component]
 fn NotFound(route: Vec<String>) -> Element {
     rsx! {
-        div { class="min-h-screen bg-gray-50 flex items-center justify-center",
-            div { class="text-center",
-                h1 { class="text-6xl font-bold text-gray-900 mb-4", "404" }
-                p { class="text-xl text-gray-600 mb-8", "Page not found" }
+        div { class:"min-h-screen bg-gray-50 flex items-center justify-center",
+            div { class:"text-center",
+                h1 { class:"text-6xl font-bold text-gray-900 mb-4", "404" }
+                p { class:"text-xl text-gray-600 mb-8", "Page not found" }
                 Link {
                     to: Route::Home {},
                     class: "inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors",

@@ -14,6 +14,8 @@ pub mod solana;
 #[cfg(feature = "database")]
 pub mod database;
 
+pub mod surfpool;
+
 use crate::error::Result;
 
 /// Service manager for coordinating all services
@@ -30,6 +32,8 @@ pub struct ServiceManager {
     /// Database service (optional)
     #[cfg(feature = "database")]
     database_service: Option<database::DatabaseService>,
+    /// SurfPool service
+    surfpool_service: Option<surfpool::SurfPoolService>,
 }
 
 impl ServiceManager {
@@ -50,6 +54,7 @@ impl ServiceManager {
             solana_service: None,
             #[cfg(feature = "database")]
             database_service: None,
+            surfpool_service: None,
         })
     }
 
@@ -71,6 +76,12 @@ impl ServiceManager {
             let rpc_url = self.config_service.get_solana_rpc_url().await?;
             self.solana_service = Some(solana::SolanaService::new(rpc_url).await?);
             log::info!("Solana service initialized");
+        }
+
+        // Initialize SurfPool service
+        {
+            self.surfpool_service = Some(surfpool::SurfPoolService::new().await?);
+            log::info!("SurfPool service initialized");
         }
 
         log::info!("All services initialized successfully");
@@ -104,11 +115,23 @@ impl ServiceManager {
         self.database_service.as_ref()
     }
 
+    /// Get the SurfPool service
+    pub fn surfpool_service(&self) -> Option<&surfpool::SurfPoolService> {
+        self.surfpool_service.as_ref()
+    }
+
     /// Shutdown all services
     pub async fn shutdown(&self) -> Result<()> {
         log::info!("Shutting down services");
 
         // Shutdown services in reverse order
+        {
+            if let Some(ref service) = self.surfpool_service {
+                service.shutdown().await?;
+                log::info!("SurfPool service shutdown");
+            }
+        }
+
         #[cfg(feature = "solana")]
         {
             if let Some(ref service) = self.solana_service {

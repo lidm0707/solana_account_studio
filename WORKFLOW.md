@@ -4,6 +4,58 @@
 
 This document defines the comprehensive development workflow for SurfDesk, a multi-platform Solana account studio built with Dioxus 0.6+. The workflow supports simultaneous development across desktop, web, and terminal platforms, ensuring consistency and efficiency throughout the development lifecycle.
 
+## 📁 Test Organization Structure
+
+SurfDesk uses a comprehensive test directory structure for organized testing across all platforms:
+
+```
+tests/
+├── integration/           # Cross-component integration tests
+│   ├── app_shell_tests.rs
+│   ├── navigation_tests.rs
+│   ├── surfpool_integration.rs
+│   └── cross_platform_tests.rs
+├── unit/                  # Isolated unit tests
+│   ├── components/       # Component-specific tests
+│   │   ├── header_tests.rs
+│   │   ├── sidebar_tests.rs
+│   │   ├── footer_tests.rs
+│   │   └── modal_tests.rs
+│   ├── services/         # Service layer tests
+│   │   ├── database_tests.rs
+│   │   ├── events_tests.rs
+│   │   ├── config_tests.rs
+│   │   └── logger_tests.rs
+│   └── database/         # Database-specific tests
+│       ├── schema_tests.rs
+│       ├── migration_tests.rs
+│       └── query_tests.rs
+└── common/               # Shared test utilities
+    ├── mod.rs
+    ├── test_helpers.rs
+    └── mock_data.rs
+```
+
+### Test Commands
+```bash
+# Run all unit tests
+cargo test --test unit
+
+# Run all integration tests
+cargo test --test integration
+
+# Run full test suite
+cargo test --workspace
+
+# Run tests with coverage
+cargo test --workspace --coverage
+
+# Platform-specific testing
+cargo test --bin surfdesk-desktop
+cargo test --bin surfdesk-web
+cargo test --bin surfdesk-tui
+```
+
 ## 🏗️ Architecture-Driven Development
 
 ### Multi-Platform Workspace Structure
@@ -21,6 +73,10 @@ solana_account_studio/
 ├── surfdesk-web/           # Web application
 ├── surfdesk-tui/           # Terminal interface
 ├── surfdesk-cli/           # Headless CLI
+├── tests/                  # Comprehensive test suite
+│   ├── integration/        # Integration tests
+│   ├── unit/              # Unit tests
+│   └── common/            # Test utilities
 └── scripts/                # Build and automation scripts
 ```
 
@@ -47,6 +103,12 @@ cargo add solana-sdk solana-client tokio serde serde_json
 mkdir -p src/services/{solana,surfpool,database,config}
 mkdir -p src/components/{ui,layout,forms}
 mkdir -p src/platform/{desktop,web,terminal}
+
+# Setup test structure
+mkdir -p tests/{integration,unit/{components,services,database},common}
+touch tests/common/mod.rs
+touch tests/common/test_helpers.rs
+touch tests/common/mock_data.rs
 ```
 
 #### 1.2 Platform Abstraction Layer
