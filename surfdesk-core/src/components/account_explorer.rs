@@ -529,7 +529,7 @@ fn AccountBuilderTab(
                             "Account Name *"
                         }
                         input {
-                            r#type: "text",
+                            "type": "text",
                             style: "width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #111827;",
                             value: "{builder.name}",
                             placeholder: "My Account"
@@ -555,7 +555,7 @@ fn AccountBuilderTab(
                             "Initial Balance (SOL) *"
                         }
                         input {
-                            r#type: "number",
+                            "type": "number",
                             style: "width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #111827;",
                             value: "{builder.initial_balance}",
                             step: "0.000000001",
@@ -569,7 +569,7 @@ fn AccountBuilderTab(
                             "Owner Program ID *"
                         }
                         input {
-                            r#type: "text",
+                            "type": "text",
                             style: "width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #111827;",
                             value: "{builder.owner_program}",
                             placeholder: "11111111111111111111111111111111"
@@ -582,7 +582,7 @@ fn AccountBuilderTab(
                             "Account Space (bytes)"
                         }
                         input {
-                            r#type: "number",
+                            "type": "number",
                             style: "width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #111827;",
                             value: "{builder.space}",
                             min: "0"
@@ -592,7 +592,7 @@ fn AccountBuilderTab(
                     // Executable
                     div { style: "display: flex; align-items: center; gap: 8px;",
                         input {
-                            r#type: "checkbox",
+                            "type": "checkbox",
                             checked: builder.executable,
                             style: "width: 16px; height: 16px;"
                         }
@@ -863,7 +863,6 @@ fn AccountExplorerTab(accounts: Vec<AccountData>, surfpool_running: bool) -> Ele
             }
         }
     }
-}
 }
 
 // DeploymentResult is already imported from surfpool_service
