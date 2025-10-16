@@ -1,3 +1,35 @@
+🧩 Can Dioxus 0.6+ use the Solana SDK?
+
+Yes, but it depends on where you run Dioxus:
+
+🖥️ 1. Dioxus Desktop
+
+✅ Yes — fully compatible.
+Since Dioxus Desktop runs as a native binary, you can use the Rust solana-sdk or solana-client crates directly.
+Example: connect to an RPC node, sign transactions, get balances, etc. — all works fine.
+
+🌐 2. Dioxus Web (WASM)
+
+🚫 No — not directly.
+WASM runs in a browser sandbox and can’t use system-level Solana SDK features (like TCP or native crypto).
+
+Instead, you can:
+
+Use JavaScript Solana Web3.js (@solana/web3.js)
+
+Call it through wasm-bindgen from Rust
+
+This lets you interact with Solana from Dioxus Web using a JS bridge.
+
+🧠 Summary Table
+Dioxus Mode	Solana SDK usable?	Alternative
+🖥️ Desktop	✅ Yes	Use solana-sdk / solana-client directly
+🌐 Web (WASM)	🚫 No	Use JS bridge with @solana/web3.js
+🧩 Tauri + Dioxus	✅ Yes	Best option for full Solana desktop apps
+
+Would you like me to show a working Dioxus Desktop + Solana SDK example (with wallet connection and RPC calls)?
+
+
 ➜  solana_account_studio git:(main) ✗ ./scripts/run-web.sh
 =================================
 🏄‍♂️ SurfDesk Web Application
