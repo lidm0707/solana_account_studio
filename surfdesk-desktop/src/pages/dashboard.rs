@@ -51,14 +51,14 @@ pub fn DashboardPage() -> Element {
         let mut slot_signal = slot;
         let mut sol_price_signal = sol_price;
         let mut portfolio_change_signal = portfolio_change;
-        let mut account_mgr = account_manager.write();
-        let rpc = rpc_client.read();
+        let account_mgr = account_manager.clone();
+        let rpc = rpc_client.clone();
 
         async move {
             loop {
                 // Fetch real data
                 // Get account count
-                let accounts = account_mgr.get_all_accounts();
+                let accounts = account_mgr.read().get_all_accounts();
                 account_count_signal.set(accounts.len());
 
                 // Calculate total balance
@@ -70,7 +70,7 @@ pub fn DashboardPage() -> Element {
                 total_balance_signal.set(balance);
 
                 // Fetch real network data from SurfPool RPC
-                if let Ok(_blockhash) = rpc.get_latest_blockhash().await {
+                if let Ok(_blockhash) = rpc.read().get_latest_blockhash().await {
                     // Mock slot and block height for now
                     slot_signal.set(123456);
                     block_height_signal.set(123400);

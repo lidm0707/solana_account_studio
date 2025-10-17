@@ -39,14 +39,15 @@ pub fn AccountsPage() -> Element {
         let mut accounts_signal = accounts;
         let mut loading_signal = loading;
         let mut error_signal = error_message;
-        let account_mgr = account_manager.read();
-        let rpc = rpc_client.read();
+        let account_mgr = account_manager.clone();
+        let rpc = rpc_client.clone();
 
         async move {
             loading_signal.set(true);
 
             // Load existing accounts and fetch real balances
             let existing_accounts = account_mgr
+                .read()
                 .get_all_accounts()
                 .into_iter()
                 .cloned()
@@ -55,8 +56,13 @@ pub fn AccountsPage() -> Element {
 
             // Fetch real balances from SurfPool RPC
             for account in &mut accounts_with_balances {
-                if let Ok(balance): Result<u64, _> = rpc.get_balance(&account.pubkey.to_string()).await {
-                    account.lamports = balance;
+                match rpc.read().get_balance(&account.pubkey.to_string()).await {
+                    Ok(balance) => {
+                        account.lamports = balance;
+                    }
+                    Err(_) => {
+                        // Keep existing balance if fetch fails
+                    }
                 }
             }
 
