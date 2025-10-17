@@ -745,10 +745,8 @@ pub struct DeploymentStatistics {
 pub fn use_surfpool_service() -> Result<Arc<SurfPoolService>> {
     // For now, return a mock service
     // In a real implementation, this would use Dioxus context or state management
-    tokio::spawn(async {
-        let service = SurfPoolService::new().await.unwrap();
-        // Store service in context
-    });
+    // TODO: Implement proper service initialization without tokio::spawn
+    // The async spawn was causing thread safety issues with HttpClient
 
     // Return a placeholder for now
     Err(crate::error::SurfDeskError::internal(

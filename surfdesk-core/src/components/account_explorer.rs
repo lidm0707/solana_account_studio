@@ -195,7 +195,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     let start_validator = move |_: dioxus::prelude::Event<MouseData>| {
         let success_msg = success_message.clone();
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-            let success = success_msg.clone();
+            let mut success = success_msg.clone();
             async move {
                 // Simulate validator startup
                 tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
@@ -207,8 +207,8 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     // Stop validator action (simplified)
     let stop_validator = move |_: dioxus::prelude::Event<MouseData>| {
         let success_msg = success_message.clone();
-        use_coroutine(move |_| {
-            let success = success_msg.clone();
+        use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
+            let mut success = success_msg.clone();
             async move {
                 // Simulate validator shutdown
                 tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
@@ -245,31 +245,37 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         error_message.set(String::new());
         success_message.set(String::new());
 
-        use_coroutine(|_| {
-            let builder_state = builder.clone();
-            let is_building_signal = is_building.clone();
-            let accounts_signal = accounts.clone();
+        use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
+            let mut builder_state = builder.clone();
+            let mut is_building_signal = is_building.clone();
+            let mut accounts_signal = accounts.clone();
             let on_account_created = props.on_account_created.clone();
-            let success_msg = success_message.clone();
+            let mut success_msg = success_message.clone();
 
             async move {
                 tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
 
                 let mut current = builder_state();
                 if let Some(_keypair) = &current.keypair {
+                    // Clone builder data to avoid borrowing issues
+                    let owner_program = current.owner_program.clone();
+                    let initial_balance = current.initial_balance;
+                    let custom_data = current.custom_data.clone();
+                    let space = current.space;
+                    let executable = current.executable;
+
                     let account_data = AccountData {
                         pubkey: Pubkey::new_unique(),
-                        owner: current_builder
-                            .owner_program
+                        owner: owner_program
                             .parse()
                             .unwrap_or_else(|_| system_program::id()),
-                        lamports: (current_builder.initial_balance * 1_000_000_000.0) as u64,
-                        data: if current_builder.custom_data.is_empty() {
-                            vec![0u8; current_builder.space as usize]
+                        lamports: (initial_balance * 1_000_000_000.0) as u64,
+                        data: if custom_data.is_empty() {
+                            vec![0u8; space as usize]
                         } else {
-                            current_builder.custom_data.as_bytes().to_vec()
+                            custom_data.as_bytes().to_vec()
                         },
-                        executable: current_builder.executable,
+                        executable,
                         rent_epoch: 0,
                     };
 
@@ -315,30 +321,38 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         // Create simplified deployment request
         // Mock keypair for deployment request
         let mock_keypair = Arc::new(Keypair::new());
+        // Clone data before moving into closure
+        let account_pubkey = current_builder
+            .account_data
+            .as_ref()
+            .unwrap()
+            .pubkey
+            .clone();
+        let initial_balance = current_builder.initial_balance;
+        let space = current_builder.space;
+        let executable = current_builder.executable;
+        let account_data_clone2 = current_builder.account_data.as_ref().unwrap().data.clone();
+        let account_data_clone = current_builder.account_data.clone();
+
         let deployment_request = DeploymentRequest::new(
-            current_builder
-                .account_data
-                .as_ref()
-                .unwrap()
-                .pubkey
-                .clone(),
+            account_pubkey,
             system_program::id(),
-            (current_builder.initial_balance * 1_000_000_000.0) as u64,
-            current_builder.space as u64,
-            current_builder.executable,
-            current_builder.account_data.as_ref().unwrap().data.clone(),
+            (initial_balance * 1_000_000_000.0) as u64,
+            space as u64,
+            executable,
+            account_data_clone2,
             mock_keypair,
         );
 
         // Deploy using simplified workflow
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-            let builder_state = builder.clone();
-            let is_deploying_signal = is_deploying.clone();
-            let deployment_req = deployment_request;
+            let mut builder_state = builder.clone();
+            let mut is_deploying_signal = is_deploying.clone();
+            let deployment_req = deployment_request.clone();
             let on_deploy = props.on_deploy.clone();
             let on_deployment_result = props.on_deployment_result.clone();
-            let success_msg = success_message.clone();
-            let error_msg = error_message.clone();
+            let mut success_msg = success_message.clone();
+            let mut error_msg = error_message.clone();
 
             async move {
                 // Simulate deployment process
@@ -369,12 +383,11 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                         signature: "mock_signature_12345".to_string(),
                     },
                     signature: Some("mock_signature_12345".to_string()),
-                    pubkey: current_builder
-                        .account_data
-                        .as_ref()
-                        .unwrap()
-                        .pubkey
-                        .clone(),
+                    pubkey: {
+                        // Get the current builder state and extract pubkey
+                        let current = builder_state();
+                        current.account_data.as_ref().unwrap().pubkey.clone()
+                    },
                     timestamp: chrono::Utc::now(),
                     error: None,
                     block_height: Some(100),

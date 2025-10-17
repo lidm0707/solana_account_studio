@@ -148,13 +148,16 @@ pub fn Dropdown(props: DropdownProps) -> Element {
     //     }
     // });
 
+    // Clone options to avoid borrowing issues
+    let options_for_filtering = props.options.clone();
+    let options_for_lookup = props.options.clone();
+
     // Filter options based on search
     let filtered_options = use_memo(move || {
         if search_query().is_empty() {
-            props.options.clone()
+            options_for_filtering.clone()
         } else {
-            props
-                .options
+            options_for_filtering
                 .iter()
                 .filter(|opt| {
                     opt.value.matches(&search_query())
@@ -215,7 +218,7 @@ pub fn Dropdown(props: DropdownProps) -> Element {
     let selected_label = props
         .value
         .as_ref()
-        .and_then(|value| props.options.iter().find(|opt| opt.value == *value))
+        .and_then(|value| options_for_lookup.iter().find(|opt| opt.value == *value))
         .map(|opt| opt.label.clone())
         .unwrap_or_else(|| props.placeholder.clone());
 
@@ -281,7 +284,7 @@ pub fn Dropdown(props: DropdownProps) -> Element {
 
                     // Options list
                     div { class: "dropdown-options",
-                        for (index, option) in filtered_options().iter().enumerate() {
+                        for (index, option) in filtered_options().clone().into_iter().enumerate() {
                             button {
                                 class: format!("dropdown-option {} {} {}",
                                     if index == focused_index() { "focused" } else { "" },
@@ -290,7 +293,10 @@ pub fn Dropdown(props: DropdownProps) -> Element {
                                 ),
                                 r#type: "button",
                                 disabled: option.disabled,
-                                onclick: move |_| handle_select(option.clone()),
+                                onclick: {
+                                    let option_clone = option.clone();
+                                    move |_| handle_select(option_clone.clone())
+                                },
                                 role: "option",
                                 "aria-selected": "{props.value.as_ref() == Some(&option.value)}",
                                 "aria-disabled": "{option.disabled}",
@@ -724,7 +730,7 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
     });
 
     // Handle option selection
-    let handle_select = move |option: DropdownOption| {
+    let mut handle_select = move |option: DropdownOption| {
         if !option.disabled {
             props.onchange.call(option.value.clone());
             search_query.set(option.label.clone());
@@ -733,7 +739,7 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
     };
 
     // Handle input changes
-    let handle_input_change = move |value: String| {
+    let mut handle_input_change = move |value: String| {
         search_query.set(value.clone());
         focused_index.set(0);
         if props.always_show_search || !value.is_empty() {
@@ -787,7 +793,7 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
         input_focused.set(false);
         // Delay closing to allow option clicks
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-            let is_open = is_open.clone();
+            let mut is_open = is_open.clone();
             async move {
                 tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
                 is_open.set(false);
@@ -853,7 +859,7 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
 
                     // Options list
                     div { class: "dropdown-options",
-                        for (index, option) in filtered_options().iter().enumerate() {
+                        for (index, option) in filtered_options().clone().into_iter().enumerate() {
                             button {
                                 class: format!("dropdown-option {} {} {}",
                                     if index == focused_index() { "focused" } else { "" },
@@ -862,7 +868,10 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
                                 ),
                                 "type": "button",
                                 disabled: option.disabled,
-                                onclick: move |_| handle_select(option.clone()),
+                                onclick: {
+                                    let option_clone = option.clone();
+                                    move |_| handle_select(option_clone.clone())
+                                },
                                 role: "option",
                                 id: "dropdown-option-{index}",
                                 "aria-selected": "{props.value.as_ref().map_or(false, |v| v == &option.value)}",
@@ -873,12 +882,9 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
                                     span { class: "dropdown-option-icon", "{icon}" }
                                 }
 
-                                // Option content with highlighted search match
+                                // Option content
                                 div { class: "dropdown-option-content",
-                                    div { class: "dropdown-option-label",
-                                        // Basic highlighting (could be enhanced)
-                                        "{option.label}"
-                                    }
+                                    div { class: "dropdown-option-label", "{option.label}" }
                                     if let Some(description) = &option.description {
                                         div { class: "dropdown-option-description", "{description}" }
                                     }

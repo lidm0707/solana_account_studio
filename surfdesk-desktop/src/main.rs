@@ -18,8 +18,10 @@ use std::sync::Arc;
 
 mod keyboard;
 mod pages;
+mod surfpool;
 
-use components::*;
+// TODO: Create components module or remove import
+// use components::*;
 use surfpool::SurfPoolManager;
 
 /// Command line arguments for the enhanced desktop application
@@ -435,7 +437,7 @@ fn NavigationItem(
     rsx! {
         button {
             class: format!("nav-item {}", if is_active { "active" } else { "" }),
-            onclick: move |_| on_click.call(view),
+            onclick: move |_| on_click.call(view.clone()),
 
             span { class: "nav-icon", "{icon}" }
             span { class: "nav-label", "{label}" }

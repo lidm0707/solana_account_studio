@@ -173,6 +173,7 @@ impl SolanaNetwork {
             Self::Mainnet => "https://api.mainnet-beta.solana.com",
             Self::Devnet => "https://api.devnet.solana.com",
             Self::Testnet => "https://api.testnet.solana.com",
+            Self::Localhost => "http://localhost:8899",
         }
     }
 
@@ -181,6 +182,7 @@ impl SolanaNetwork {
             Self::Mainnet => "Mainnet Beta",
             Self::Devnet => "Devnet",
             Self::Testnet => "Testnet",
+            Self::Localhost => "Localhost",
         }
     }
 }
