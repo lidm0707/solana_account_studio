@@ -563,7 +563,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_app_state_creation() {
-        let _state = AppState::new();
+        let state = AppState::new();
         assert!(state.projects.read().is_empty());
         assert!(state.active_project_id.read().is_none());
         assert!(state.environments.read().is_empty());
@@ -584,7 +584,7 @@ mod tests {
     }
 
     fn test_ui_state_default() {
-        let _state = UIState::default();
+        let state = UIState::default();
         assert_eq!(state.theme, Theme::Auto);
         assert!(state.sidebar.expanded);
         assert_eq!(state.sidebar.active_section, SidebarSection::Dashboard);
@@ -631,20 +631,20 @@ mod tests {
     }
 
     fn test_connection_status() {
-        let _status = ConnectionStatus::Connected;
+        let status = ConnectionStatus::Connected;
         assert_eq!(status.display_name(), "Connected");
         assert_eq!(status.css_class(), "status-connected");
 
-        let _status = ConnectionStatus::Error;
+        let status = ConnectionStatus::Error;
         assert_eq!(status.display_name(), "Error");
         assert_eq!(status.css_class(), "status-error");
     }
 
     fn test_solana_network() {
-        let _network = SolanaNetwork::Mainnet;
+        let network = SolanaNetwork::Mainnet;
         assert_eq!(network.display_name(), "Mainnet");
 
-        let _network = SolanaNetwork::Devnet;
+        let network = SolanaNetwork::Devnet;
         assert_eq!(network.display_name(), "Devnet");
     }
 }

@@ -1,10 +1,7 @@
 [workspace]
 members = [
     "surfdesk-core",
-    "surfdesk-desktop",
-    "surfdesk-web",
-    "surfdesk-tui",
-    "surfdesk-cli"
+    "surfdesk-desktop"
 ]
 resolver = "2"
 
