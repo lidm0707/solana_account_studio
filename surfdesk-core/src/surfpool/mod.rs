@@ -470,10 +470,15 @@ pub async fn install_surfpool() -> Result<(), SurfDeskError> {
 /// Hook to use SurfPool controller in Dioxus components
 pub fn use_surfpool_controller(platform: Platform) -> Signal<SurfPoolController> {
     let controller = use_signal(|| {
-        // Create a blocking runtime for initialization
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        // Return a placeholder - actual controller will be set up later
-        rt.block_on(async { SurfPoolController::new(platform).await.unwrap() })
+        // Create a simple placeholder controller for initialization
+        // We'll initialize it properly when needed
+        let config = SurfPoolConfig::default();
+        SurfPoolController {
+            platform,
+            process: Arc::new(Mutex::new(None)),
+            config: Arc::new(RwLock::new(config)),
+            status: Arc::new(RwLock::new(ControllerStatus::Stopped)),
+        }
     });
 
     controller

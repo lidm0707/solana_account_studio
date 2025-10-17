@@ -206,17 +206,13 @@ fn Sidebar(
 /// Main application component
 #[component]
 fn SurfDeskDesktopApp() -> Element {
-    let args = use_context::<Args>();
+    // Args are not needed in the component for now
     let surfpool_config = SurfPoolConfig::default();
     let surfpool_manager = Arc::new(SurfPoolManager::new(surfpool_config));
 
     // Initialize application state
     let mut app_state = AppState {
-        theme: use_signal(|| match args.theme.as_str() {
-            "light" => Theme::Light,
-            "dark" => Theme::Dark,
-            _ => Theme::Auto,
-        }),
+        theme: use_signal(|| Theme::Auto),
         current_view: use_signal(|| DesktopView::Dashboard),
         surfpool_manager: surfpool_manager.clone(),
         settings: use_signal(AppSettings::default),
@@ -324,8 +320,7 @@ fn SurfDeskDesktopApp() -> Element {
 }
 
 /// Main entry point
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     // Parse command line arguments
     let args = Args::parse();
 
@@ -347,13 +342,16 @@ async fn main() -> Result<()> {
     info!("Starting SurfDesk Desktop application");
     info!("Arguments: {:?}", args);
 
-    // Initialize core library
-    surfdesk_core::init_core().await.map_err(|e| {
-        error!("Failed to initialize core library: {}", e);
-        e
+    // Initialize core library using a blocking runtime for startup
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(async {
+        surfdesk_core::init_core().await.map_err(|e| {
+            error!("Failed to initialize core library: {}", e);
+            e
+        })
     })?;
 
-    // Launch Dioxus desktop
+    // Launch Dioxus desktop (manages its own async runtime)
     launch(SurfDeskDesktopApp);
 
     info!("SurfDesk Desktop application terminated gracefully");

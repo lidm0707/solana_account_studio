@@ -74,7 +74,7 @@ pub const TESTNET_URL: &str = "https://api.testnet.solana.com";
 /// }
 /// ```
 pub async fn init_core() -> Result<()> {
-    // Initialize logger
+    // Initialize logger only if not already initialized
     #[cfg(all(not(target_arch = "wasm32"), feature = "desktop"))]
     {
         let _ = env_logger::try_init();
