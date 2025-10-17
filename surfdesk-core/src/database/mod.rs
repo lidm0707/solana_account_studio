@@ -9,23 +9,18 @@ pub mod schema;
 
 // Re-export key database types for convenience
 pub use migrations::SimpleMigration;
-pub use schema::*;
+// pub use schema::*; // Removed - no longer using diesel
 
 use crate::error::{Result, SurfDeskError};
-use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
-use diesel::sqlite::SqliteConnection;
+use libsql::{Connection, Database};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-/// Database connection pool type
-pub type DbPool = Pool<ConnectionManager<SqliteConnection>>;
-
-/// Database connection type
-pub type DbConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
+/// Database connection type (libsql doesn't use pooling in the same way)
+pub type DbConnection = Connection;
 
 /// Database models for common operations
-#[derive(Debug, Clone, Queryable, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Project {
     pub id: String,
     pub name: String,
@@ -38,7 +33,7 @@ pub struct Project {
     pub tags: Option<String>,
 }
 
-#[derive(Debug, Clone, Queryable, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Environment {
     pub id: String,
     pub project_id: String,
@@ -53,7 +48,7 @@ pub struct Environment {
     pub priority: i32,
 }
 
-#[derive(Debug, Clone, Queryable, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Account {
     pub id: String,
     pub environment_id: String,
@@ -70,25 +65,22 @@ pub struct Account {
     pub rent_epoch: Option<i64>,
 }
 
-/// Database utility functions
-pub fn establish_connection(database_url: &str) -> Result<SqliteConnection> {
-    SqliteConnection::establish(database_url).map_err(|e| {
-        SurfDeskError::database(format!("Failed to establish database connection: {}", e))
-    })
-}
-
-/// Create a connection pool
-pub fn create_pool(database_url: &str, max_size: u32) -> Result<DbPool> {
-    let manager = ConnectionManager::<SqliteConnection>::new(database_url);
-    Pool::builder()
-        .max_size(max_size)
-        .build(manager)
-        .map_err(|e| SurfDeskError::database(format!("Failed to create connection pool: {}", e)))
+/// Database utility functions for libsql
+pub async fn establish_connection(database_url: &str) -> Result<Connection> {
+    let db = libsql::Builder::new_local(database_url)
+        .build()
+        .await
+        .map_err(|e| {
+            SurfDeskError::database(format!("Failed to establish database connection: {}", e))
+        })?;
+    db.connect()
+        .map_err(|e| SurfDeskError::database(e.to_string()))
 }
 
 /// Run database migrations
-pub fn run_migrations(conn: &mut SqliteConnection) -> Result<()> {
+pub async fn run_migrations(conn: &mut Connection) -> Result<()> {
     SimpleMigration::initialize_database(conn)
+        .await
         .map_err(|e| SurfDeskError::database(format!("Failed to run migrations: {}", e)))
 }
 
@@ -97,25 +89,21 @@ pub struct DatabaseInitializer;
 
 impl DatabaseInitializer {
     /// Initialize database with all tables and migrations
-    pub fn initialize(database_url: &str) -> Result<()> {
-        let mut conn = establish_connection(database_url)?;
+    pub async fn initialize(database_url: &str) -> Result<()> {
+        let mut conn = establish_connection(database_url).await?;
 
-        // Enable foreign keys
-        diesel::sql_query("PRAGMA foreign_keys = ON")
-            .execute(&mut conn)
+        conn.execute("PRAGMA foreign_keys = ON", ())
+            .await
             .map_err(|e| {
                 SurfDeskError::database(format!("Failed to enable foreign keys: {}", e))
             })?;
 
-        // Enable WAL mode for better concurrency
-        diesel::sql_query("PRAGMA journal_mode = WAL")
-            .execute(&mut conn)
+        conn.execute("PRAGMA journal_mode = WAL", ())
+            .await
             .map_err(|e| SurfDeskError::database(format!("Failed to enable WAL mode: {}", e)))?;
 
-        // Run migrations
-        run_migrations(&mut conn)?;
+        run_migrations(&mut conn).await?;
 
-        log::info!("Database initialized successfully");
         Ok(())
     }
 

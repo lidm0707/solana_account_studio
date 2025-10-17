@@ -326,15 +326,9 @@ impl From<config::ConfigError> for SurfDeskError {
     }
 }
 
-impl From<diesel::result::Error> for SurfDeskError {
-    fn from(err: diesel::result::Error) -> Self {
+impl From<libsql::Error> for SurfDeskError {
+    fn from(err: libsql::Error) -> Self {
         Self::Database(err.to_string())
-    }
-}
-
-impl From<diesel::ConnectionError> for SurfDeskError {
-    fn from(err: diesel::ConnectionError) -> Self {
-        Self::DatabaseConnection(err.to_string())
     }
 }
 

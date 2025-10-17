@@ -26,9 +26,9 @@ pretty-assertions = "1.0"
 dioxus-ssr = "0.6"
 env_logger = "0.10"
 
-# Database
-diesel = { version = "2.1", features = ["sqlite", "r2d2", "chrono"] }
-diesel_migrations = "2.1"
+# Database - Turso (libsql) replacing Diesel
+libsql = { version = "0.5" }
+libsql-sys = { version = "0.5", features = ["bindgen"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 # Web platform dependencies

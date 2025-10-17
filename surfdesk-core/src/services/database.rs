@@ -2,28 +2,24 @@
 //!
 //! This module provides database integration for the SurfDesk application.
 //! It handles data persistence, migrations, and query operations across
-//! all platforms with platform-specific storage backends.
+//! all platforms with platform-specific storage backends using Turso (libSQL).
 
 use crate::error::{Result, SurfDeskError};
-use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
-use diesel::sqlite::SqliteConnection;
-
+use libsql::{Connection, Database};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /// Result structure for count queries
-#[derive(Debug, QueryableByName)]
+#[derive(Debug)]
 pub struct CountResult {
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
     pub count: i64,
 }
 
 /// Database service for data persistence
 pub struct DatabaseService {
-    /// Database connection pool
-    pool: Arc<Pool<ConnectionManager<SqliteConnection>>>,
+    /// Database connection
+    db: Arc<Database>,
     /// Database configuration
     config: DatabaseConfig,
     /// Migration status
@@ -107,29 +103,39 @@ impl DatabaseService {
             std::fs::create_dir_all(parent)?;
         }
 
-        // Create connection pool based on backend
-        let pool = match config.backend {
+        // Create database connection based on backend
+        let db = match config.backend {
             DatabaseBackend::SQLite => {
-                let manager = ConnectionManager::<SqliteConnection>::new(&config.database_path);
-                Pool::builder()
-                    .max_size(config.pool_size)
-                    .build(manager)
-                    .map_err(|e| SurfDeskError::database(e.to_string()))?
+                let db = libsql::Builder::new_local(&config.database_path)
+                    .build()
+                    .await
+                    .map_err(|e| SurfDeskError::database(e.to_string()))?;
+                db
             }
             DatabaseBackend::Turso => {
-                // For now, fall back to SQLite with Turso URL as database path
-                // TODO: Implement proper Turso integration with libsql
-                log::warn!("Turso backend not yet fully implemented, falling back to SQLite");
-                let manager = ConnectionManager::<SqliteConnection>::new(&config.database_path);
-                Pool::builder()
-                    .max_size(config.pool_size)
-                    .build(manager)
-                    .map_err(|e| SurfDeskError::database(e.to_string()))?
+                if let Some(turso_config) = &config.turso_config {
+                    log::info!(
+                        "Connecting to Turso database: {}",
+                        turso_config.database_name
+                    );
+                    let db = libsql::Builder::new_remote(
+                        turso_config.url.clone(),
+                        turso_config.auth_token.clone(),
+                    )
+                    .build()
+                    .await
+                    .map_err(|e| {
+                        SurfDeskError::database(format!("Failed to connect to Turso: {}", e))
+                    })?;
+                    db
+                } else {
+                    return Err(SurfDeskError::database("Turso configuration missing"));
+                }
             }
         };
 
         let service = Self {
-            pool: Arc::new(pool),
+            db: Arc::new(db),
             config,
             migrations_run: Arc::new(RwLock::new(false)),
         };
@@ -138,8 +144,11 @@ impl DatabaseService {
         service.run_migrations().await?;
 
         // Configure database
-        let mut conn = service.get_connection().await?;
-        service.configure_database(&mut conn)?;
+        let mut conn = service
+            .db
+            .connect()
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
+        service.configure_database(&mut conn).await?;
 
         log::info!("Database service initialized successfully");
         Ok(service)
@@ -152,23 +161,16 @@ impl DatabaseService {
             return Ok(());
         }
 
-        // Skip migrations for Turso (assume they're run separately)
-        if matches!(self.config.backend, DatabaseBackend::Turso) {
-            log::info!("Skipping migrations for Turso database");
-            *migrations_run = true;
-            return Ok(());
-        }
-
         let mut conn = self
-            .pool
-            .get()
+            .db
+            .connect()
             .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         // Run embedded migrations
-        self.run_embedded_migrations(&mut conn)?;
+        self.run_embedded_migrations(&mut conn).await?;
 
-        // Configure database settings
-        self.configure_database(&mut conn)?;
+        // Configure database
+        self.configure_database(&mut conn).await?;
 
         *migrations_run = true;
         log::info!("Database migrations completed");
@@ -176,7 +178,7 @@ impl DatabaseService {
     }
 
     /// Run embedded migrations
-    fn run_embedded_migrations(&self, conn: &mut SqliteConnection) -> Result<()> {
+    async fn run_embedded_migrations(&self, conn: &mut Connection) -> Result<()> {
         // Use raw SQL for table creation - simpler approach
         let migrations = vec![
             "CREATE TABLE IF NOT EXISTS projects (
@@ -227,8 +229,8 @@ impl DatabaseService {
         ];
 
         for migration in migrations {
-            diesel::sql_query(migration)
-                .execute(conn)
+            conn.execute(migration, ())
+                .await
                 .map_err(|e| SurfDeskError::database(e.to_string()))?;
         }
 
@@ -236,48 +238,43 @@ impl DatabaseService {
     }
 
     /// Configure database settings
-    fn configure_database(&self, conn: &mut SqliteConnection) -> Result<()> {
+    async fn configure_database(&self, conn: &mut Connection) -> Result<()> {
         // Enable foreign key constraints
         if self.config.foreign_keys {
-            diesel::sql_query("PRAGMA foreign_keys = ON")
-                .execute(conn)
+            conn.execute("PRAGMA foreign_keys = ON", ())
+                .await
                 .map_err(|e| SurfDeskError::database(e.to_string()))?;
         }
 
         // Enable WAL mode
-        if self.config.wal_mode {
-            // Only configure WAL mode for SQLite
-            if self.config.wal_mode && matches!(self.config.backend, DatabaseBackend::SQLite) {
-                diesel::sql_query("PRAGMA journal_mode = WAL")
-                    .execute(conn)
-                    .map_err(|e| SurfDeskError::database(e.to_string()))?;
-            }
+        if self.config.wal_mode && matches!(self.config.backend, DatabaseBackend::SQLite) {
+            conn.execute("PRAGMA journal_mode = WAL", ())
+                .await
+                .map_err(|e| SurfDeskError::database(e.to_string()))?;
         }
 
         // Set connection timeout
         let timeout_sql = format!("PRAGMA busy_timeout = {}", self.config.timeout * 1000);
-        diesel::sql_query(&timeout_sql)
-            .execute(conn)
+        conn.execute(&timeout_sql, ())
+            .await
             .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         // Optimize for performance
-        diesel::sql_query("PRAGMA synchronous = NORMAL")
-            .execute(conn)
+        conn.execute("PRAGMA synchronous = NORMAL", ())
+            .await
             .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
-        diesel::sql_query("PRAGMA cache_size = 10000")
-            .execute(conn)
+        conn.execute("PRAGMA cache_size = 10000", ())
+            .await
             .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         Ok(())
     }
 
-    /// Get a database connection from the pool
-    pub async fn get_connection(
-        &self,
-    ) -> Result<PooledConnection<ConnectionManager<SqliteConnection>>> {
-        self.pool
-            .get()
+    /// Get a database connection
+    pub async fn get_connection(&self) -> Result<Connection> {
+        self.db
+            .connect()
             .map_err(|e| SurfDeskError::database(e.to_string()))
     }
 
@@ -285,37 +282,55 @@ impl DatabaseService {
     pub async fn get_stats(&self) -> Result<DatabaseStats> {
         let mut conn = self.get_connection().await?;
 
-        // Get table counts
-        let project_count: i64 = diesel::sql_query("SELECT COUNT(*) FROM projects")
-            .load::<CountResult>(&mut conn)?
-            .first()
-            .map(|r| r.count)
+        // Get table counts using libsql
+        let mut rows = conn
+            .query("SELECT COUNT(*) FROM projects", ())
+            .await
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
+        let project_count = rows
+            .next()
+            .await?
+            .map(|row| row.get(0).unwrap_or(0i64))
             .unwrap_or(0);
 
-        let environment_count: i64 = diesel::sql_query("SELECT COUNT(*) FROM environments")
-            .load::<CountResult>(&mut conn)?
-            .first()
-            .map(|r| r.count)
+        let mut rows = conn
+            .query("SELECT COUNT(*) FROM environments", ())
+            .await
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
+        let environment_count = rows
+            .next()
+            .await?
+            .map(|row| row.get(0).unwrap_or(0i64))
             .unwrap_or(0);
 
-        let account_count: i64 = diesel::sql_query("SELECT COUNT(*) FROM accounts")
-            .load::<CountResult>(&mut conn)?
-            .first()
-            .map(|r| r.count)
+        let mut rows = conn
+            .query("SELECT COUNT(*) FROM accounts", ())
+            .await
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
+        let account_count = rows
+            .next()
+            .await?
+            .map(|row| row.get(0).unwrap_or(0i64))
             .unwrap_or(0);
 
-        let transaction_count: i64 = diesel::sql_query("SELECT COUNT(*) FROM transactions")
-            .load::<CountResult>(&mut conn)?
-            .first()
-            .map(|r| r.count)
+        let mut rows = conn
+            .query("SELECT COUNT(*) FROM transactions", ())
+            .await
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
+        let transaction_count = rows
+            .next()
+            .await?
+            .map(|row| row.get(0).unwrap_or(0i64))
             .unwrap_or(0);
 
-        // Get database file size
-        let metadata = std::fs::metadata(&self.config.database_path)?;
-        let file_size = metadata.len();
-
-        // Get pool statistics
-        let pool_state = self.pool.state();
+        // Get database file size (only for SQLite)
+        let file_size = if matches!(self.config.backend, DatabaseBackend::SQLite) {
+            std::fs::metadata(&self.config.database_path)
+                .map(|m| m.len())
+                .unwrap_or(0)
+        } else {
+            0 // Turso is remote, no local file size
+        };
 
         Ok(DatabaseStats {
             projects: project_count as usize,
@@ -323,13 +338,19 @@ impl DatabaseService {
             accounts: account_count as usize,
             transactions: transaction_count as usize,
             file_size_bytes: file_size,
-            pool_connections: pool_state.connections,
-            pool_idle_connections: pool_state.idle_connections,
+            pool_connections: 1, // libsql uses single connection
+            pool_idle_connections: 0,
         })
     }
 
     /// Backup database
     pub async fn backup(&self, backup_path: &str) -> Result<()> {
+        if matches!(self.config.backend, DatabaseBackend::Turso) {
+            return Err(SurfDeskError::database(
+                "Backup not supported for Turso databases".to_string(),
+            ));
+        }
+
         let mut conn = self.get_connection().await?;
 
         // Use SQLite backup API
@@ -338,8 +359,8 @@ impl DatabaseService {
             std::fs::create_dir_all(parent)?;
         }
 
-        diesel::sql_query(&format!("VACUUM INTO '{}'", backup_path.display()))
-            .execute(&mut conn)
+        conn.execute(&format!("VACUUM INTO '{}'", backup_path.display()), ())
+            .await
             .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         log::info!("Database backed up to: {}", backup_path.display());
@@ -348,6 +369,12 @@ impl DatabaseService {
 
     /// Restore database from backup
     pub async fn restore(&self, backup_path: &str) -> Result<()> {
+        if matches!(self.config.backend, DatabaseBackend::Turso) {
+            return Err(SurfDeskError::database(
+                "Restore not supported for Turso databases".to_string(),
+            ));
+        }
+
         let backup_path = std::path::Path::new(backup_path);
 
         if !backup_path.exists() {
@@ -357,9 +384,6 @@ impl DatabaseService {
             )));
         }
 
-        // Close all connections and replace database file
-        drop(self.pool.clone());
-
         std::fs::copy(backup_path, &self.config.database_path)?;
 
         log::info!("Database restored from: {}", backup_path.display());
@@ -368,9 +392,15 @@ impl DatabaseService {
 
     /// Vacuum database to reclaim space
     pub async fn vacuum(&self) -> Result<()> {
+        if matches!(self.config.backend, DatabaseBackend::Turso) {
+            return Err(SurfDeskError::database(
+                "Vacuum not supported for Turso databases".to_string(),
+            ));
+        }
+
         let mut conn = self.get_connection().await?;
-        diesel::sql_query("VACUUM")
-            .execute(&mut conn)
+        conn.execute("VACUUM", ())
+            .await
             .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         log::info!("Database vacuumed");
@@ -380,8 +410,8 @@ impl DatabaseService {
     /// Analyze database for query optimization
     pub async fn analyze(&self) -> Result<()> {
         let mut conn = self.get_connection().await?;
-        diesel::sql_query("ANALYZE")
-            .execute(&mut conn)
+        conn.execute("ANALYZE", ())
+            .await
             .map_err(|e| SurfDeskError::database(e.to_string()))?;
 
         log::info!("Database analyzed");

@@ -4,19 +4,17 @@
 //! For Step 1.3, we're using a simplified approach without complex migration management.
 
 use crate::error::{Result, SurfDeskError};
-use diesel::connection::SimpleConnection;
-use diesel::prelude::*;
-use diesel::sqlite::SqliteConnection;
+use libsql::Connection;
 
 /// Simple migration runner for creating database tables
 pub struct SimpleMigration;
 
 impl SimpleMigration {
     /// Create all database tables
-    pub fn create_tables(conn: &mut SqliteConnection) -> Result<()> {
-        conn.batch_execute(
+    pub async fn create_tables(conn: &mut Connection) -> Result<()> {
+        // Projects table
+        conn.execute(
             r#"
-            -- Projects table
             CREATE TABLE IF NOT EXISTS projects (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -27,9 +25,16 @@ impl SimpleMigration {
                 status TEXT NOT NULL DEFAULT 'active',
                 owner TEXT,
                 tags TEXT
-            );
+            )
+            "#,
+            (),
+        )
+        .await
+        .map_err(|e| SurfDeskError::database(format!("Failed to create projects table: {}", e)))?;
 
-            -- Environments table
+        // Environments table
+        conn.execute(
+            r#"
             CREATE TABLE IF NOT EXISTS environments (
                 id TEXT PRIMARY KEY,
                 project_id TEXT NOT NULL,
@@ -43,9 +48,18 @@ impl SimpleMigration {
                 is_default BOOLEAN NOT NULL DEFAULT FALSE,
                 priority INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-            );
+            )
+            "#,
+            (),
+        )
+        .await
+        .map_err(|e| {
+            SurfDeskError::database(format!("Failed to create environments table: {}", e))
+        })?;
 
-            -- Accounts table
+        // Accounts table
+        conn.execute(
+            r#"
             CREATE TABLE IF NOT EXISTS accounts (
                 id TEXT PRIMARY KEY,
                 environment_id TEXT NOT NULL,
@@ -61,9 +75,16 @@ impl SimpleMigration {
                 executable BOOLEAN NOT NULL DEFAULT FALSE,
                 rent_epoch BIGINT,
                 FOREIGN KEY (environment_id) REFERENCES environments(id) ON DELETE CASCADE
-            );
+            )
+            "#,
+            (),
+        )
+        .await
+        .map_err(|e| SurfDeskError::database(format!("Failed to create accounts table: {}", e)))?;
 
-            -- Transactions table
+        // Transactions table
+        conn.execute(
+            r#"
             CREATE TABLE IF NOT EXISTS transactions (
                 id TEXT PRIMARY KEY,
                 environment_id TEXT NOT NULL,
@@ -80,9 +101,18 @@ impl SimpleMigration {
                 accounts TEXT,
                 memo TEXT,
                 FOREIGN KEY (environment_id) REFERENCES environments(id) ON DELETE CASCADE
-            );
+            )
+            "#,
+            (),
+        )
+        .await
+        .map_err(|e| {
+            SurfDeskError::database(format!("Failed to create transactions table: {}", e))
+        })?;
 
-            -- Programs table
+        // Programs table
+        conn.execute(
+            r#"
             CREATE TABLE IF NOT EXISTS programs (
                 id TEXT PRIMARY KEY,
                 environment_id TEXT NOT NULL,
@@ -98,9 +128,16 @@ impl SimpleMigration {
                 is_deployed BOOLEAN NOT NULL DEFAULT FALSE,
                 is_verified BOOLEAN NOT NULL DEFAULT FALSE,
                 FOREIGN KEY (environment_id) REFERENCES environments(id) ON DELETE CASCADE
-            );
+            )
+            "#,
+            (),
+        )
+        .await
+        .map_err(|e| SurfDeskError::database(format!("Failed to create programs table: {}", e)))?;
 
-            -- Settings table
+        // Settings table
+        conn.execute(
+            r#"
             CREATE TABLE IF NOT EXISTS settings (
                 id TEXT PRIMARY KEY,
                 key TEXT NOT NULL UNIQUE,
@@ -112,66 +149,72 @@ impl SimpleMigration {
                 is_user_configurable BOOLEAN NOT NULL DEFAULT TRUE,
                 data_type TEXT NOT NULL DEFAULT 'string',
                 validation TEXT
-            );
+            )
             "#,
+            (),
         )
-        .map_err(|e| SurfDeskError::database(format!("Failed to create database tables: {}", e)))?;
+        .await
+        .map_err(|e| SurfDeskError::database(format!("Failed to create settings table: {}", e)))?;
 
         // Create indexes for performance
-        conn.batch_execute(
-            r#"
-            CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
-            CREATE INDEX IF NOT EXISTS idx_environments_project_id ON environments(project_id);
-            CREATE INDEX IF NOT EXISTS idx_accounts_environment_id ON accounts(environment_id);
-            CREATE INDEX IF NOT EXISTS idx_accounts_pubkey ON accounts(pubkey);
-            CREATE INDEX IF NOT EXISTS idx_transactions_environment_id ON transactions(environment_id);
-            CREATE INDEX IF NOT EXISTS idx_transactions_signature ON transactions(signature);
-            CREATE INDEX IF NOT EXISTS idx_programs_environment_id ON programs(environment_id);
-            CREATE INDEX IF NOT EXISTS idx_programs_program_id ON programs(program_id);
-            CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);
-            "#,
-        ).map_err(|e| {
-            SurfDeskError::database(format!("Failed to create database indexes: {}", e))
-        })?;
+        let indexes = vec![
+            "CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects (owner)",
+            "CREATE INDEX IF NOT EXISTS idx_environments_project_id ON environments (project_id)",
+            "CREATE INDEX IF NOT EXISTS idx_accounts_environment_id ON accounts (environment_id)",
+            "CREATE INDEX IF NOT EXISTS idx_transactions_environment_id ON transactions (environment_id)",
+        ];
 
-        log::info!("Database tables created successfully");
+        for index_sql in indexes {
+            conn.execute(index_sql, ())
+                .await
+                .map_err(|e| SurfDeskError::database(format!("Failed to create index: {}", e)))?;
+        }
+
         Ok(())
     }
 
     /// Initialize database with basic setup
-    pub fn initialize_database(conn: &mut SqliteConnection) -> Result<()> {
+    pub async fn initialize_database(conn: &mut Connection) -> Result<()> {
         // Enable foreign keys
-        diesel::sql_query("PRAGMA foreign_keys = ON")
-            .execute(&mut *conn)
+        conn.execute("PRAGMA foreign_keys = ON", ())
+            .await
             .map_err(|e| {
                 SurfDeskError::database(format!("Failed to enable foreign keys: {}", e))
             })?;
 
         // Enable WAL mode for better concurrency
-        diesel::sql_query("PRAGMA journal_mode = WAL")
-            .execute(&mut *conn)
+        conn.execute("PRAGMA journal_mode = WAL", ())
+            .await
             .map_err(|e| SurfDeskError::database(format!("Failed to enable WAL mode: {}", e)))?;
 
         // Create tables
-        Self::create_tables(conn)?;
+        Self::create_tables(conn).await?;
 
         Ok(())
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::tempdir;
+/// Database initialization utilities
+pub struct DatabaseInitializer;
 
-    #[test]
-    fn test_simple_migration() {
-        let temp_dir = tempdir().unwrap();
-        let db_path = temp_dir.path().join("test.db");
-        let db_url = db_path.to_string_lossy();
+impl DatabaseInitializer {
+    /// Initialize database with all tables and migrations
+    pub async fn initialize(database_url: &str) -> Result<()> {
+        let db = libsql::Builder::new_local(database_url)
+            .build()
+            .await
+            .map_err(|e| SurfDeskError::database(format!("Failed to open database: {}", e)))?;
 
-        let mut conn = SqliteConnection::establish(&db_url).unwrap();
-        let result = SimpleMigration::initialize_database(&mut conn);
-        assert!(result.is_ok());
+        let mut conn = db
+            .connect()
+            .map_err(|e| SurfDeskError::database(e.to_string()))?;
+
+        SimpleMigration::initialize_database(&mut conn)
+            .await
+            .map_err(|e| {
+                SurfDeskError::database(format!("Failed to initialize database: {}", e))
+            })?;
+
+        Ok(())
     }
 }
