@@ -26,6 +26,8 @@ pub struct SurfPoolController {
     config: Arc<RwLock<SurfPoolConfig>>,
     /// Current status
     status: Arc<RwLock<ControllerStatus>>,
+    /// Process start time for uptime tracking
+    start_time: Arc<RwLock<Option<std::time::Instant>>>,
 }
 
 // SAFETY: SurfPoolController is Send + Sync because all its fields are Send + Sync
@@ -181,6 +183,7 @@ impl SurfPoolController {
             process: Arc::new(Mutex::new(None)),
             config: Arc::new(RwLock::new(config)),
             status: Arc::new(RwLock::new(ControllerStatus::Stopped)),
+            start_time: Arc::new(RwLock::new(None)),
         })
     }
 
@@ -194,6 +197,7 @@ impl SurfPoolController {
             process: Arc::new(Mutex::new(None)),
             config: Arc::new(RwLock::new(config)),
             status: Arc::new(RwLock::new(ControllerStatus::Stopped)),
+            start_time: Arc::new(RwLock::new(None)),
         })
     }
 
@@ -312,6 +316,9 @@ impl SurfPoolController {
         // Store the process handle
         *self.process.lock().await = Some(child);
 
+        // Record start time for uptime tracking
+        *self.start_time.write().await = Some(std::time::Instant::now());
+
         log::info!("SurfPool started with mainnet fork on port 8999");
         Ok(())
     }
@@ -345,12 +352,22 @@ impl SurfPoolController {
         let status = self.status.read().await;
         let is_running = matches!(*status, ControllerStatus::Running);
 
+        let pid = {
+            let process_guard = self.process.lock().await;
+            process_guard.as_ref().map(|p| p.id())
+        };
+
+        let uptime_seconds = {
+            let start_time_guard = self.start_time.read().await;
+            start_time_guard.map(|start| start.elapsed().as_secs())
+        };
+
         Ok(ProcessStatus {
             is_running,
             rpc_port: 8999,
             ws_port: 9000,
-            pid: None,            // TODO: Get actual PID from process
-            uptime_seconds: None, // TODO: Track uptime
+            pid,
+            uptime_seconds,
         })
     }
 
@@ -375,6 +392,10 @@ impl SurfPoolController {
         }
 
         *self.status.write().await = ControllerStatus::Stopped;
+
+        // Clear start time when process stops
+        *self.start_time.write().await = None;
+
         Ok(())
     }
 
@@ -435,17 +456,61 @@ impl SurfPoolController {
         match self.platform {
             Platform::Desktop | Platform::Terminal => {
                 // Collect actual metrics from the system
-                // TODO: Implement actual metrics collection from SurfPool RPC
+                let uptime_seconds = {
+                    let start_time_guard = self.start_time.read().await;
+                    start_time_guard
+                        .map(|start| start.elapsed().as_secs())
+                        .unwrap_or(0)
+                };
+
+                // Get process status for PID-based metrics
+                let pid = {
+                    let process_guard = self.process.lock().await;
+                    process_guard.as_ref().map(|p| p.id())
+                };
+
+                let memory_usage_mb = if let Some(process_id) = pid {
+                    // Try to get memory usage from /proc/<pid>/status on Unix-like systems
+                    #[cfg(unix)]
+                    {
+                        use std::fs;
+                        if let Ok(status) =
+                            fs::read_to_string(format!("/proc/{}/status", process_id))
+                        {
+                            let mut memory_mb = 512; // Default value
+                            for line in status.lines() {
+                                if line.starts_with("VmRSS:") {
+                                    if let Some(kb_str) = line.split_whitespace().nth(1) {
+                                        if let Ok(kb) = kb_str.parse::<u64>() {
+                                            memory_mb = (kb / 1024) as u32; // Convert KB to MB
+                                        }
+                                    }
+                                }
+                            }
+                            memory_mb
+                        } else {
+                            512 // Fallback value
+                        }
+                    }
+                    #[cfg(not(unix))]
+                    {
+                        512 // Default value for non-Unix systems
+                    }
+                } else {
+                    512
+                };
+
+                let config = self.config.read().await;
                 Ok(ValidatorMetrics {
-                    uptime_seconds: 0,    // Would need to track start time
-                    memory_usage_mb: 512, // Would need to monitor actual usage
-                    cpu_percent: 15.0,
-                    disk_usage_gb: 0.5,
+                    uptime_seconds,
+                    memory_usage_mb,
+                    cpu_percent: 15.0, // Would need sysinfo crate for actual CPU usage
+                    disk_usage_gb: 0.5, // Would need to scan ledger directory
                     connected_peers: 0, // Local SurfPool has no external peers
                     slots_processed: 0, // Would need to query RPC
                     transaction_count: 0,
-                    fork_height: None,  // Only for fork environments
-                    accounts_loaded: 0, // Would need to query from SurfPool
+                    fork_height: config.fork_slot,
+                    accounts_loaded: config.preset_accounts.len() as u64,
                 })
             }
             Platform::Web => {
@@ -532,6 +597,7 @@ pub fn use_surfpool_controller(platform: Platform) -> Signal<SurfPoolController>
             process: Arc::new(Mutex::new(None)),
             config: Arc::new(RwLock::new(config)),
             status: Arc::new(RwLock::new(ControllerStatus::Stopped)),
+            start_time: Arc::new(RwLock::new(None)),
         }
     })
 }

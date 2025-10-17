@@ -66,8 +66,8 @@ pub use program_manager::ProgramManager;
 // pub use settings::Settings;  // Temporarily commented out
 pub use sidebar::Sidebar;
 // pub use status_bar::StatusBar;  // TODO: Implement
-pub use table::Table; // TODO: Implement
-pub use transaction_builder::TransactionBuilder; // TODO: Implement
+pub use table::Table;
+pub use transaction_builder::TransactionBuilder;
 
 // Re-export services for integration
 pub use crate::services::{

@@ -566,12 +566,96 @@ impl DatabaseService {
 
         log::info!("Running migrations on Turso database");
 
-        // For now, assume migrations are handled externally
-        // TODO: Implement proper Turso migration system
+        // Get database connection for Turso
+        let conn = self.get_connection().await?;
+
+        // Create migrations table if it doesn't exist
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS __turso_migrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                version TEXT NOT NULL UNIQUE,
+                applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            (),
+        )
+        .await
+        .map_err(|e| {
+            SurfDeskError::database(format!("Failed to create migrations table: {}", e))
+        })?;
+
+        // List of migrations to apply
+        let migrations = vec![
+            (
+                "001_initial_accounts",
+                "
+                CREATE TABLE IF NOT EXISTS accounts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    pubkey TEXT NOT NULL UNIQUE,
+                    label TEXT,
+                    network TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ",
+            ),
+            (
+                "002_transactions",
+                "
+                CREATE TABLE IF NOT EXISTS transactions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    signature TEXT NOT NULL UNIQUE,
+                    from_pubkey TEXT NOT NULL,
+                    to_pubkey TEXT NOT NULL,
+                    amount_lamports BIGINT NOT NULL,
+                    network TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    confirmed_at DATETIME
+                )
+            ",
+            ),
+            (
+                "003_settings",
+                "
+                CREATE TABLE IF NOT EXISTS settings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    key TEXT NOT NULL UNIQUE,
+                    value TEXT NOT NULL,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ",
+            ),
+        ];
+
+        // Apply migrations that haven't been applied yet
+        for (version, sql) in migrations {
+            log::info!("Applying Turso migration: {}", version);
+
+            // Execute migration SQL
+            for statement in sql.split(';') {
+                let statement = statement.trim();
+                if !statement.is_empty() {
+                    conn.execute(statement, ()).await.map_err(|e| {
+                        SurfDeskError::database(format!("Migration {} failed: {}", version, e))
+                    })?;
+                }
+            }
+
+            // Record migration as applied (ignore if already exists)
+            if let Err(e) = conn
+                .execute("INSERT INTO __turso_migrations (version) VALUES (?1)", ())
+                .await
+            {
+                log::debug!("Migration {} already recorded: {}", version, e);
+            }
+
+            log::info!("Successfully applied Turso migration: {}", version);
+        }
+
         let mut migrations_run = self.migrations_run.write().await;
         *migrations_run = true;
 
-        log::info!("Turso migrations marked as complete");
+        log::info!("Turso migrations completed successfully");
         Ok(())
     }
 

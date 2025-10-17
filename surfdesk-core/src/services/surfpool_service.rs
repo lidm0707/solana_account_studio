@@ -451,6 +451,8 @@ pub struct DeploymentRequest {
     pub seed: Vec<u8>,
     /// Payer keypair for transaction fees
     pub payer: Arc<Keypair>,
+    /// Optional custom instruction for deployment
+    pub custom_instruction: Option<Instruction>,
 }
 
 impl DeploymentRequest {
@@ -472,13 +474,14 @@ impl DeploymentRequest {
             executable,
             seed,
             payer,
+            custom_instruction: None,
         }
     }
 
     /// Create deployment request with custom instruction
     pub fn with_custom_instruction(mut self, instruction: Instruction) -> Self {
-        // TODO: Implement custom instruction storage
-        // self.custom_instruction = Some(instruction);
+        // Store custom instruction for deployment
+        self.custom_instruction = Some(instruction);
         self
     }
 }
@@ -746,14 +749,13 @@ pub struct DeploymentStatistics {
 
 /// Hook for using SurfPool service in Dioxus components
 pub fn use_surfpool_service() -> Result<Arc<SurfPoolService>> {
-    // For now, return a mock service
-    // In a real implementation, this would use Dioxus context or state management
-    // TODO: Implement proper service initialization without tokio::spawn
-    // The async spawn was causing thread safety issues with HttpClient
-
-    // Return a placeholder for now
+    // TODO: Implement proper async service initialization in Dioxus context
+    // For now, return a placeholder service that can be initialized later
+    // In a real implementation, this would use Dioxus's use_coroutine or similar
+    // to handle the async constructor properly
     Err(crate::error::SurfDeskError::internal(
-        "Service not yet implemented",
+        "SurfPoolService async initialization not yet implemented in use_surfpool_service hook. \
+         This requires proper Dioxus context management for async operations.",
     ))
 }
 
