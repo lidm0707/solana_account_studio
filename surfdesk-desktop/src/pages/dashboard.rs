@@ -58,7 +58,7 @@ pub fn DashboardPage() -> Element {
             loop {
                 // Fetch real data
                 // Get account count
-                let accounts = account_mgr.get_accounts().to_vec();
+                let accounts = account_mgr.get_all_accounts();
                 account_count_signal.set(accounts.len());
 
                 // Calculate total balance
@@ -122,8 +122,9 @@ pub fn DashboardPage() -> Element {
             let manager = manager.clone();
             let account_mgr = account_mgr.clone();
             spawn(async move {
-                if account_mgr.get_accounts().len() > 0 {
-                    let first_account = account_mgr.get_accounts().first().unwrap();
+                let accounts = account_mgr.get_all_accounts();
+                if accounts.len() > 0 {
+                    let first_account = accounts.first().unwrap();
                     if let Err(e) = manager
                         .request_airdrop(&first_account.pubkey.to_string(), 1_000_000_000)
                         .await
@@ -379,47 +380,6 @@ pub fn DashboardPage() -> Element {
     }
 }
 
-// Real transaction fetching
-fn get_recent_transactions() -> Vec<TransactionSummary> {
-    // This would fetch real transaction signatures and details
-    // For now, return empty as real implementation would need more work
-    vec![]
-}
-
-    /// Transaction summary for display
-    #[derive(Debug, Clone)]
-    pub struct TransactionSummary {
-        pub id: String,
-        pub signature: String,
-        pub timestamp: String,
-        pub amount: f64,
-        pub status: String,
-        pub from: String,
-        pub to: String,
-    }
-
-    impl Default for TransactionSummary {
-        fn default() -> Self {
-            Self {
-                id: "tx_123".to_string(),
-                signature: "abc123def456".to_string(),
-                timestamp: "5".to_string(),
-                amount: 0.5,
-                status: "confirmed".to_string(),
-                from: "11111111111111111111111111111112".to_string(),
-                to: "22222222222222222222222222222223".to_string(),
-            }
-        }
-    }
-}
-
-// Real transaction fetching
-fn get_recent_transactions() -> Vec<TransactionSummary> {
-    // This would fetch real transaction signatures and details
-    // For now, return empty as real implementation would need more work
-    vec![]
-}
-
 /// Transaction summary for display
 #[derive(Debug, Clone, Default)]
 pub struct TransactionSummary {
@@ -430,4 +390,11 @@ pub struct TransactionSummary {
     pub status: String,
     pub from: String,
     pub to: String,
+}
+
+// Real transaction fetching
+fn get_recent_transactions() -> Vec<TransactionSummary> {
+    // This would fetch real transaction signatures and details
+    // For now, return empty as real implementation would need more work
+    vec![]
 }
