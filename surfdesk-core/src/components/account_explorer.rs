@@ -2,6 +2,8 @@
 //!
 //! Simple account management for SurfDesk with clean architecture.
 
+#![allow(dead_code)]
+
 use crate::services::surfpool_service::{
     system_program, CompiledInstruction, DeploymentRequest, DeploymentResult, DeploymentStatistics,
     SurfPoolService, SurfPoolStatus, Transaction,
@@ -14,14 +16,18 @@ use std::sync::Arc;
 
 // Hook for accessing SurfPool service (simplified for compilation)
 fn use_surfpool_service() -> Arc<SurfPoolService> {
-    // Simplified mock service for development
-    static mut SERVICE: Option<Arc<SurfPoolService>> = None;
-    unsafe {
-        if SERVICE.is_none() {
-            SERVICE = Some(Arc::new(SurfPoolService::new_mock()));
-        }
-        SERVICE.clone().unwrap()
+    // Use thread_local storage instead of static mut for safety
+    use std::cell::RefCell;
+    thread_local! {
+        static SERVICE: RefCell<Option<Arc<SurfPoolService>>> = RefCell::new(None);
     }
+
+    SERVICE.with(|service| {
+        if service.borrow().is_none() {
+            *service.borrow_mut() = Some(Arc::new(SurfPoolService::new_mock()));
+        }
+        service.borrow().as_ref().unwrap().clone()
+    })
 }
 
 // Hook for validator status (simplified)

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Database Service Module
 //!
 //! This module provides database integration for the SurfDesk application.
@@ -280,7 +281,7 @@ impl DatabaseService {
 
     /// Get database statistics
     pub async fn get_stats(&self) -> Result<DatabaseStats> {
-        let mut conn = self.get_connection().await?;
+        let conn = self.get_connection().await?;
 
         // Get table counts using libsql
         let mut rows = conn
@@ -351,7 +352,7 @@ impl DatabaseService {
             ));
         }
 
-        let mut conn = self.get_connection().await?;
+        let conn = self.get_connection().await?;
 
         // Use SQLite backup API
         let backup_path = std::path::Path::new(backup_path);
@@ -398,7 +399,7 @@ impl DatabaseService {
             ));
         }
 
-        let mut conn = self.get_connection().await?;
+        let conn = self.get_connection().await?;
         conn.execute("VACUUM", ())
             .await
             .map_err(|e| SurfDeskError::database(e.to_string()))?;
@@ -409,7 +410,7 @@ impl DatabaseService {
 
     /// Analyze database for query optimization
     pub async fn analyze(&self) -> Result<()> {
-        let mut conn = self.get_connection().await?;
+        let conn = self.get_connection().await?;
         conn.execute("ANALYZE", ())
             .await
             .map_err(|e| SurfDeskError::database(e.to_string()))?;

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Modal Styles Module
 //!
 //! Modal dialog and overlay styling for SurfDesk application.

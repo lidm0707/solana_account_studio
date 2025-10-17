@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Dropdown Components
 //!
 //! Professional dropdown system with search, multi-select, and accessibility features
@@ -6,8 +7,8 @@
 // use super::css_class; // Temporarily disabled to fix compilation
 use dioxus::prelude::*;
 use std::collections::HashSet;
-#[cfg(feature = "web")]
-use wasm_bindgen::prelude::Closure;
+// #[cfg(feature = "web")]
+// use wasm_bindgen::prelude::Closure;
 
 /// Dropdown option value type
 /// Dropdown value

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Logger Service Module
 //!
 //! This module provides logging services for the SurfDesk application.

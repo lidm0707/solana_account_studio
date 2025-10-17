@@ -4,6 +4,8 @@
 //! Displays live account balances, transaction status, and real-time updates
 //! for Solana accounts being tracked.
 
+#![allow(dead_code)]
+
 use crate::services::websocket::WebSocketMessage;
 use dioxus::prelude::*;
 use std::collections::HashMap;

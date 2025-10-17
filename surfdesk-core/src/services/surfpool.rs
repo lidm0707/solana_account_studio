@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # SurfPool Service
 //!
 //! This service provides integration with SurfPool for managing local Solana validators

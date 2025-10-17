@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Table Component Module
 //!
 //! This module provides a table component for displaying tabular data

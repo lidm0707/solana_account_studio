@@ -12,7 +12,7 @@ pub use migrations::SimpleMigration;
 // pub use schema::*; // Removed - no longer using diesel
 
 use crate::error::{Result, SurfDeskError};
-use libsql::{Connection, Database};
+use libsql::Connection;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 

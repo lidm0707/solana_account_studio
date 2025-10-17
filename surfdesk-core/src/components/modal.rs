@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Modal Component (MVP Version)
 //!
 //! Simplified modal component for MVP approach.

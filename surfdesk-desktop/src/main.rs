@@ -1,6 +1,18 @@
 //! # SurfDesk Desktop Application
 //!
 //! Professional desktop application for Solana account management.
+//!
+//! ## Development Status
+//!
+//! This codebase is currently in active development. Many components, functions,
+//! and imports are work-in-progress and will be fully implemented in future
+//! iterations. Warning suppression is enabled to facilitate rapid development
+//! and iterative feature implementation.
+
+#![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(unused_mut)]
 
 use anyhow::Result;
 use clap::Parser;

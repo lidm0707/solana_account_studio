@@ -1,16 +1,19 @@
+#![allow(dead_code)]
 //! # Styles Module
 //!
 //! Centralized styling system for SurfDesk cross-platform application.
 //! Provides consistent styling across desktop, web, and terminal platforms.
 
+#![allow(dead_code)]
+
 // Re-export all style files
 pub use design_system::*;
-pub use dropdown::*;
-pub use input::*;
-pub use keyboard::*;
-pub use loading::*;
+// pub use dropdown::*;  // Commented out to avoid ambiguous re-exports
+// pub use input::*;     // Commented out to avoid ambiguous re-exports
+// pub use keyboard::*;  // Commented out to avoid ambiguous re-exports
+// pub use loading::*;   // Commented out to avoid ambiguous re-exports
 pub use modal::*;
-pub use toast::*;
+// pub use toast::*;     // Commented out to avoid ambiguous re-exports
 
 /// Include all CSS styles for compilation
 pub fn include_all_styles() -> String {

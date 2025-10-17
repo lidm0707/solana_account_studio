@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # App Shell Component Module
 //!
 //! This module provides the main application shell component that wraps

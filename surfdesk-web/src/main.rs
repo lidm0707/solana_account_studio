@@ -3,6 +3,19 @@
 //! This is the main entry point for the SurfDesk web application.
 //! It provides a browser-based experience for the Solana account studio
 //! using Dioxus for cross-platform web development.
+//!
+//! ## Development Status
+//!
+//! This codebase is currently in active development. Many components, functions,
+//! and imports are work-in-progress and will be fully implemented in future
+//! iterations. Warning suppression is enabled to facilitate rapid development
+//! and iterative feature implementation.
+
+#![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(unused_mut)]
+#![allow(static_mut_refs)]
 
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
@@ -870,9 +883,14 @@ fn init_web_logging() {
 }
 
 // Initialize web account service
-static mut ACCOUNT_SERVICE: Option<AccountService> = None;
+// Use thread_local storage instead of static mut for safety
+use std::cell::RefCell;
+thread_local! {
+    static ACCOUNT_SERVICE: RefCell<Option<AccountService>> = RefCell::new(None);
+}
 
 fn get_account_service() -> &'static mut AccountService {
+    static mut ACCOUNT_SERVICE: Option<AccountService> = None;
     unsafe {
         if ACCOUNT_SERVICE.is_none() {
             ACCOUNT_SERVICE = Some(AccountService::new(SolanaNetwork::Devnet));

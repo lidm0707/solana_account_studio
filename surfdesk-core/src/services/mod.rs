@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Services Module
 //!
 //! This module contains all the service layer components for SurfDesk.

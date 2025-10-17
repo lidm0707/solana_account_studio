@@ -3,8 +3,10 @@
 //! Comprehensive keyboard shortcut system for the SurfDesk desktop application.
 //! Provides global hotkeys, action handlers, and shortcut management.
 
+#![allow(dead_code)]
+
 use dioxus::prelude::*;
-use log::{debug, info, warn};
+use log::{debug, info};
 use std::collections::HashMap;
 // use web_sys::KeyboardEvent; // Remove web_sys dependency for now
 
@@ -554,7 +556,7 @@ pub fn KeyboardShortcutsDialog(
 
                         select {
                             class: "category-filter",
-                            value: {selected_category().map_or(String::new(), |c| format!("{:?}", c))},
+                            value: selected_category().map_or(String::new(), |c| format!("{:?}", c)),
                             onchange: move |evt| {
                                 let value = evt.value();
                                 selected_category.set(if value.is_empty() {

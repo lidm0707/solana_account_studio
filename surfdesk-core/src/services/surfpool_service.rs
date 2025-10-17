@@ -4,8 +4,10 @@
 //! Provides production-ready validator management, deployment workflows, and status monitoring
 //! for the SurfDesk desktop application with actual Solana RPC integration.
 
+#![allow(dead_code)]
+
 use crate::error::{Result, SurfDeskError};
-use crate::solana_rpc::{Keypair, Pubkey, Signature, Signer, SolanaRpcClient};
+use crate::solana_rpc::{Keypair, Pubkey, Signature, SolanaRpcClient};
 use crate::transactions::{TransactionInstruction, TransactionStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -104,7 +106,6 @@ impl Default for Hash {
 }
 
 // Import rand for mock keypair generation
-use rand;
 
 // Mock types for compilation - will be replaced with real integration
 #[derive(Debug, Clone)]
@@ -768,7 +769,7 @@ mod tests {
     async fn test_deployment_request_creation() {
         let keypair = Arc::new(Keypair::new());
         let request = DeploymentRequest::new(
-            *keypair.pubkey(),
+            keypair.pubkey().clone(),
             crate::solana_rpc::system_program(),
             1_000_000_000,
             100,

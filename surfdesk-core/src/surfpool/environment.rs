@@ -252,7 +252,7 @@ impl EnvironmentManager {
                 "RPC port must be between 1024 and 65535",
             ));
         }
-        if config.ws_port < 1024 || config.ws_port > 65535 {
+        if config.ws_port < 1024 {
             return Err(SurfDeskError::platform(
                 "WebSocket port must be between 1024 and 65535",
             ));

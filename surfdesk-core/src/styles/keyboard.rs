@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Keyboard Styles Module
 //!
 //! Keyboard shortcut and navigation styling for SurfDesk application.

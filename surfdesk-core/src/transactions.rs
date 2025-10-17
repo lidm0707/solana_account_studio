@@ -1,6 +1,8 @@
 //! Transaction Builder Module
 //! Provides transaction creation and signing for MVP
 
+#![allow(dead_code)]
+
 use crate::solana_rpc::{Keypair, Pubkey};
 use serde::{Deserialize, Serialize};
 
@@ -65,7 +67,7 @@ impl TransactionBuilder {
     }
 
     /// Add signer to transaction
-    pub fn add_signer(&mut self, signer: &Keypair) -> &mut Self {
+    pub fn add_signer(&mut self, _signer: &Keypair) -> &mut Self {
         // Note: Keypair doesn't implement Clone, so we store references
         // For MVP, we'll handle this differently
         self

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Loading Component (MVP Version)
 //!
 //! Simplified loading component for MVP approach.

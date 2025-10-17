@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Button Component Module
 //!
 //! This module provides a reusable button component for the SurfDesk application.

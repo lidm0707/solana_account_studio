@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Loading Styles Module
 //!
 //! Loading animation and spinner styling for SurfDesk application.

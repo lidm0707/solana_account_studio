@@ -1,9 +1,12 @@
+#![allow(dead_code)]
 //! # Design System Module
 //!
 //! Core design system variables and utilities for SurfDesk application.
 //! Provides consistent theming, colors, spacing, and typography across all platforms.
 
-use dioxus::prelude::*;
+#![allow(dead_code)]
+
+// use dioxus::prelude::*;  // Currently unused
 
 /// CSS variables for design system
 pub const CSS_VARIABLES: &str = include_str!("design-system.css");
@@ -180,7 +183,7 @@ pub mod breakpoints {
 
 /// Utility functions for generating CSS
 pub mod utils {
-    use super::*;
+    // use super::*;  // Currently unused
 
     /// Generate CSS custom property
     pub fn css_var(name: &str, value: &str) -> String {

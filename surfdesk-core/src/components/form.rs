@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Form Component
 //!
 //! Comprehensive form component with validation, different input types,

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Footer Component
 //!
 //! Footer component for displaying application information,

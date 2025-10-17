@@ -1,6 +1,8 @@
 //! Style constants for SurfDesk Web Application
 //! Provides reusable styling strings for Dioxus components
 
+#![allow(dead_code)]
+
 /// Common layout styles
 pub mod layout {
     pub const CONTAINER: &str = "min-height: 100vh; background-color: #f9fafb;";

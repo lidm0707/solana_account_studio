@@ -3,16 +3,17 @@
 //! Main dashboard showing account overview, portfolio metrics,
 //! recent transactions, and quick actions for the SurfDesk desktop application.
 
-use crate::surfpool::{SurfPoolManager, SurfPoolStatus};
+#![allow(dead_code)]
+
 use dioxus::prelude::*;
-use std::sync::Arc;
 use surfdesk_core::components::{Button, Card, Size, Variant};
+use surfdesk_core::services::surfpool_service::SurfPoolStatus;
 
 /// Dashboard page component
 #[component]
 pub fn DashboardPage() -> Element {
-    let mut total_balance = use_signal(|| 2_456_789_000u64); // 2.456 SOL in lamports
-    let mut account_count = use_signal(|| 3);
+    let total_balance = use_signal(|| 2_456_789_000u64); // 2.456 SOL in lamports
+    let account_count = use_signal(|| 3);
 
     // Mock data for portfolio change
     let portfolio_change = || 2.5;

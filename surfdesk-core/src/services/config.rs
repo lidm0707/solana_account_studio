@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Configuration Service Module
 //!
 //! This module provides configuration management for the SurfDesk application.

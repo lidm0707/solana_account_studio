@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # SurfPool Control Component
 //!
 //! This component provides a basic UI for controlling SurfPool validators

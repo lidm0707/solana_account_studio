@@ -8,6 +8,19 @@
 //! - **Cross-platform**: Shared business logic for desktop, web, and terminal
 //! - **Solana Integration**: Full Solana blockchain interaction capabilities
 //! - **Component Architecture**: Reusable UI components with Dioxus
+//!
+//! ## Development Status
+//!
+//! This codebase is currently in active development. Many components, functions,
+//! and imports are work-in-progress and will be fully implemented in future
+//! iterations. Warning suppression is enabled to facilitate rapid development
+//! and iterative feature implementation.
+
+#![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(unused_mut)]
+#![allow(ambiguous_glob_reexports)]
 //! - **Service Layer**: Modular service architecture for blockchain operations
 //! - **Database Integration**: SQLite database with Diesel ORM for persistence
 //! - **Configuration Management**: Flexible configuration system

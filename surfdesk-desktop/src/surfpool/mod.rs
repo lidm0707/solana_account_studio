@@ -4,17 +4,15 @@
 //! Provides start/stop functionality, status monitoring, and developer tools
 //! for local development environments.
 
+#![allow(dead_code)]
+
 use anyhow::{Context, Result};
 use dioxus::prelude::*;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::{Duration, Instant};
-use surfdesk_core::components::Button;
-use tokio::spawn;
-use tokio::time::sleep;
 
 /// SurfPool configuration and management
 #[derive(Debug)]
@@ -371,7 +369,7 @@ impl SurfPoolManager {
     async fn start_monitoring(&self) -> Result<()> {
         let status = Arc::clone(&self.status);
         let process = Arc::clone(&self.process);
-        let config = self.config.clone();
+        let _config = self.config.clone();
 
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(5));
@@ -437,9 +435,9 @@ impl PartialEq for SurfPoolControlsProps {
 
 /// Simplified SurfPool controls component for compilation
 #[component]
-pub fn SurfPoolControls(props: SurfPoolControlsProps) -> Element {
+pub fn SurfPoolControls() -> Element {
     let status = use_signal(|| SurfPoolStatus::Stopped);
-    let logs = use_signal(Vec::<LogEntry>::new);
+    let _logs = use_signal(Vec::<LogEntry>::new);
     let is_loading = use_signal(|| false);
 
     rsx! {

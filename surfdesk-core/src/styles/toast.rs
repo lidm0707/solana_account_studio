@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Toast Styles Module
 //!
 //! Toast notification styling for SurfDesk application.

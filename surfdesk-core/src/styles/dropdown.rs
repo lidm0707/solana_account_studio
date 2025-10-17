@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # Dropdown Styles Module
 //!
 //! Dropdown component styling for SurfDesk application.

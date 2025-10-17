@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! # WebSocket Service Module
 //!
 //! This module provides WebSocket functionality for real-time updates
@@ -5,7 +6,7 @@
 //! It handles WebSocket connections across all platforms with proper error handling
 //! and reconnection logic.
 
-use crate::error::{Result, SurfDeskError};
+use crate::error::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
