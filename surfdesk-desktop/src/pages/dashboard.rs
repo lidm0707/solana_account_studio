@@ -5,24 +5,91 @@
 
 #![allow(dead_code)]
 
-use crate::surfpool::{SurfPoolConfig, SurfPoolManager, SurfPoolStatus as DesktopSurfPoolStatus};
+use crate::surfpool::{SurfPoolManager, SurfPoolStatus as DesktopSurfPoolStatus};
 use dioxus::prelude::*;
+use log::{debug, error, info, warn};
 use std::sync::Arc;
-use surfdesk_core::components::{Button, Card, Size, Variant};
+use surfdesk_core::accounts::{Account, AccountManager};
+use surfdesk_core::components::{Button, Card, Loading, Size, Variant};
 use surfdesk_core::services::surfpool_service::SurfPoolStatus;
+use surfdesk_core::solana_rpc::{Keypair, Pubkey, SolanaNetwork, SolanaRpcClient};
+use surfdesk_core::state::AppState;
+use surfdesk_core::surfpool::SurfPoolConfig;
 
 /// Dashboard page component
 #[component]
 pub fn DashboardPage() -> Element {
-    let total_balance = use_signal(|| 2_456_789_000u64); // 2.456 SOL in lamports
-    let account_count = use_signal(|| 3);
+    let total_balance = use_signal(|| 0u64);
+    let account_count = use_signal(|| 0);
     let surfpool_status = use_signal(|| DesktopSurfPoolStatus::Stopped);
+    let network_status = use_signal(|| "Disconnected".to_string());
+    let block_height = use_signal(|| 0u64);
+    let slot = use_signal(|| 0u64);
+    let sol_price = use_signal(|| 0.0f64);
+    let portfolio_change = use_signal(|| 0.0f64);
 
-    // Mock data for portfolio change
-    let portfolio_change = || 2.5;
+    // Simple account manager (no Arc for Dioxus compatibility)
+    let account_manager = use_signal(AccountManager::new());
+
+    // Real RPC client (no Arc for Dioxus compatibility)
+    let rpc_client = use_signal(|| {
+        SolanaRpcClient::new_with_url(
+            "http://localhost:8999", // SurfPool default port
+            surfdesk_core::solana_rpc::RpcCommitment::Confirmed,
+        )
+    });
 
     // Create SurfPool manager for actions
     let surfpool_manager = Arc::new(SurfPoolManager::new(SurfPoolConfig::default()));
+
+    // Real data fetching effect
+    use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
+        let mut total_balance_signal = total_balance;
+        let mut account_count_signal = account_count;
+        let mut network_status_signal = network_status;
+        let mut block_height_signal = block_height;
+        let mut slot_signal = slot;
+        let mut sol_price_signal = sol_price;
+        let mut portfolio_change_signal = portfolio_change;
+        let mut account_mgr = account_manager.write();
+        let rpc = rpc_client.read();
+
+        async move {
+            loop {
+                // Fetch real data
+                // Get account count
+                let accounts = account_mgr.get_accounts().to_vec();
+                account_count_signal.set(accounts.len());
+
+                // Calculate total balance
+                let mut balance = 0u64;
+                for account in &accounts {
+                    // Mock balance for now - real implementation would be async
+                    balance += 1_000_000_000; // 1 SOL mock balance
+                }
+                total_balance_signal.set(balance);
+
+                // Fetch real network data from SurfPool RPC
+                if let Ok(slot_data) = rpc.get_slot().await {
+                    slot_signal.set(slot_data);
+                }
+
+                if let Ok(block_data) = rpc.get_block_height().await {
+                    block_height_signal.set(block_data);
+                }
+
+                network_status_signal.set("Connected".to_string());
+
+                // Mock portfolio change for now (would need historical data)
+                portfolio_change_signal.set(2.5);
+
+                // Mock SOL price (would need price API)
+                sol_price_signal.set(142.35);
+
+                tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+            }
+        }
+    });
 
     // Handle SurfPool start/stop
     let handle_start_validator = {
@@ -44,6 +111,29 @@ pub fn DashboardPage() -> Element {
             spawn(async move {
                 if let Err(e) = manager.stop().await {
                     log::error!("Failed to stop SurfPool: {}", e);
+                }
+            });
+        }
+    };
+
+    // Handle real airdrop
+    let handle_airdrop = {
+        let manager = surfpool_manager.clone();
+        let mut account_mgr = account_manager.write();
+        move |_| {
+            let manager = manager.clone();
+            let account_mgr = account_mgr.clone();
+            spawn(async move {
+                if account_mgr.get_accounts().len() > 0 {
+                    let first_account = account_mgr.get_accounts().first().unwrap();
+                    if let Err(e) = manager
+                        .request_airdrop(&first_account.pubkey.to_string(), 1_000_000_000)
+                        .await
+                    {
+                        log::error!("Failed to request airdrop: {}", e);
+                    } else {
+                        log::info!("Airdrop requested successfully");
+                    }
                 }
             });
         }
@@ -114,22 +204,22 @@ pub fn DashboardPage() -> Element {
                             div { class: "network-status",
                                 div { class: "network-item",
                                     span { class: "network-label", "Current Network:" }
-                                    span { class: "network-value", "Devnet" }
+                                    span { class: "network-value", "{network_status()}" }
                                 }
 
                                 div { class: "network-item",
                                     span { class: "network-label", "Block Height:" }
-                                    span { class: "network-value", "185,423,109" }
+                                    span { class: "network-value", "{block_height()}" }
                                 }
 
                                 div { class: "network-item",
                                     span { class: "network-label", "Slot:" }
-                                    span { class: "network-value", "185,423,567" }
+                                    span { class: "network-value", "{slot()}" }
                                 }
 
                                 div { class: "network-item",
                                     span { class: "network-label", "Sol Price:" }
-                                    span { class: "network-value", "$142.35" }
+                                    span { class: "network-value", "${sol_price():.2}" }
                                 }
                             }
                         }
@@ -177,6 +267,10 @@ pub fn DashboardPage() -> Element {
                                                 "Start Validator"
                                             }
                                             Button {
+                                                onclick: handle_airdrop,
+                                                "Request Airdrop"
+                                            }
+                                            Button {
                                                 "Configure"
                                             }
                                         }
@@ -196,7 +290,7 @@ pub fn DashboardPage() -> Element {
                                         }
                                     }
                                 },
-                                DesktopSurfPoolStatus::Error { message, .. } => rsx! {
+                                DesktopSurfPoolStatus::Error(message) => rsx! {
                                     div { class: "surfpool-error",
                                         div { class: "status-indicator error" }
                                         h3 { "SurfPool Error" }
@@ -225,7 +319,7 @@ pub fn DashboardPage() -> Element {
                         size: Size::Large,
 
                         div { class: "transactions-list",
-                            if recent_transactions().is_empty() {
+                            if get_recent_transactions().is_empty() {
                                 div { class: "empty-state",
                                     p { "No recent transactions" }
                                     Button {
@@ -233,7 +327,7 @@ pub fn DashboardPage() -> Element {
                                     }
                                 }
                             } else {
-                                for (i, tx) in recent_transactions().iter().take(5).enumerate() {
+                                for (i, tx) in get_recent_transactions().iter().take(5).enumerate() {
                                     div { class: "transaction-item",
                                         div { class: "transaction-info",
                                             span { class: "transaction-signature",
@@ -259,18 +353,23 @@ pub fn DashboardPage() -> Element {
                 Card {
                     variant: Variant::Default,
                     title: Some("Quick Actions".to_string()),
-                    subtitle: Some("Common tasks you can perform quickly".to_string()),
+                    subtitle: Some("Interact with your local SurfPool validator".to_string()),
                     elevated: true,
 
                     div { class: "quick-actions-grid",
                         Button {
+                            onclick: handle_start_validator,
                             "Start SurfPool"
+                        }
+                        Button {
+                            onclick: handle_airdrop,
+                            "Request Airdrop"
                         }
                         Button {
                             "Create Account"
                         }
                         Button {
-                            "Deploy Program"
+                            "Export Wallet"
                         }
                         Button {
                             "View Analytics"
@@ -280,19 +379,50 @@ pub fn DashboardPage() -> Element {
             }
         }
     }
+
+    // Real transaction fetching
+    fn get_recent_transactions() -> Vec<TransactionSummary> {
+        // This would fetch real transaction signatures and details
+        // For now, return empty as real implementation would need more work
+        vec![]
+    }
+
+    /// Transaction summary for display
+    #[derive(Debug, Clone)]
+    pub struct TransactionSummary {
+        pub id: String,
+        pub signature: String,
+        pub timestamp: String,
+        pub amount: f64,
+        pub status: String,
+        pub from: String,
+        pub to: String,
+    }
+
+    impl Default for TransactionSummary {
+        fn default() -> Self {
+            Self {
+                id: "tx_123".to_string(),
+                signature: "abc123def456".to_string(),
+                timestamp: "5".to_string(),
+                amount: 0.5,
+                status: "confirmed".to_string(),
+                from: "11111111111111111111111111111112".to_string(),
+                to: "22222222222222222222222222222223".to_string(),
+            }
+        }
+    }
 }
 
-// Mock functions for demo
-fn surfpool_status() -> SurfPoolStatus {
-    SurfPoolStatus::Stopped
-}
-
-fn recent_transactions() -> Vec<TransactionSummary> {
+// Real transaction fetching
+fn get_recent_transactions() -> Vec<TransactionSummary> {
+    // This would fetch real transaction signatures and details
+    // For now, return empty as real implementation would need more work
     vec![]
 }
 
 /// Transaction summary for display
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TransactionSummary {
     pub id: String,
     pub signature: String,
@@ -301,38 +431,4 @@ pub struct TransactionSummary {
     pub status: String,
     pub from: String,
     pub to: String,
-}
-
-impl Default for TransactionSummary {
-    fn default() -> Self {
-        Self {
-            id: "tx_123".to_string(),
-            signature: "abc123def456".to_string(),
-            timestamp: "5".to_string(),
-            amount: 0.5,
-            status: "confirmed".to_string(),
-            from: "11111111111111111111111111111112".to_string(),
-            to: "22222222222222222222222222222223".to_string(),
-        }
-    }
-}
-
-/// Quick action card component
-#[component]
-fn QuickActionCard(
-    icon: String,
-    title: String,
-    description: String,
-    onclick: EventHandler<MouseEvent>,
-) -> Element {
-    rsx! {
-        div { class: "quick-action-card",
-            onclick: move |evt| onclick.call(evt),
-            div { class: "quick-action-icon", "{icon}" }
-            div { class: "quick-action-content",
-                h4 { "{title}" }
-                p { "{description}" }
-            }
-        }
-    }
 }

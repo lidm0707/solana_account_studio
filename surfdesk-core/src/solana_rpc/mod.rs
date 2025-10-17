@@ -269,6 +269,12 @@ impl TransactionSignature {
     }
 }
 
+impl std::fmt::Display for TransactionSignature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl From<String> for TransactionSignature {
     fn from(s: String) -> Self {
         Self(s)
@@ -709,6 +715,9 @@ impl std::fmt::Debug for SolanaRpcClient {
 
 // Re-export account service and mock types
 pub mod account_service;
+pub mod accounts;
+pub mod transactions;
+
 pub use account_service::{AccountService, AccountWithBalance, TransactionBuilder};
 
 // System program ID

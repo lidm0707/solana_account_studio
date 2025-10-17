@@ -13,9 +13,11 @@
 pub mod environment;
 
 use crate::error::SurfDeskError;
-use crate::platform::Platform;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
+
+// Re-export Platform for public API
+pub use crate::platform::Platform;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::Arc;

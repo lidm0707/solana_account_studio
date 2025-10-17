@@ -41,7 +41,7 @@ fn NotificationCenter(children: Element) -> Element {
 }
 
 // Import core components
-use pages::DashboardPage;
+use pages::{AccountsPage, DashboardPage, SurfPoolPage};
 use surfdesk_core::components::{Button, Card, Loading, Size};
 use surfpool::{SurfPoolConfig, SurfPoolManager};
 
@@ -244,7 +244,7 @@ fn SurfDeskDesktopApp() -> Element {
 
     rsx! {
         // Include styles from core
-        style { {include_str!("../assets/styles.css")} }
+        style { {include_str!("../../surfdesk-core/src/styles/styles.css")} }
         style { {surfdesk_core::styles::include_all_styles()} }
 
         div {
@@ -279,14 +279,7 @@ fn SurfDeskDesktopApp() -> Element {
                         }
                         DesktopView::Accounts => {
                             rsx! {
-                                div { class: "placeholder-page",
-                                    h2 { "Accounts Page" }
-                                    p { "Coming soon..." }
-                                    Loading {
-                                        size: Some(Size::Medium),
-                                        message: Some("Loading accounts...".to_string()),
-                                    }
-                                }
+                                AccountsPage {}
                             }
                         }
                         DesktopView::Transactions => {
@@ -299,10 +292,7 @@ fn SurfDeskDesktopApp() -> Element {
                         }
                         DesktopView::SurfPool => {
                             rsx! {
-                                div { class: "placeholder-page",
-                                    h2 { "SurfPool Page" }
-                                    p { "Coming soon..." }
-                                }
+                                SurfPoolPage {}
                             }
                         }
                         DesktopView::Analytics => {

@@ -1,9 +1,11 @@
 //! Simple Account Service using Unified RPC Client
 //! Provides account management with real Solana network integration
 
-use crate::accounts::{Account, AccountManager};
 use crate::error::{Result, SurfDeskError};
-use crate::solana_rpc::{Keypair, Pubkey, RpcCommitment, SolanaNetwork, SolanaRpcClient};
+use crate::solana_rpc::{
+    accounts::{Account, AccountManager},
+    Keypair, Pubkey, RpcCommitment, SolanaNetwork, SolanaRpcClient,
+};
 use base64::Engine;
 
 /// Account service with real Solana integration
@@ -58,7 +60,7 @@ impl AccountService {
 
     /// Get all accounts with real-time balances
     pub async fn get_accounts_with_balances(&mut self) -> Result<Vec<AccountWithBalance>> {
-        let accounts = self.account_manager.get_accounts().to_vec();
+        let accounts = self.account_manager.get_accounts();
         let mut accounts_with_balance = Vec::new();
 
         // Get all pubkeys for batch request
@@ -76,7 +78,7 @@ impl AccountService {
             } else {
                 0
             };
-
+            let account = account.clone();
             accounts_with_balance.push(AccountWithBalance {
                 account,
                 balance,
@@ -177,8 +179,8 @@ impl AccountService {
     }
 
     /// Get all accounts (without balance updates)
-    pub fn get_accounts(&self) -> &[Account] {
-        self.account_manager.get_accounts()
+    pub fn get_accounts(&self) -> Vec<Account> {
+        self.account_manager.get_accounts().to_vec()
     }
 
     /// Get current network

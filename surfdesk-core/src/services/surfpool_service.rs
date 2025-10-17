@@ -7,8 +7,12 @@
 #![allow(dead_code)]
 
 use crate::error::{Result, SurfDeskError};
-use crate::solana_rpc::{Keypair, Pubkey, Signature, SolanaRpcClient};
-use crate::transactions::{AccountMeta, Transaction, TransactionInstruction, TransactionStatus};
+use crate::solana_rpc::transactions::Transaction;
+use crate::solana_rpc::{
+    transactions::{AccountMeta, TransactionInfo, TransactionInstruction, TransactionStatus},
+    Keypair, Pubkey, Signature, SolanaRpcClient,
+};
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
@@ -74,8 +78,7 @@ pub mod system_program {
 
 pub mod system_instruction {
     use super::Pubkey;
-    use crate::transactions::{AccountMeta, TransactionInstruction as Instruction};
-
+    use crate::{services::surfpool_service::Instruction, solana_rpc::transactions::AccountMeta};
     pub fn create_account(
         from_pubkey: &Pubkey,
         to_pubkey: &Pubkey,
@@ -284,12 +287,12 @@ impl SurfPoolController {
         Ok(TransactionInstruction {
             program_id: Pubkey::from_string("11111111111111111111111111111111"), // System program
             accounts: vec![
-                crate::transactions::AccountMeta {
+                AccountMeta {
                     pubkey: config.payer.pubkey().clone(),
                     is_signer: true,
                     is_writable: true,
                 },
-                crate::transactions::AccountMeta {
+                AccountMeta {
                     pubkey: config.owner.clone(),
                     is_signer: false,
                     is_writable: true,

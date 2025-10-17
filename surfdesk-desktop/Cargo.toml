@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Core library
-surfdesk-core = { path = "../surfdesk-core", features = ["desktop", "database"] }
+surfdesk-core = { path = "../surfdesk-core", features = ["desktop"] }
 
 # Dioxus desktop
 dioxus = { workspace = true, features = ["desktop"] }
@@ -48,6 +48,12 @@ webbrowser = "0.8"
 reqwest = { version = "0.11", features = ["json"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+
+# Clipboard support
+clipboard = "0.5"
+
+# Hex encoding for wallet files
+hex = "0.4"
 
 # Web dependencies for enhanced modal functionality
 gloo-timers = "0.3"

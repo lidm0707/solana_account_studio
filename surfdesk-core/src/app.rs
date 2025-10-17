@@ -1,10 +1,10 @@
 //! Main SurfDesk Application Component
 
-use crate::accounts::AccountManager;
 use crate::components::AppShell;
 use crate::platform::Platform;
+use crate::solana_rpc::accounts::AccountManager;
+use crate::solana_rpc::transactions::TransactionManager;
 use crate::state::AppState;
-use crate::transactions::TransactionManager;
 use dioxus::prelude::*;
 
 /// Main application component

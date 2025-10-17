@@ -12,8 +12,8 @@ pub mod logger;
 #[cfg(feature = "solana")]
 pub mod solana;
 
-#[cfg(feature = "database")]
-pub mod database;
+// #[cfg(feature = "database")]
+// pub mod database;
 
 pub mod surfpool;
 pub mod surfpool_service;
@@ -33,8 +33,8 @@ pub struct ServiceManager {
     #[cfg(feature = "solana")]
     solana_service: Option<solana::SolanaService>,
     /// Database service (optional)
-    #[cfg(feature = "database")]
-    database_service: Option<database::DatabaseService>,
+    // #[cfg(feature = "database")]
+    // database_service: Option<database::DatabaseService>,
     /// SurfPool service
     surfpool_service: Option<surfpool::SurfPoolService>,
     /// WebSocket service
@@ -57,8 +57,8 @@ impl ServiceManager {
             event_service,
             #[cfg(feature = "solana")]
             solana_service: None,
-            #[cfg(feature = "database")]
-            database_service: None,
+            // #[cfg(feature = "database")]
+            // database_service: None,
             surfpool_service: None,
             websocket_service: None,
         })
@@ -69,12 +69,12 @@ impl ServiceManager {
         log::info!("Initializing all services");
 
         // Initialize database if enabled
-        #[cfg(feature = "database")]
-        {
-            self.database_service =
-                Some(database::DatabaseService::new(&self.config_service).await?);
-            log::info!("Database service initialized");
-        }
+        // #[cfg(feature = "database")]
+        // {
+        //     self.database_service =
+        //         Some(database::DatabaseService::new(&self.config_service).await?);
+        //     log::info!("Database service initialized");
+        // }
 
         // Initialize Solana service if enabled
         #[cfg(feature = "solana")]
@@ -123,59 +123,59 @@ impl ServiceManager {
     }
 
     /// Get the database service
-    #[cfg(feature = "database")]
-    pub fn database_service(&self) -> Option<&database::DatabaseService> {
-        self.database_service.as_ref()
-    }
+    // #[cfg(feature = "database")]
+    // pub fn database_service(&self) -> Option<&database::DatabaseService> {
+    //     self.database_service.as_ref()
+    // }
 
     /// Switch database backend to Turso
-    #[cfg(feature = "database")]
-    pub async fn switch_to_turso(
-        &mut self,
-        url: String,
-        auth_token: String,
-        database_name: String,
-    ) -> Result<()> {
-        log::info!("Switching database backend to Turso: {}", database_name);
+    // #[cfg(feature = "database")]
+    // pub async fn switch_to_turso(
+    //     &mut self,
+    //     url: String,
+    //     auth_token: String,
+    //     database_name: String,
+    // ) -> Result<()> {
+    //     log::info!("Switching database backend to Turso: {}", database_name);
 
-        // Create new Turso database configuration
-        let config = database::DatabaseConfig::from_turso(url.clone(), auth_token, database_name);
+    //     // Create new Turso database configuration
+    //     let config = database::DatabaseConfig::from_turso(url.clone(), auth_token, database_name);
 
-        // Create new database service with Turso configuration
-        let new_service = database::DatabaseService::with_config(config).await?;
+    //     // Create new database service with Turso configuration
+    //     let new_service = database::DatabaseService::with_config(config).await?;
 
-        // Replace the existing service
-        self.database_service = Some(new_service);
+    //     // Replace the existing service
+    //     self.database_service = Some(new_service);
 
-        log::info!("Successfully switched to Turso database backend");
-        Ok(())
-    }
+    //     log::info!("Successfully switched to Turso database backend");
+    //     Ok(())
+    // }
 
     /// Switch database backend to SQLite
-    #[cfg(feature = "database")]
-    pub async fn switch_to_sqlite(&mut self, path: String) -> Result<()> {
-        log::info!("Switching database backend to SQLite: {}", path);
+    // #[cfg(feature = "database")]
+    // pub async fn switch_to_sqlite(&mut self, path: String) -> Result<()> {
+    //     log::info!("Switching database backend to SQLite: {}", path);
 
-        // Create new SQLite database configuration
-        let config = database::DatabaseConfig::from_platform().with_sqlite(path);
+    //     // Create new SQLite database configuration
+    //     let config = database::DatabaseConfig::from_platform().with_sqlite(path);
 
-        // Create new database service with SQLite configuration
-        let new_service = database::DatabaseService::with_config(config).await?;
+    //     // Create new database service with SQLite configuration
+    //     let new_service = database::DatabaseService::with_config(config).await?;
 
-        // Replace the existing service
-        self.database_service = Some(new_service);
+    //     // Replace the existing service
+    //     self.database_service = Some(new_service);
 
-        log::info!("Successfully switched to SQLite database backend");
-        Ok(())
-    }
+    //     log::info!("Successfully switched to SQLite database backend");
+    //     Ok(())
+    // }
 
     /// Get current database backend information
-    #[cfg(feature = "database")]
-    pub fn database_backend_info(&self) -> Option<String> {
-        self.database_service
-            .as_ref()
-            .map(|service| service.backend_info())
-    }
+    // #[cfg(feature = "database")]
+    // pub fn database_backend_info(&self) -> Option<String> {
+    //     self.database_service
+    //         .as_ref()
+    //         .map(|service| service.backend_info())
+    // }
 
     /// Get the SurfPool service
     pub fn surfpool_service(&self) -> Option<&surfpool::SurfPoolService> {
@@ -219,13 +219,13 @@ impl ServiceManager {
             }
         }
 
-        #[cfg(feature = "database")]
-        {
-            if let Some(ref service) = self.database_service {
-                service.shutdown().await?;
-                log::info!("Database service shutdown");
-            }
-        }
+        // #[cfg(feature = "database")]
+        // {
+        //     if let Some(ref service) = self.database_service {
+        //         service.shutdown().await?;
+        //         log::info!("Database service shutdown");
+        //     }
+        // }
 
         self.event_service.shutdown().await?;
         log::info!("Event service shutdown");

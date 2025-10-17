@@ -1,114 +1,157 @@
-#![allow(dead_code)]
-//! # Styles Module
-//!
-//! Centralized styling system for SurfDesk cross-platform application.
-//! Provides consistent styling across desktop, web, and terminal platforms.
+// Styles module for SurfDesk
+//! This module contains style-related utilities and constants for the SurfDesk application.
 
-// Re-export all style files
-pub use design_system::*;
-// pub use dropdown::*;  // Commented out to avoid ambiguous re-exports
-// pub use input::*;     // Commented out to avoid ambiguous re-exports
-// pub use keyboard::*;  // Commented out to avoid ambiguous re-exports
-// pub use loading::*;   // Commented out to avoid ambiguous re-exports
-pub use modal::*;
-// pub use toast::*;     // Commented out to avoid ambiguous re-exports
+// Re-export commonly used style items
+pub use std::collections::HashMap;
 
-/// Include all CSS styles for compilation
-pub fn include_all_styles() -> String {
-    format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}",
-        include_str!("design-system.css"),
-        include_str!("dropdown.css"),
-        include_str!("input.css"),
-        include_str!("keyboard.css"),
-        include_str!("loading.css"),
-        include_str!("modal.css"),
-        include_str!("toast.css")
-    )
-}
-
-/// Style constants for common values
+/// Style constants and utilities
 pub mod constants {
-    /// Common spacing values
-    pub const SPACE_1: &str = "0.25rem";
-    pub const SPACE_2: &str = "0.5rem";
-    pub const SPACE_3: &str = "0.75rem";
-    pub const SPACE_4: &str = "1rem";
-    pub const SPACE_5: &str = "1.25rem";
-    pub const SPACE_6: &str = "1.5rem";
-    pub const SPACE_8: &str = "2rem";
-    pub const SPACE_10: &str = "2.5rem";
-    pub const SPACE_12: &str = "3rem";
+    /// Default font family
+    pub const FONT_FAMILY: &str = "system-ui, -apple-system, sans-serif";
 
-    /// Common font sizes
-    pub const TEXT_XS: &str = "0.75rem";
-    pub const TEXT_SM: &str = "0.875rem";
-    pub const TEXT_BASE: &str = "1rem";
-    pub const TEXT_LG: &str = "1.125rem";
-    pub const TEXT_XL: &str = "1.25rem";
-    pub const TEXT_2XL: &str = "1.5rem";
-    pub const TEXT_3XL: &str = "1.875rem";
+    /// Default border radius
+    pub const BORDER_RADIUS: &str = "8px";
 
-    /// Common border radius values
-    pub const RADIUS_SM: &str = "0.125rem";
-    pub const RADIUS_MD: &str = "0.375rem";
-    pub const RADIUS_LG: &str = "0.5rem";
-    pub const RADIUS_XL: &str = "0.75rem";
-    pub const RADIUS_2XL: &str = "1rem";
+    /// Default spacing unit
+    pub const SPACING_UNIT: &str = "1rem";
 
-    /// Common transition durations
-    pub const DURATION_150: &str = "150ms";
-    pub const DURATION_200: &str = "200ms";
-    pub const DURATION_300: &str = "300ms";
-
-    /// Common z-index values
-    pub const Z_DROPDOWN: &str = "1000";
-    pub const Z_MODAL: &str = "1050";
-    pub const Z_TOAST: &str = "1100";
+    /// Animation duration
+    pub const ANIMATION_DURATION: &str = "0.2s";
 }
 
-/// Utility functions for generating CSS classes
-pub mod utils {
-    /// Combine multiple CSS classes into a single string
-    pub fn combine_classes(classes: &[&str]) -> String {
-        classes
-            .iter()
-            .filter(|s| !s.is_empty())
-            .cloned()
-            .collect::<Vec<_>>()
-            .join(" ")
-    }
+/// CSS class names used throughout the application
+pub mod classes {
+    pub const SURFDESK_DESKTOP: &str = "surfdesk-desktop";
+    pub const MENU_BAR: &str = "menu-bar";
+    pub const SIDEBAR: &str = "sidebar";
+    pub const PAGE_CONTAINER: &str = "page-container";
+    pub const BUTTON: &str = "button";
+    pub const CARD: &str = "card";
+    pub const INPUT: &str = "input";
 
-    /// Generate a conditional CSS class
-    pub fn conditional_class(condition: bool, class_name: &str) -> String {
-        if condition {
-            class_name.to_string()
-        } else {
-            String::new()
-        }
-    }
+    // Status classes
+    pub const STATUS_RUNNING: &str = "status-running";
+    pub const STATUS_STOPPED: &str = "status-stopped";
+    pub const STATUS_ERROR: &str = "status-error";
+    pub const STATUS_STARTING: &str = "status-starting";
+    pub const STATUS_STOPPING: &str = "status-stopping";
+}
 
-    /// Generate CSS class with modifiers
-    pub fn class_with_modifiers(base: &str, modifiers: &[&str]) -> String {
-        let mut classes = Vec::new();
+/// Theme utilities
+pub mod theme {
+    use std::collections::HashMap;
 
-        classes.push(base.to_string());
+    /// Get CSS variables for a theme
+    pub fn get_theme_variables(theme: &str) -> HashMap<String, String> {
+        let mut variables = HashMap::new();
 
-        for modifier in modifiers {
-            if !modifier.is_empty() {
-                classes.push(format!("{}--{}", base, modifier));
+        match theme {
+            "dark" => {
+                variables.insert("background".to_string(), "#1a1a1a".to_string());
+                variables.insert("foreground".to_string(), "#ffffff".to_string());
+                variables.insert("primary".to_string(), "#0084ff".to_string());
+                variables.insert("secondary".to_string(), "#6c757d".to_string());
+            }
+            "light" => {
+                variables.insert("background".to_string(), "#ffffff".to_string());
+                variables.insert("foreground".to_string(), "#000000".to_string());
+                variables.insert("primary".to_string(), "#0066cc".to_string());
+                variables.insert("secondary".to_string(), "#6c757d".to_string());
+            }
+            _ => {
+                // Auto theme (default)
+                variables.insert("background".to_string(), "#ffffff".to_string());
+                variables.insert("foreground".to_string(), "#000000".to_string());
+                variables.insert("primary".to_string(), "#0066cc".to_string());
+                variables.insert("secondary".to_string(), "#6c757d".to_string());
             }
         }
 
-        classes.join(" ")
+        variables
     }
 }
 
-// Re-export design system variables and utilities
-pub mod design_system;
-pub mod dropdown;
-pub mod input;
-pub mod keyboard;
-pub mod loading;
-pub mod modal;
-pub mod toast;
+/// Include all styles for the application
+pub fn include_all_styles() -> String {
+    r#"
+.surfdesk-desktop {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #ffffff;
+    color: #000000;
+    margin: 0;
+    padding: 0;
+}
+
+.menu-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.sidebar {
+    width: 250px;
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    padding: 16px;
+}
+
+.page-container {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.button {
+    padding: 8px 16px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.button:hover {
+    background: #e9ecef;
+}
+
+.card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    background: #ffffff;
+}
+
+.input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.status-running {
+    color: #28a745;
+}
+
+.status-stopped {
+    color: #6c757d;
+}
+
+.status-error {
+    color: #dc3545;
+}
+
+.status-starting {
+    color: #ffc107;
+}
+
+.status-stopping {
+    color: #fd7e14;
+}
+"#
+    .to_string()
+}

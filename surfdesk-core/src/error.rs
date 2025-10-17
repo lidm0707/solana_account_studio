@@ -5,7 +5,6 @@
 //! to ensure consistent error handling across all platforms.
 
 use thiserror::Error;
-
 /// Type alias for Result with SurfDeskError
 pub type Result<T> = std::result::Result<T, SurfDeskError>;
 
@@ -326,6 +325,7 @@ impl From<config::ConfigError> for SurfDeskError {
     }
 }
 
+#[cfg(feature = "database")]
 impl From<libsql::Error> for SurfDeskError {
     fn from(err: libsql::Error) -> Self {
         Self::Database(err.to_string())

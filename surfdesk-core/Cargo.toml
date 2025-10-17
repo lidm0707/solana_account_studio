@@ -24,6 +24,8 @@ cfg-if = "1.0"
 base64 = "0.22"
 gloo-console = "0.3"
 
+libsql = { workspace = true, optional = true }
+
 
 
 # Additional utilities
@@ -39,7 +41,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 toml = "0.8"
 uuid = { workspace = true }
-libsql = { workspace = true, optional = true }
 diesel = { version = "2.1", features = ["sqlite", "r2d2", "chrono"], optional = true }
 diesel_migrations = { version = "2.1", optional = true }
 anyhow = { workspace = true }
@@ -51,8 +52,7 @@ web-sys = { workspace = true, optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
 js-sys = { version = "0.3", optional = true }
 dirs = "6.0.0"
-# solana-transaction-status = "3.0.6"  # Temporarily commented out due to zeroize conflicts
-zeroize = { version = "1.6.0", features = ["alloc"] }
+
 
 [dev-dependencies]
 proptest = { workspace = true }
@@ -60,9 +60,8 @@ tokio-test = "0.4"
 tempfile = "3.0"
 
 [features]
-default = ["database", "surfpool"]
-database = ["libsql"]
-diesel = ["dep:diesel", "dep:diesel_migrations"]
+default = ["surfpool"]
+database = ["libsql"]  # Temporarily disabled due to dependency conflicts
 surfpool = []
 solana = []
 web = ["dioxus/web", "console_log", "wasm-bindgen", "web-sys", "wasm-bindgen-futures", "js-sys", "chrono/wasmbind", "gloo-net"]
