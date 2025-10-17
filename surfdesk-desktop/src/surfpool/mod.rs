@@ -378,36 +378,34 @@ impl SurfPoolManager {
                 interval.tick().await;
 
                 // Check if process is still running
-                {
-                    let mut proc = process.lock().unwrap();
-                    if let Some(child) = proc.as_mut() {
-                        match child.try_wait() {
-                            Ok(Some(exit_status)) => {
-                                warn!("SurfPool process exited with status: {:?}", exit_status);
+                let mut proc_guard = process.lock().unwrap();
+                if let Some(child) = proc_guard.as_mut() {
+                    match child.try_wait() {
+                        Ok(Some(exit_status)) => {
+                            warn!("SurfPool process exited with status: {:?}", exit_status);
 
-                                // Update status to stopped
-                                let mut st = status.lock().unwrap();
-                                *st = SurfPoolStatus::Stopped;
-                                break;
-                            }
-                            Ok(None) => {
-                                // Process is still running, update uptime
-                                if let SurfPoolStatus::Running { uptime, .. } =
-                                    &mut *status.lock().unwrap()
-                                {
-                                    *uptime += 5;
-                                }
-                            }
-                            Err(e) => {
-                                error!("Error checking SurfPool process: {}", e);
+                            // Update status to stopped
+                            let mut st = status.lock().unwrap();
+                            *st = SurfPoolStatus::Stopped;
+                            break;
+                        }
+                        Ok(None) => {
+                            // Process is still running, update uptime
+                            if let SurfPoolStatus::Running { uptime, .. } =
+                                &mut *status.lock().unwrap()
+                            {
+                                *uptime += 5;
                             }
                         }
-                    } else {
-                        // Process doesn't exist
-                        let mut st = status.lock().unwrap();
-                        *st = SurfPoolStatus::Stopped;
-                        break;
+                        Err(e) => {
+                            error!("Error checking SurfPool process: {}", e);
+                        }
                     }
+                } else {
+                    // No process running
+                    let mut st = status.lock().unwrap();
+                    *st = SurfPoolStatus::Stopped;
+                    break;
                 }
             }
         });

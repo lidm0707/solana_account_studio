@@ -33,7 +33,7 @@ fn use_surfpool_service() -> Arc<SurfPoolService> {
 // Hook for validator status (simplified)
 fn use_validator_status() -> SurfPoolStatus {
     let _service = use_surfpool_service();
-    let mut status = use_signal(|| SurfPoolStatus::Stopped);
+    let status = use_signal(|| SurfPoolStatus::Stopped);
 
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
         let mut status_signal = status.clone();
@@ -53,7 +53,7 @@ fn use_validator_status() -> SurfPoolStatus {
 // Hook for deployment statistics (simplified)
 fn use_deployment_stats() -> DeploymentStatistics {
     let _service = use_surfpool_service();
-    let mut stats = use_signal(|| DeploymentStatistics {
+    let stats = use_signal(|| DeploymentStatistics {
         total_deployments: 0,
         successful_deployments: 0,
         failed_deployments: 0,
@@ -81,7 +81,7 @@ fn use_deployment_stats() -> DeploymentStatistics {
 
 // Hook for real-time balance monitoring
 fn use_balance_monitor(pubkey: Pubkey) -> f64 {
-    let mut balance = use_signal(|| 0.0);
+    let balance = use_signal(|| 0.0);
 
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
         let mut balance_signal = balance.clone();
@@ -185,7 +185,7 @@ pub struct AccountExplorerProps {
 #[component]
 pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     let mut builder = use_signal(AccountBuilder::default);
-    let mut accounts = use_signal(Vec::<AccountData>::new);
+    let accounts = use_signal(Vec::<AccountData>::new);
     let mut active_tab = use_signal(|| "builder".to_string());
     let mut is_building = use_signal(|| false);
     let mut is_deploying = use_signal(|| false);

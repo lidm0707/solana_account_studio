@@ -11,7 +11,7 @@ use surfdesk_core::services::config::{ConfigError, ConfigService, ConfigValue};
 #[test]
 fn test_config_service_creation() {
     // Test that config service can be created successfully
-    let service = ConfigService::new();
+    let _service = ConfigService::new();
     assert!(service.is_ok());
 
     let config_service = service.unwrap();
@@ -38,7 +38,7 @@ fn test_config_set_and_get() {
 
 #[test]
 fn test_config_get_nonexistent_key() {
-    let config_service = ConfigService::new().unwrap();
+    let _config_service = ConfigService::new().unwrap();
 
     let result = config_service.get_config("nonexistent_key");
     assert!(result.is_err());
@@ -175,7 +175,7 @@ fn test_config_persistence() {
         .unwrap();
 
     // Create a new service instance (in a real scenario, this would load from persistence)
-    let new_config_service = ConfigService::new().unwrap();
+    let _new_config_service = ConfigService::new().unwrap();
 
     // Note: In a real implementation, this would test actual persistence
     // For now, we test that the service can be created and initialized
@@ -224,7 +224,7 @@ fn test_config_validation() {
 
 #[test]
 fn test_config_error_handling() {
-    let config_service = ConfigService::new().unwrap();
+    let _config_service = ConfigService::new().unwrap();
 
     // Test error cases
     let error_cases = vec![
@@ -389,18 +389,18 @@ fn test_config_concurrent_access() {
     use std::sync::{Arc, Mutex};
     use std::thread;
 
-    let config_service = Arc::new(Mutex::new(ConfigService::new().unwrap()));
+    let _config_service = Arc::new(Mutex::new(ConfigService::new().unwrap()));
     let mut handles = vec![];
 
     // Spawn multiple threads to test concurrent access
     for i in 0..10 {
-        let service_clone = Arc::clone(&config_service);
+        let _service_clone = Arc::clone(&config_service);
         let handle = thread::spawn(move || {
             let mut service = service_clone.lock().unwrap();
 
             // Each thread sets a unique key
             let key = format!("thread_{}_key", i);
-            let value = ConfigValue::String(format!("thread_{}_value", i));
+            let _value = ConfigValue::String(format!("thread_{}_value", i));
 
             let set_result = service.set_config(&key, value);
             assert!(set_result.is_ok());
@@ -440,7 +440,7 @@ fn test_config_memory_efficiency() {
 
     for i in 0..large_config_count {
         let key = format!("config_key_{}", i);
-        let value = ConfigValue::String(format!("config_value_{}", i));
+        let _value = ConfigValue::String(format!("config_value_{}", i));
 
         let result = config_service.set_config(&key, value);
         assert!(result.is_ok(), "Failed to set config {}", i);

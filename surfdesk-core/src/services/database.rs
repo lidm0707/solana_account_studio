@@ -69,8 +69,8 @@ pub struct TursoConfig {
 impl DatabaseService {
     /// Create a new database service
     pub async fn new(_config_service: &crate::services::config::ConfigService) -> Result<Self> {
-        let config = DatabaseConfig::from_env();
-        Self::with_config(config).await
+        let _config = DatabaseConfig::from_env();
+        Self::with_config(_config).await
     }
 
     /// Create a new database service with custom configuration

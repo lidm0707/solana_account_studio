@@ -16,7 +16,7 @@ fn test_modal_renders_when_open() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(rendered.contains("modal"));
     assert!(rendered.contains("modal-open"));
@@ -36,7 +36,7 @@ fn test_modal_does_not_render_when_closed() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(!rendered.contains("modal"));
     assert!(!rendered.contains("modal-open"));
@@ -53,7 +53,7 @@ fn test_modal_renders_on_web() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(rendered.contains("modal"));
     assert!(rendered.contains("modal-web"));
@@ -71,7 +71,7 @@ fn test_modal_renders_on_terminal() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(rendered.contains("modal"));
     assert!(rendered.contains("modal-terminal"));
@@ -89,7 +89,7 @@ fn test_modal_with_title() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(rendered.contains("modal-title"));
     assert!(rendered.contains("Modal Title"));
@@ -106,7 +106,7 @@ fn test_modal_without_title() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(!rendered.contains("modal-title"));
     assert!(rendered.contains("modal-content"));
@@ -123,7 +123,7 @@ fn test_modal_with_close_button() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(rendered.contains("modal-close"));
     assert!(rendered.contains("close-button"));
@@ -140,7 +140,7 @@ fn test_modal_overlay() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(rendered.contains("modal-overlay"));
     assert!(rendered.contains("overlay-backdrop"));
@@ -158,7 +158,7 @@ fn test_modal_responsive_classes() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(rendered.contains("modal"));
     assert!(rendered.contains("platform-modal"));
@@ -178,7 +178,7 @@ fn test_modal_content_rendering() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(rendered.contains("modal-content"));
     assert!(rendered.contains("content-wrapper"));
@@ -196,7 +196,7 @@ fn test_modal_platform_specific_adaptations() {
         }
     };
 
-    let desktop_rendered = dioxus_ssr::render_element(desktop_modal);
+    let _desktop_rendered = dioxus_ssr::render_element(desktop_modal);
     assert!(desktop_rendered.contains("desktop-modal"));
     assert!(desktop_rendered.contains("backdrop-blur"));
 
@@ -210,7 +210,7 @@ fn test_modal_platform_specific_adaptations() {
         }
     };
 
-    let terminal_rendered = dioxus_ssr::render_element(terminal_modal);
+    let _terminal_rendered = dioxus_ssr::render_element(terminal_modal);
     assert!(terminal_rendered.contains("terminal-modal"));
     assert!(terminal_rendered.contains("ascii-border"));
 }
@@ -227,7 +227,7 @@ fn test_modal_accessibility_attributes() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(rendered.contains("role=\"dialog\""));
     assert!(rendered.contains("aria-modal=\"true\""));
@@ -246,7 +246,7 @@ fn test_modal_transitions() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(modal_component);
+    let _rendered = dioxus_ssr::render_element(modal_component);
 
     assert!(rendered.contains("modal-transition"));
     assert!(rendered.contains("transition-fade"));
@@ -265,7 +265,7 @@ fn test_modal_size_variants() {
         }
     };
 
-    let small_rendered = dioxus_ssr::render_element(small_modal);
+    let _small_rendered = dioxus_ssr::render_element(small_modal);
     assert!(small_rendered.contains("modal-small"));
     assert!(small_rendered.contains("size-small"));
 
@@ -279,7 +279,7 @@ fn test_modal_size_variants() {
         }
     };
 
-    let large_rendered = dioxus_ssr::render_element(large_modal);
+    let _large_rendered = dioxus_ssr::render_element(large_modal);
     assert!(large_rendered.contains("modal-large"));
     assert!(large_rendered.contains("size-large"));
 }

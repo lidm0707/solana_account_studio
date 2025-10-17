@@ -123,7 +123,7 @@ impl ConfigService {
                 {
                     if let Ok(window) = web_sys::window() {
                         if let Ok(storage) = window.local_storage() {
-                            let config_str = serde_json::to_string(&self.config)?;
+                            let _config_str = serde_json::to_string(&self.config)?;
                             storage.set_item("surfdesk-config", &config_str)?;
                             log::info!("Configuration saved to localStorage");
                         }
@@ -525,7 +525,7 @@ impl Default for SecurityConfig {
 
 /// Initialize configuration service
 pub async fn init_config() -> Result<()> {
-    let _config_service = ConfigService::new().await?;
+    let __config_service = ConfigService::new().await?;
     log::info!("Configuration service initialized");
     Ok(())
 }
@@ -536,7 +536,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_config_service_creation() {
-        let result = ConfigService::new().await;
+        let _result = ConfigService::new().await;
         assert!(result.is_ok());
     }
 
@@ -564,7 +564,7 @@ mod tests {
 
     #[test]
     fn test_config_default() {
-        let config = Config::default();
+        let _config = Config::default();
         assert_eq!(
             config.solana.default_network,
             crate::types::SolanaNetwork::Devnet
@@ -589,7 +589,7 @@ mod tests {
 
     #[test]
     fn test_solana_config_default() {
-        let config = SolanaConfig::default();
+        let _config = SolanaConfig::default();
         assert_eq!(config.default_network, crate::types::SolanaNetwork::Devnet);
         assert_eq!(config.connection_timeout, 30);
         assert_eq!(config.commitment, CommitmentLevel::Confirmed);
@@ -598,7 +598,7 @@ mod tests {
 
     #[test]
     fn test_ui_settings_default() {
-        let settings = UISettings::default();
+        let _settings = UISettings::default();
         assert_eq!(settings.theme, crate::types::Theme::Auto);
         assert_eq!(settings.language, "en");
         assert_eq!(settings.font_size, 14);
@@ -607,7 +607,7 @@ mod tests {
 
     #[test]
     fn test_logging_settings_default() {
-        let settings = LoggingSettings::default();
+        let _settings = LoggingSettings::default();
         assert_eq!(settings.level, LogLevel::Info);
         assert!(settings.file_logging);
         assert_eq!(settings.max_file_size, 10);

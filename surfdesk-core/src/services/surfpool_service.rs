@@ -761,13 +761,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_surfpool_service_creation() {
-        let result = SurfPoolService::new().await;
+        let _result = SurfPoolService::new().await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_deployment_request_creation() {
-        let keypair = Arc::new(Keypair::new());
+        let _keypair = Arc::new(Keypair::new());
         let request = DeploymentRequest::new(
             keypair.pubkey().clone(),
             crate::solana_rpc::system_program(),
@@ -786,7 +786,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_deployment_statistics() {
-        let service = SurfPoolService::new().await.unwrap();
+        let _service = SurfPoolService::new().await.unwrap();
         let stats = service.get_deployment_statistics().await.unwrap();
 
         assert_eq!(stats.total_deployments, 0);
@@ -797,7 +797,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_deployment_queue_management() {
-        let service = SurfPoolService::new().await.unwrap();
+        let _service = SurfPoolService::new().await.unwrap();
 
         // Test empty queue
         assert_eq!(service.get_deployment_queue_length().await.unwrap(), 0);

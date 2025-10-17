@@ -55,7 +55,7 @@ pub fn Settings(props: SettingsProps) -> Element {
     let auto_save = props.auto_save.unwrap_or(true);
     let notifications_enabled = props.notifications_enabled.unwrap_or(true);
 
-    let mut settings = use_signal(|| SettingsData {
+    let settings = use_signal(|| SettingsData {
         theme: theme.clone(),
         language: language.clone(),
         auto_save,

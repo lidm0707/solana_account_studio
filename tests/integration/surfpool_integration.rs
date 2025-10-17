@@ -21,7 +21,7 @@ fn test_surfpool_desktop_integration() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     // Verify SurfPool integration elements
     assert!(rendered.contains("app-shell"));
@@ -42,7 +42,7 @@ fn test_surfpool_web_integration() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     // Verify web-specific SurfPool elements
     assert!(rendered.contains("platform-web"));
@@ -63,7 +63,7 @@ fn test_surfpool_terminal_integration() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     // Verify terminal-specific SurfPool elements
     assert!(rendered.contains("platform-terminal"));
@@ -74,23 +74,23 @@ fn test_surfpool_terminal_integration() {
 #[test]
 fn test_surfpool_validator_management() {
     // Test validator configuration
-    let config = SurfPoolConfig::default();
+    let _config = SurfPoolConfig::default();
     assert_eq!(config.rpc_port, 8899);
     assert_eq!(config.ws_port, 8900);
     assert!(config.enable_mcp);
     assert!(config.anchor_project);
 
     // Test validator status tracking
-    let status = ValidatorStatus::Stopped;
+    let _status = ValidatorStatus::Stopped;
     assert_eq!(status, ValidatorStatus::Stopped);
 
-    let running_status = ValidatorStatus::Running;
+    let _running_status = ValidatorStatus::Running;
     assert_eq!(running_status, ValidatorStatus::Running);
 }
 
 #[test]
 fn test_surfpool_environment_switching() {
-    let mut app_state = use_signal(|| AppState::default());
+    let app_state = use_signal(|| AppState::default());
 
     // Test switching to different environments
     let environments = vec!["development", "mainnet", "devnet", "testnet"];
@@ -107,7 +107,7 @@ fn test_surfpool_environment_switching() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(app_shell);
+        let _rendered = dioxus_ssr::render_element(app_shell);
 
         // Verify app shell maintains structure during environment switches
         assert!(rendered.contains("app-shell"));
@@ -157,7 +157,7 @@ fn test_surfpool_fork_mainnet() {
 #[test]
 fn test_surfpool_preset_accounts() {
     // Test preset account configuration
-    let config = SurfPoolConfig::default();
+    let _config = SurfPoolConfig::default();
 
     // Verify default preset accounts
     assert!(!config.preset_accounts.is_empty());
@@ -178,7 +178,7 @@ fn test_surfpool_preset_accounts() {
 #[test]
 fn test_surfpool_mcp_support() {
     // Test MCP (Model Context Protocol) support
-    let config = SurfPoolConfig::default();
+    let _config = SurfPoolConfig::default();
 
     // Verify MCP is enabled by default
     assert!(config.enable_mcp);
@@ -201,7 +201,7 @@ fn test_surfpool_cross_platform_consistency() {
     ];
 
     for (platform, expected_class) in platforms {
-        let mut app_state = use_signal(|| AppState::default());
+        let app_state = use_signal(|| AppState::default());
         app_state.write().active_section = "surfpool".to_string();
 
         let app_shell = rsx! {
@@ -212,7 +212,7 @@ fn test_surfpool_cross_platform_consistency() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(app_shell);
+        let _rendered = dioxus_ssr::render_element(app_shell);
 
         // Verify consistent structure across platforms
         assert!(rendered.contains("app-shell"));
@@ -310,7 +310,7 @@ fn test_surfpool_configuration_validation() {
 
 #[test]
 fn test_surfpool_state_persistence() {
-    let mut app_state = use_signal(|| AppState::default());
+    let app_state = use_signal(|| AppState::default());
 
     // Test state changes during SurfPool operations
     let operations = vec![
@@ -333,7 +333,7 @@ fn test_surfpool_state_persistence() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(app_shell);
+        let _rendered = dioxus_ssr::render_element(app_shell);
 
         // Verify state persistence
         assert!(rendered.contains("app-shell"));
@@ -347,7 +347,7 @@ fn test_surfpool_state_persistence() {
 
 #[test]
 fn test_surfpool_integration_workflow() {
-    let mut app_state = use_signal(|| AppState::default());
+    let app_state = use_signal(|| AppState::default());
 
     // Test complete SurfPool workflow
     let workflow_steps = vec![
@@ -373,7 +373,7 @@ fn test_surfpool_integration_workflow() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(app_shell);
+        let _rendered = dioxus_ssr::render_element(app_shell);
 
         // Verify workflow step integrity
         assert!(rendered.contains("app-shell"));

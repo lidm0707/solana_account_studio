@@ -9,7 +9,7 @@ use surfdesk_core::state::AppState;
 
 #[test]
 fn test_navigation_desktop_integration() {
-    let mut app_state = use_signal(|| AppState::default());
+    let app_state = use_signal(|| AppState::default());
     app_state.write().active_section = "dashboard".to_string();
 
     let app_shell = rsx! {
@@ -20,7 +20,7 @@ fn test_navigation_desktop_integration() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     // Verify navigation elements are present
     assert!(rendered.contains("main-nav"));
@@ -32,7 +32,7 @@ fn test_navigation_desktop_integration() {
 
 #[test]
 fn test_navigation_web_integration() {
-    let mut app_state = use_signal(|| AppState::default());
+    let app_state = use_signal(|| AppState::default());
     app_state.write().active_section = "surfpool".to_string();
 
     let app_shell = rsx! {
@@ -43,7 +43,7 @@ fn test_navigation_web_integration() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     // Verify web-specific navigation
     assert!(rendered.contains("platform-web"));
@@ -53,7 +53,7 @@ fn test_navigation_web_integration() {
 
 #[test]
 fn test_navigation_terminal_integration() {
-    let mut app_state = use_signal(|| AppState::default());
+    let app_state = use_signal(|| AppState::default());
     app_state.write().active_section = "accounts".to_string();
 
     let app_shell = rsx! {
@@ -64,7 +64,7 @@ fn test_navigation_terminal_integration() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     // Verify terminal-specific navigation
     assert!(rendered.contains("platform-terminal"));
@@ -74,7 +74,7 @@ fn test_navigation_terminal_integration() {
 
 #[test]
 fn test_navigation_active_state() {
-    let mut app_state = use_signal(|| AppState::default());
+    let app_state = use_signal(|| AppState::default());
 
     // Test Dashboard active state
     app_state.write().active_section = "dashboard".to_string();
@@ -85,7 +85,7 @@ fn test_navigation_active_state() {
             theme: None,
         }
     };
-    let dashboard_rendered = dioxus_ssr::render_element(dashboard_shell);
+    let _dashboard_rendered = dioxus_ssr::render_element(dashboard_shell);
     assert!(dashboard_rendered.contains("nav-item active"));
 
     // Test SurfPool active state
@@ -97,7 +97,7 @@ fn test_navigation_active_state() {
             theme: None,
         }
     };
-    let surfpool_rendered = dioxus_ssr::render_element(surfpool_shell);
+    let _surfpool_rendered = dioxus_ssr::render_element(surfpool_shell);
     assert!(surfpool_rendered.contains("nav-item active"));
 }
 
@@ -113,7 +113,7 @@ fn test_navigation_sidebar_toggle() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(header_component);
+    let _rendered = dioxus_ssr::render_element(header_component);
 
     // Verify sidebar toggle button is present on desktop
     assert!(rendered.contains("sidebar-toggle"));
@@ -129,7 +129,7 @@ fn test_navigation_responsive_behavior() {
             theme: None,
         }
     };
-    let mobile_rendered = dioxus_ssr::render_element(mobile_shell);
+    let _mobile_rendered = dioxus_ssr::render_element(mobile_shell);
     assert!(mobile_rendered.contains("responsive-layout"));
     assert!(mobile_rendered.contains("platform-web"));
 
@@ -141,7 +141,7 @@ fn test_navigation_responsive_behavior() {
             theme: None,
         }
     };
-    let desktop_rendered = dioxus_ssr::render_element(desktop_shell);
+    let _desktop_rendered = dioxus_ssr::render_element(desktop_shell);
     assert!(desktop_rendered.contains("platform-desktop"));
     assert!(rendered.contains("sidebar-nav"));
 }
@@ -159,7 +159,7 @@ fn test_navigation_hierarchy() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(sidebar_component);
+    let _rendered = dioxus_ssr::render_element(sidebar_component);
 
     // Verify hierarchical structure
     assert!(rendered.contains("nav-sections"));
@@ -180,7 +180,7 @@ fn test_navigation_accessibility() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(header_component);
+    let _rendered = dioxus_ssr::render_element(header_component);
 
     // Verify accessibility attributes
     assert!(rendered.contains("<header"));
@@ -201,7 +201,7 @@ fn test_navigation_theme_consistency() {
             theme: Some(surfdesk_core::components::app_shell::Theme::Light),
         }
     };
-    let light_rendered = dioxus_ssr::render_element(light_shell);
+    let _light_rendered = dioxus_ssr::render_element(light_shell);
     assert!(light_rendered.contains("theme-light"));
 
     // Test Dark theme navigation
@@ -212,13 +212,13 @@ fn test_navigation_theme_consistency() {
             theme: Some(surfdesk_core::components::app_shell::Theme::Dark),
         }
     };
-    let dark_rendered = dioxus_ssr::render_element(dark_shell);
+    let _dark_rendered = dioxus_ssr::render_element(dark_shell);
     assert!(dark_rendered.contains("theme-dark"));
 }
 
 #[test]
 fn test_navigation_state_persistence() {
-    let mut app_state = use_signal(|| AppState::default());
+    let app_state = use_signal(|| AppState::default());
 
     // Simulate navigation to different sections
     let sections = vec!["dashboard", "surfpool", "accounts", "transactions"];
@@ -234,7 +234,7 @@ fn test_navigation_state_persistence() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(shell);
+        let _rendered = dioxus_ssr::render_element(shell);
 
         // Verify the shell contains navigation elements
         assert!(rendered.contains("app-shell"));

@@ -135,7 +135,7 @@ custom_env:
 fn EnvironmentSelector() -> Element {
     let environments = use_signal(|| vec![]);
     let active_env = use_signal(|| None);
-    
+
     rsx! {
         div { class: "environment-selector",
             select {
@@ -148,13 +148,13 @@ fn EnvironmentSelector() -> Element {
                     });
                 },
                 for env in environments.read().iter() {
-                    option { 
+                    option {
                         value: "{env.id}",
                         "{env.name} ({env.type_})"
                     }
                 }
             }
-            
+
             button {
                 class: "native-button",
                 onclick: move |_| {
@@ -178,14 +178,14 @@ fn WebEnvironmentSelector() -> Element {
             div { class: "environment-cards",
                 for env in environments.read().iter() {
                     div {
-                        class: format!("env-card {} {}", 
+                        class: format!("env-card {} {}",
                             if active_env.read().as_ref().map(|e| e.id) == Some(env.id) { "active" } else { "" },
                             env.type_
                         ),
                         onclick: move |_| spawn(async move {
                             surfdesk_web::switch_environment(&env.id).await.unwrap();
                         }),
-                        
+
                         h3 { "{env.name}" }
                         p { "Type: {env.type_}" }
                         div { class: "env-status",
@@ -195,7 +195,7 @@ fn WebEnvironmentSelector() -> Element {
                     }
                 }
             }
-            
+
             button {
                 class: "floating-action-button",
                 onclick: move |_| spawn(async move {
@@ -226,13 +226,13 @@ impl EnvironmentPanel {
                 Constraint::Length(3),
             ])
             .split(frame.size());
-        
+
         // Header
         let header = Paragraph::new("Environments")
             .style(Style::default().fg(Color::Cyan))
             .block(Block::default().borders(Borders::ALL));
         frame.render_widget(header, chunks[0]);
-        
+
         // Environment list
         let items: Vec<ListItem> = self.environments
             .iter()
@@ -243,7 +243,7 @@ impl EnvironmentPanel {
                 } else {
                     Style::default()
                 };
-                
+
                 ListItem::new(format!(
                     "{} {} [{}]",
                     if i == self.selected_index { "▶" } else { " " },
@@ -252,11 +252,11 @@ impl EnvironmentPanel {
                 )).style(style)
             })
             .collect();
-        
+
         let list = List::new(items)
             .block(Block::default().borders(Borders::ALL).title("Select Environment"));
         frame.render_widget(list, chunks[1]);
-        
+
         // Footer with controls
         let footer = Paragraph::new("↑↓: Select | Enter: Switch | n: New | d: Delete")
             .style(Style::default().fg(Color::Gray));
@@ -278,14 +278,14 @@ fn TimeControlPanel() -> Element {
     let current_slot = use_signal(|| 0u64);
     let target_slot = use_signal(|| 0u64);
     let is_warping = use_signal(|| false);
-    
+
     rsx! {
         div { class: "time-control-panel",
             div { class: "current-state",
                 h3 { "Current Slot" }
                 span { class: "slot-display", "{current_slot}" }
             }
-            
+
             div { class: "warp-controls",
                 input {
                     r#type: "number",
@@ -293,7 +293,7 @@ fn TimeControlPanel() -> Element {
                     value: "{target_slot}",
                     oninput: move |e| target_slot.set(e.value().parse().unwrap_or(0))
                 }
-                
+
                 button {
                     class: "warp-button",
                     disabled: is_warping(),
@@ -310,31 +310,31 @@ fn TimeControlPanel() -> Element {
                     if is_warping() { "Warping..." } else { "Warp to Slot" }
                 }
             }
-            
+
             div { class: "quick-actions",
-                button { 
+                button {
                     onclick: move |_| spawn(async move {
                         if let Ok(new_slot) = surfdesk_core::advance_slots(10).await {
                             current_slot.set(new_slot);
                         }
                     }),
-                    "+10 Slots" 
+                    "+10 Slots"
                 }
-                button { 
+                button {
                     onclick: move |_| spawn(async move {
                         if let Ok(new_slot) = surfdesk_core::advance_slots(100).await {
                             current_slot.set(new_slot);
                         }
                     }),
-                    "+100 Slots" 
+                    "+100 Slots"
                 }
-                button { 
+                button {
                     onclick: move |_| spawn(async move {
                         if let Ok(snapshot_id) = surfdesk_core::create_snapshot().await {
                             // Show success notification
                         }
                     }),
-                    "Create Snapshot" 
+                    "Create Snapshot"
                 }
             }
         }
@@ -395,7 +395,7 @@ SurfPool provides comprehensive monitoring capabilities with platform-optimized 
 #[component]
 fn MonitoringDashboard() -> Element {
     let metrics = use_signal(|| MonitoringMetrics::default());
-    
+
     // Start metrics collection
     use_effect(move || {
         spawn(async move {
@@ -408,7 +408,7 @@ fn MonitoringDashboard() -> Element {
             }
         });
     });
-    
+
     rsx! {
         div { class: "monitoring-dashboard",
             div { class: "metrics-grid",
@@ -417,26 +417,26 @@ fn MonitoringDashboard() -> Element {
                     value: "{metrics.read().rpc_requests_per_sec}",
                     trend: metrics.read().rpc_trend
                 }
-                
+
                 MetricCard {
                     title: "Memory Usage",
                     value: "{metrics.read().memory_usage_mb} MB",
                     trend: metrics.read().memory_trend
                 }
-                
+
                 MetricCard {
                     title: "CPU Usage",
                     value: "{metrics.read().cpu_usage_percent}%",
                     trend: metrics.read().cpu_trend
                 }
-                
+
                 MetricCard {
                     title: "Active Connections",
                     value: "{metrics.read().active_connections}",
                     trend: metrics.read().connection_trend
                 }
             }
-            
+
             div { class: "charts-section",
                 LineChart {
                     data: metrics.read().historical_data.clone(),
@@ -464,7 +464,7 @@ impl MonitoringWidget {
             self.chart_data.pop_front();
         }
     }
-    
+
     pub fn render(&self, frame: &mut Frame, area: Rect) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -473,7 +473,7 @@ impl MonitoringWidget {
                 Constraint::Min(0),
             ])
             .split(area);
-        
+
         // Metrics table
         let metrics_data = vec![
             Row::new(vec!["RPC/sec", &self.metrics.rpc_requests_per_sec.to_string()]),
@@ -481,11 +481,11 @@ impl MonitoringWidget {
             Row::new(vec!["CPU", &format!("{}%", self.metrics.cpu_usage_percent)]),
             Row::new(vec!["Connections", &self.metrics.active_connections.to_string()]),
         ];
-        
+
         let table = Table::new(metrics_data, [Constraint::Min(10), Constraint::Min(10)])
             .block(Block::default().borders(Borders::ALL).title("System Metrics"));
         frame.render_widget(table, chunks[0]);
-        
+
         // Sparkline chart
         let sparkline = Sparkline::default()
             .block(Block::default().borders(Borders::ALL).title("CPU Usage"))
@@ -518,20 +518,20 @@ impl SystemIntegration {
             .add_item(NativeMenuItem::new("Stop Validator", true, None))
             .add_native_item(SystemTrayMenuItem::Separator)
             .add_item(NativeMenuItem::new("Quit", true, None));
-        
+
         self.tray_icon = Some(SystemTray::new("surfdesk-icon", menu)?);
         Ok(())
     }
-    
+
     pub fn show_notification(&self, title: &str, body: &str) -> Result<(), SystemError> {
         self.notification_manager.show(title, body)
     }
-    
+
     pub fn watch_program_directory(&mut self, path: &Path) -> Result<(), SystemError> {
         let (tx, rx) = std::sync::mpsc::channel();
         let mut watcher = notify::recommended_watcher(tx)?;
         watcher.watch(path, RecursiveMode::Recursive)?;
-        
+
         // Handle file system events
         std::thread::spawn(move || {
             for event in rx {
@@ -546,7 +546,7 @@ impl SystemIntegration {
                 }
             }
         });
-        
+
         self.file_watcher = watcher;
         Ok(())
     }
@@ -559,7 +559,7 @@ impl SystemIntegration {
 fn MultiWindowManager() -> Element {
     let windows = use_signal(|| Vec::new());
     let active_window = use_signal(|| None);
-    
+
     rsx! {
         div { class: "window-manager",
             for window in windows.read().iter() {
@@ -574,7 +574,7 @@ fn MultiWindowManager() -> Element {
                     }
                 }
             }
-            
+
             button {
                 onclick: move |_| {
                     let new_window = WindowConfig {
@@ -604,19 +604,19 @@ pub struct WebSocketBridge {
 impl WebSocketBridge {
     pub async fn connect(url: &str) -> Result<Self, WebSocketError> {
         let socket = WebSocket::new(url)?;
-        
+
         Ok(Self {
             socket,
             message_handlers: HashMap::new(),
         })
     }
-    
+
     pub async fn send_command(&mut self, command: SurfPoolCommand) -> Result<(), WebSocketError> {
         let message = serde_json::to_string(&command)?;
         self.socket.send(Message::Text(message)).await?;
         Ok(())
     }
-    
+
     pub async fn start_message_loop(&mut self) {
         while let Some(msg) = self.socket.next().await {
             match msg {
@@ -634,7 +634,7 @@ impl WebSocketBridge {
             }
         }
     }
-    
+
     async fn handle_event(&mut self, event: SurfPoolEvent) {
         match event {
             SurfPoolEvent::ValidatorStatusChanged(status) => {
@@ -712,19 +712,19 @@ impl SurfDeskTui {
             theme: Theme::Dark,
         }
     }
-    
+
     pub fn run(&mut self) -> Result<(), TuiError> {
         enable_raw_mode()?;
         let mut stdout = io::stdout();
         execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
-        
+
         let events = Events::new();
-        
+
         loop {
             terminal.draw(|f| self.render(f))?;
-            
+
             match events.next()? {
                 Event::Input(key) => {
                     if let Some(action) = self.handle_key(key) {
@@ -751,7 +751,7 @@ impl SurfDeskTui {
                 }
             }
         }
-        
+
         restore_terminal()?;
         Ok(())
     }
@@ -767,32 +767,32 @@ pub struct KeyBindings {
 impl KeyBindings {
     pub fn default() -> Self {
         let mut bindings = HashMap::new();
-        
+
         // Global bindings
         bindings.insert(Key::Ctrl('c'), Action::Quit);
         bindings.insert(Key::Ctrl('q'), Action::Quit);
         bindings.insert(Key::F1, Action::ShowHelp);
         bindings.insert(Key::Tab, Action::NextPanel);
         bindings.insert(Key::BackTab, Action::PrevPanel);
-        
+
         // Panel-specific bindings
         bindings.insert(Key::Char('1'), Action::SwitchPanel(0));
         bindings.insert(Key::Char('2'), Action::SwitchPanel(1));
         bindings.insert(Key::Char('3'), Action::SwitchPanel(2));
         bindings.insert(Key::Char('4'), Action::SwitchPanel(3));
         bindings.insert(Key::Char('5'), Action::SwitchPanel(4));
-        
+
         // Environment panel
         bindings.insert(Key::Char('n'), Action::NewEnvironment);
         bindings.insert(Key::Char('d'), Action::DeleteEnvironment);
         bindings.insert(Key::Enter, Action::SelectEnvironment);
-        
+
         // Time control
         bindings.insert(Key::Char('w'), Action::EnterWarpMode);
         bindings.insert(Key::Char('+'), Action::AdvanceSlots(10));
         bindings.insert(Key::Char('='), Action::AdvanceSlots(100));
         bindings.insert(Key::Char('s'), Action::CreateSnapshot);
-        
+
         Self { bindings }
     }
 }
@@ -814,7 +814,7 @@ surfpool:
     max_memory_mb: 2048
     max_cpu_percent: 80
     max_disk_gb: 10
-  
+
   environments:
     local-devnet:
       type: "local"
@@ -823,25 +823,25 @@ surfpool:
       preset_accounts:
         - pubkey: "11111111111111111111111111111111"
           lamports: 1000000000000
-    
+
     mainnet-fork:
       type: "fork"
       fork_url: "https://api.mainnet-beta.solana.com"
       rpc_port: 8899
       ws_port: 8900
-      
+
   platform_specific:
     desktop:
       system_tray: true
       auto_start: false
       native_notifications: true
       file_watcher: true
-      
+
     web:
       websocket_bridge: "ws://localhost:8800"
       cloud_sync: true
       offline_mode: true
-      
+
     terminal:
       color_scheme: "dark"
       refresh_rate_ms: 1000
@@ -865,7 +865,7 @@ impl PlatformConfig for DesktopConfig {
         config.native_notifications = true;
         config.file_watcher = true;
     }
-    
+
     fn get_default_paths(&self) -> PlatformPaths {
         PlatformPaths {
             config_dir: dirs::config_dir().unwrap().join("surfdesk"),
@@ -882,7 +882,7 @@ impl PlatformConfig for WebConfig {
         config.cloud_sync = true;
         config.offline_mode = true;
     }
-    
+
     fn get_default_paths(&self) -> PlatformPaths {
         PlatformPaths {
             config_dir: PathBuf::from("/config"),
@@ -928,7 +928,7 @@ pub struct PerformanceOptimizer {
 impl PerformanceOptimizer {
     pub fn new(platform: PlatformType) -> Self {
         let mut optimizations: Vec<Box<dyn Optimization>> = vec![];
-        
+
         match platform {
             PlatformType::Desktop => {
                 optimizations.push(Box::new(MemoryPoolOptimizer::new()));
@@ -946,23 +946,23 @@ impl PerformanceOptimizer {
                 optimizations.push(Box::new(KeyboardOptimizer::new()));
             }
         }
-        
+
         Self {
             platform,
             metrics: PerformanceMetrics::default(),
             optimizations,
         }
     }
-    
+
     pub fn apply_optimizations(&mut self) {
         for optimization in &mut self.optimizations {
             optimization.apply(&self.metrics);
         }
     }
-    
+
     pub fn measure_performance(&mut self) {
         self.metrics.update();
-        
+
         // Apply optimizations if performance degrades
         if self.metrics.cpu_usage > 80.0 || self.metrics.memory_usage > 1024 * 1024 * 1024 {
             self.apply_optimizations();
@@ -997,23 +997,23 @@ pub struct PluginManager {
 impl PluginManager {
     pub fn load_plugin<P: Plugin + 'static>(&mut self, plugin: P) -> Result<(), PluginError> {
         let name = plugin.name().to_string();
-        
+
         // Check platform compatibility
         if !plugin.platform_compatibility().contains(&current_platform()) {
             return Err(PluginError::IncompatiblePlatform);
         }
-        
+
         plugin.initialize()?;
         self.plugins.insert(name.clone(), Box::new(plugin));
         Ok(())
     }
-    
+
     pub fn execute_command(&mut self, command: &str) -> Result<PluginResponse, PluginError> {
         let parts: Vec<&str> = command.split_whitespace().collect();
         if parts.is_empty() {
             return Err(PluginError::InvalidCommand);
         }
-        
+
         let plugin_name = parts[0];
         if let Some(plugin) = self.plugins.get_mut(plugin_name) {
             plugin.handle_command(command)
@@ -1036,35 +1036,35 @@ impl Plugin for SolanaCliPlugin {
     fn name(&self) -> &str {
         "solana-cli"
     }
-    
+
     fn version(&self) -> &str {
         "1.0.0"
     }
-    
+
     fn platform_compatibility(&self) -> Vec<PlatformType> {
         vec![PlatformType::Desktop, PlatformType::Terminal]
     }
-    
+
     fn initialize(&mut self) -> Result<(), PluginError> {
         // Find solana CLI in PATH
         self.solana_path = which::which("solana")
             .map_err(|_| PluginError::NotFound("solana CLI not found".to_string()))?;
         Ok(())
     }
-    
+
     fn handle_command(&mut self, command: &str) -> Result<PluginResponse, PluginError> {
         let parts: Vec<&str> = command.split_whitespace().collect();
         if parts.len() < 2 {
             return Err(PluginError::InvalidCommand);
         }
-        
+
         match parts[1] {
             "address" => {
                 let output = std::process::Command::new(&self.solana_path)
                     .arg("address")
                     .output()
                     .map_err(|e| PluginError::ExecutionError(e.to_string()))?;
-                
+
                 Ok(PluginResponse::Text(
                     String::from_utf8_lossy(&output.stdout).to_string()
                 ))
@@ -1076,7 +1076,7 @@ impl Plugin for SolanaCliPlugin {
                     .arg(pubkey)
                     .output()
                     .map_err(|e| PluginError::ExecutionError(e.to_string()))?;
-                
+
                 Ok(PluginResponse::Text(
                     String::from_utf8_lossy(&output.stdout).to_string()
                 ))
@@ -1097,15 +1097,15 @@ impl Plugin for VSCodePlugin {
     fn name(&self) -> &str {
         "vscode"
     }
-    
+
     fn version(&self) -> &str {
         "1.0.0"
     }
-    
+
     fn platform_compatibility(&self) -> Vec<PlatformType> {
         vec![PlatformType::Desktop]
     }
-    
+
     fn initialize(&mut self) -> Result<(), PluginError> {
         // Detect current VSCode workspace
         self.workspace_path = std::env::var("VSCODE_WORKSPACE_FOLDER")
@@ -1113,7 +1113,7 @@ impl Plugin for VSCodePlugin {
             .map(PathBuf::from);
         Ok(())
     }
-    
+
     fn handle_command(&mut self, command: &str) -> Result<PluginResponse, PluginError> {
         match command {
             "vscode open-project" => {
@@ -1122,7 +1122,7 @@ impl Plugin for VSCodePlugin {
                         .arg(workspace)
                         .spawn()
                         .map_err(|e| PluginError::ExecutionError(e.to_string()))?;
-                    
+
                     Ok(PluginResponse::Success("Project opened in VSCode".to_string()))
                 } else {
                     Err(PluginError::NotFound("No VSCode workspace detected".to_string()))
@@ -1151,7 +1151,7 @@ SurfPool implements comprehensive testing across all platforms to ensure reliabi
 mod tests {
     use super::*;
     use crate::testing::MockPlatformAdapter;
-    
+
     #[tokio::test]
     async fn test_controller_start_stop() {
         let mock_platform = MockPlatformAdapter::new();
@@ -1159,59 +1159,59 @@ mod tests {
             Box::new(mock_platform),
             SurfPoolConfig::default()
         ).unwrap();
-        
+
         // Test start
         assert!(!controller.is_running());
         controller.start().await.unwrap();
         assert!(controller.is_running());
-        
+
         // Test stop
         controller.stop().await.unwrap();
         assert!(!controller.is_running());
     }
-    
+
     #[tokio::test]
     async fn test_environment_switching() {
         let mut controller = SurfPoolController::new(
             Box::new(MockPlatformAdapter::new()),
             SurfPoolConfig::default()
         ).unwrap();
-        
+
         // Create environments
         let env1 = controller.create_environment(EnvironmentConfig::local()).await.unwrap();
         let env2 = controller.create_environment(EnvironmentConfig::fork()).await.unwrap();
-        
+
         // Switch environments
         controller.switch_environment(&env1).await.unwrap();
         assert_eq!(controller.active_environment().unwrap().id, env1);
-        
+
         controller.switch_environment(&env2).await.unwrap();
         assert_eq!(controller.active_environment().unwrap().id, env2);
     }
-    
+
     #[tokio::test]
     async fn test_time_control() {
         let mut controller = SurfPoolController::new(
             Box::new(MockPlatformAdapter::new()),
             SurfPoolConfig::default()
         ).unwrap();
-        
+
         controller.start().await.unwrap();
-        
+
         let initial_slot = controller.current_slot().await.unwrap();
-        
+
         // Warp to future slot
         let target_slot = initial_slot + 100;
         controller.warp_to_slot(target_slot).await.unwrap();
-        
+
         let current_slot = controller.current_slot().await.unwrap();
         assert_eq!(current_slot, target_slot);
-        
+
         // Create and restore snapshot
         let snapshot_id = controller.create_snapshot().await.unwrap();
         controller.warp_to_slot(initial_slot).await.unwrap();
         controller.restore_snapshot(&snapshot_id).await.unwrap();
-        
+
         let restored_slot = controller.current_slot().await.unwrap();
         assert_eq!(restored_slot, target_slot);
     }
@@ -1229,19 +1229,19 @@ use surfdesk_tui::*;
 #[tokio::test]
 async fn test_cross_platform_consistency() {
     // Test that all platforms produce consistent results
-    
+
     // Desktop
     let desktop_app = SurfDeskDesktop::new().await.unwrap();
     let desktop_result = desktop_app.create_project("Test Project").await.unwrap();
-    
+
     // Web (mock)
     let web_app = SurfDeskWeb::with_mock_server().await.unwrap();
     let web_result = web_app.create_project("Test Project").await.unwrap();
-    
+
     // Terminal
     let terminal_app = SurfDeskTui::with_mock_io().await.unwrap();
     let terminal_result = terminal_app.create_project("Test Project").await.unwrap();
-    
+
     // Verify consistency
     assert_eq!(desktop_result.name, web_result.name);
     assert_eq!(web_result.name, terminal_result.name);
@@ -1251,19 +1251,19 @@ async fn test_cross_platform_consistency() {
 #[tokio::test]
 async fn test_full_workflow() {
     let mut app = SurfDeskApp::new(Platform::Desktop).await.unwrap();
-    
+
     // Complete workflow test
     let project = app.create_project("Integration Test").await.unwrap();
     let environment = app.create_environment(&project.id, EnvironmentType::Local).await.unwrap();
-    
+
     app.start_environment(&environment.id).await.unwrap();
-    
+
     let program = app.deploy_program(&project.id, "./test_program.so").await.unwrap();
     let transaction = app.create_transaction(&program.id).await.unwrap();
-    
+
     let signature = app.send_transaction(transaction).await.unwrap();
     assert!(!signature.is_empty());
-    
+
     // Cleanup
     app.stop_environment(&environment.id).await.unwrap();
     app.delete_project(&project.id).await.unwrap();
@@ -1279,7 +1279,7 @@ async fn test_full_workflow() {
 mod ui_tests {
     use super::*;
     use dioxus_desktop::tao::window::WindowBuilder;
-    
+
     #[tokio::test]
     async fn test_window_creation() {
         let window = WindowBuilder::new()
@@ -1287,21 +1287,21 @@ mod ui_tests {
             .with_inner_size(dioxus_desktop::tao::dpi::LogicalSize::new(800, 600))
             .build()
             .unwrap();
-        
+
         // Verify window properties
         assert_eq!(window.title(), "Test Window");
         let size = window.inner_size();
         assert_eq!(size.width, 800);
         assert_eq!(size.height, 600);
     }
-    
+
     #[tokio::test]
     async fn test_file_dialog() {
         let result = surfdesk_desktop::dialogs::open_file_dialog(
             "Select Program File",
             Some(&["so"]),
         ).await;
-        
+
         // Mock file selection
         assert!(result.is_ok());
     }
@@ -1315,30 +1315,30 @@ mod ui_tests {
 mod web_tests {
     use super::*;
     use wasm_bindgen_test::*;
-    
+
     wasm_bindgen_test_configure!(run_in_browser);
-    
+
     #[wasm_bindgen_test]
     async fn test_websocket_connection() {
         let bridge = WebSocketBridge::connect("ws://localhost:8800").await.unwrap();
-        
+
         // Test command sending
         let command = SurfPoolCommand::GetStatus;
         bridge.send_command(command).await.unwrap();
-        
+
         // Wait for response
         tokio::time::sleep(Duration::from_millis(100)).await;
-        
+
         // Verify connection is working
         assert!(bridge.is_connected());
     }
-    
+
     #[wasm_bindgen_test]
     async fn test_responsive_layout() {
         // Test mobile layout
         set_window_size(375, 667); // iPhone SE
         assert!(is_mobile_layout());
-        
+
         // Test desktop layout
         set_window_size(1200, 800);
         assert!(!is_mobile_layout());
@@ -1353,33 +1353,33 @@ mod web_tests {
 mod tui_tests {
     use super::*;
     use crossterm::event::{Event, KeyCode, KeyEvent};
-    
+
     #[tokio::test]
     async fn test_keyboard_navigation() {
         let mut app = SurfDeskTui::new();
-        
+
         // Test panel switching
         assert_eq!(app.active_panel(), 0);
-        
+
         app.handle_key(KeyEvent::from(KeyCode::Tab));
         assert_eq!(app.active_panel(), 1);
-        
+
         app.handle_key(KeyEvent::from(KeyCode::BackTab));
         assert_eq!(app.active_panel(), 0);
     }
-    
+
     #[tokio::test]
     async fn test_command_mode() {
         let mut app = SurfDeskTui::new();
-        
+
         // Enter command mode
         app.handle_key(KeyEvent::from(KeyCode::Char(':')));
         assert!(matches!(app.mode(), AppMode::Command));
-        
+
         // Execute command
         app.handle_key(KeyEvent::from(KeyCode::Char('q')));
         app.handle_key(KeyEvent::from(KeyCode::Enter));
-        
+
         // Should quit
         assert!(app.should_quit());
     }
@@ -1407,20 +1407,20 @@ impl SecurityManager {
         if !self.has_permission(&operation.required_permission()) {
             return Err(SecurityError::InsufficientPermissions);
         }
-        
+
         // Validate operation parameters
         self.validate_parameters(&operation).await?;
-        
+
         // Log operation
         self.audit_logger.log_operation(operation).await;
-        
+
         Ok(())
     }
-    
+
     pub async fn encrypt_sensitive_data(&self, data: &[u8]) -> Result<Vec<u8>, SecurityError> {
         self.encryption.encrypt(data).await
     }
-    
+
     pub async fn decrypt_sensitive_data(&self, encrypted_data: &[u8]) -> Result<Vec<u8>, SecurityError> {
         self.encryption.decrypt(encrypted_data).await
     }
@@ -1474,3 +1474,125 @@ SurfPool continues to evolve with planned enhancements across all platforms:
 ---
 
 **SurfPool** represents the future of cross-platform Solana development, providing a unified, powerful, and flexible development environment that adapts to developers' needs across desktop, web, and terminal platforms. With its comprehensive feature set, robust architecture, and commitment to cross-platform excellence, SurfPool is poised to become the essential tool for Solana developers worldwide.
+
+
+🪄 Drop-in replacement for solana-test-validator
+Spin up local networks that mirror mainnet state instantly — no 2 TB snapshots, no heavy setup (yes, even runs on a Raspberry Pi). Surfpool has been battle-tested by hundreds of developers with existing Solana tools — including solana-cli, anchor, and Kit — so you can plug it into your workflow without changing a thing.
+
+🧩 IDL-to-SQL
+Transform your on-chain IDL into a fully queryable SQL schema. Surfpool’s IDL-to-SQL engine bridges programs and databases — automatically generating tables and syncing chain data to local SQLite/Postgres for instant indexing and analytics.
+
+🛡️ Infrastructure as Code (IaC) for Web3
+Define your stack once — then deploy and tweak it thousands of times before mainnet, with minimal friction. Inspired by Terraform, Surfpool’s IaC makes your setup reproducible by design: your local environment is optimized for speed and feedback, while production is optimized for safety and scales gracefully.
+
+🎮 Cheatcodes for Builders
+Simulate, debug, and replay transactions — all without touching mainnet. Includes Stream Oracles, Universal Faucet, Transaction Inspector, and Time Travel for fast, fearless experimentation.
+
+☁️ Surfpool Studio → Surfpool Cloud
+Surfpool Studio is your local dashboard to visualize, inspect, and manage your networks in real time. Surfpool Cloud extends that same experience to the cloud — letting you index mainnet data and run large-scale simulations with the same developer experience. It’s serverless, backend-as-a-service, and built for analytics at scale.
+
+Installation
+Install pre-built binaries:
+
+# macOS (Homebrew)
+brew install txtx/taps/surfpool
+
+# Updating surfpool for Homebrew users
+brew tap txtx/taps
+brew reinstall surfpool
+
+# Linux (Snap Store)
+# Note: there have been errors updating the Snap Store to the latest version
+# While this is being resolved, Linux users should install from source
+Install from source:
+
+# Clone repo
+git clone https://github.com/txtx/surfpool.git
+
+# Set repo as current directory
+cd surfpool
+
+# Build
+cargo surfpool-install
+Surfpool can also be used through our public docker image:
+
+docker run surfpool/surfpool --version
+Verify installation:
+
+surfpool --version
+Usage
+Start a local Solana network with:
+
+surfpool start
+If inside an Anchor project, Surfpool will:
+
+Automatically generate infrastructure as code (similar to Terraform).
+
+Deploy your Solana programs to the local network.
+
+Provide a clean, structured environment to iterate safely.
+
+The command:
+
+surfpool start --help
+Is documenting all the options available.
+
+Crypto Infrastructure as Code: A New Standard in Web3
+Infrastructure as code (IaC) transforms how teams deploy and operate Solana programs:
+
+Declarative & Reproducible – Clearly defines environments, making deployments consistent.
+
+Auditable – Security teams can review not just the code of your Solana programs, but the way you will be deploying and operating your protocol.
+
+Seamless Transition to Mainnet – Test with the exact infrastructure that will go live.
+
+With Surfpool, every developer learns to deploy Solana programs the right way—scalable, secure, and production-ready from day one.
+
+🤖 MCP
+Surfpool is getting agentic friendly, thanks to a built-in MCP. We'll be adding more tools over time, the first use case we're covering is "Start a local network with 10 users loaded with SOL, USDC, JUP and TRUMP tokens" (#130 - @BretasArthur1, @lgalabru)
+To get started, make surfpool available globally by opening the command palette (Cmd/Ctrl + Shift + P) and selecting > Cursor Settings > MCP > Add new global MCP server:
+{
+  "mcpServers": {
+    "surfpool": {
+      "command": "surfpool",
+      "args": ["mcp"]
+    }
+  }
+}
+Architecture & How to Contribute
+Surfpool is built on the low-level solana-svm API, utilizing the excellent LiteSVM wrapper. This approach provides greater flexibility and significantly faster boot times, ensuring a smooth developer experience.
+
+We are actively developing Surfpool and welcome contributions from the community. If you'd like to get involved, here’s how:
+
+Explore and contribute to open issues: GitHub Issues
+
+Join the discussion on Discord
+
+Get releases updates via X or Telegram Channel
+
+Your contributions help shape the future of Surfpool, making it an essential tool for Solana developers worldwide.
+
+
+
+│        ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●   │ ┌──────────────────────────────────────────────────┐  │
+│ Slots  ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●   │ │  Studio   http://127.0.0.1:18488                 │  │
+│        ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●   │ └──────────────────────────────────────────────────┘  │
+│                                                  │ 20 transactions processed                             │
+│ Epoch  ██████████████████66% ████                │                                                       │
+│                                                  │                                                       │
+│                                                                                                          │
+│  ⡱ Processing incoming transactions                                                                      │
+│                                                                                                          │
+│                DcfXGNkPSc1EXjBnr3PNVHBLf9JrbtZcuY2UNHDdfu9e                                              │
+│ ⏐ 19:22:46.955 Failure Recovery Info Ephemeral authority secret key:                                     │
+│                28bsgAHbiHg4qTQCfBdmgb481A7muoFsgqx1u12qN5jAEsMGPYsgmW7WJNy85K84ueEHV5HjYrjxwRbjxFZ9XokG  │
+│ ⏐ 19:22:47.109 Account Created Ephemeral authority account created and funded to write to buffer         │
+│ ⏐ 19:22:47.269 Failure Recovery Info Creating program buffer account at pubkey                           │
+│                83xxZf5BLAxnDYTE2jzySUDvQZhLpUMZMPGH9AsqLxxq                                              │
+│ ⏐ 19:22:47.473 Account Created Program buffer account created                                            │
+│ ⏐ 19:22:47.473 Failure Recovery Info Creating program buffer account at pubkey                           │
+│                ELFBaPzepDk1ThUhFfasEPczwunFbng7jHtcDgqu6H5G                                              │
+│ ⏐ 19:22:47.676 Account Created Program buffer account created                                            │
+│                                                                                                          │
+│ Pending Sending transaction 10/211                              Need help? https://docs.surfpool.run/tui │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────

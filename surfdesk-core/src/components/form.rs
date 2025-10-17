@@ -179,7 +179,7 @@ pub fn Form(props: FormProps) -> Element {
     let submit_text = props.submit_text.unwrap_or_else(|| "Submit".to_string());
     let cancel_text = props.cancel_text.unwrap_or_else(|| "Cancel".to_string());
 
-    let mut form_data = use_signal(|| {
+    let form_data = use_signal(|| {
         if let Some(fields) = &props.fields {
             fields
                 .iter()
@@ -190,8 +190,8 @@ pub fn Form(props: FormProps) -> Element {
         }
     });
 
-    let mut form_errors = use_signal(std::collections::HashMap::<String, String>::new);
-    let mut is_valid = use_signal(|| true);
+    let form_errors = use_signal(std::collections::HashMap::<String, String>::new);
+    let is_valid = use_signal(|| true);
 
     let mut classes = vec!["form"];
     classes.push(variant.css_class());

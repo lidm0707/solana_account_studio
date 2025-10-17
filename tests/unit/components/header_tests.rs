@@ -15,7 +15,7 @@ fn test_header_renders_on_desktop() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(header_component);
+    let _rendered = dioxus_ssr::render_element(header_component);
 
     assert!(rendered.contains("header"));
     assert!(rendered.contains("platform-header"));
@@ -33,7 +33,7 @@ fn test_header_renders_on_web() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(header_component);
+    let _rendered = dioxus_ssr::render_element(header_component);
 
     assert!(rendered.contains("header"));
     assert!(rendered.contains("platform-header"));
@@ -50,7 +50,7 @@ fn test_header_renders_on_terminal() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(header_component);
+    let _rendered = dioxus_ssr::render_element(header_component);
 
     assert!(rendered.contains("header"));
     assert!(rendered.contains("platform-header"));
@@ -67,7 +67,7 @@ fn test_header_with_sidebar_toggle() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(header_component);
+    let _rendered = dioxus_ssr::render_element(header_component);
 
     assert!(rendered.contains("sidebar-toggle"));
 }
@@ -82,7 +82,7 @@ fn test_header_navigation_items() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(header_component);
+    let _rendered = dioxus_ssr::render_element(header_component);
 
     assert!(rendered.contains("main-nav"));
     assert!(rendered.contains("Dashboard"));
@@ -100,7 +100,7 @@ fn test_header_brand_identity() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(header_component);
+    let _rendered = dioxus_ssr::render_element(header_component);
 
     assert!(rendered.contains("header-brand"));
     assert!(rendered.contains("brand-title"));
@@ -120,7 +120,7 @@ fn test_header_responsive_classes() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(header_component);
+    let _rendered = dioxus_ssr::render_element(header_component);
 
     assert!(rendered.contains("header"));
     assert!(rendered.contains("platform-header"));

@@ -19,7 +19,7 @@ fn test_app_shell_desktop_layout() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     // Verify main structure
     assert!(rendered.contains("app-shell"));
@@ -46,7 +46,7 @@ fn test_app_shell_web_layout() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     assert!(rendered.contains("app-shell"));
     assert!(rendered.contains("theme-auto"));
@@ -65,7 +65,7 @@ fn test_app_shell_terminal_layout() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     assert!(rendered.contains("app-shell"));
     assert!(rendered.contains("theme-dark"));
@@ -84,7 +84,7 @@ fn test_app_shell_theme_switching() {
             theme: Some(Theme::Light),
         }
     };
-    let light_rendered = dioxus_ssr::render_element(light_shell);
+    let _light_rendered = dioxus_ssr::render_element(light_shell);
     assert!(light_rendered.contains("theme-light"));
 
     // Test Dark theme
@@ -95,7 +95,7 @@ fn test_app_shell_theme_switching() {
             theme: Some(Theme::Dark),
         }
     };
-    let dark_rendered = dioxus_ssr::render_element(dark_shell);
+    let _dark_rendered = dioxus_ssr::render_element(dark_shell);
     assert!(dark_rendered.contains("theme-dark"));
 
     // Test Auto theme
@@ -106,7 +106,7 @@ fn test_app_shell_theme_switching() {
             theme: Some(Theme::Auto),
         }
     };
-    let auto_rendered = dioxus_ssr::render_element(auto_shell);
+    let _auto_rendered = dioxus_ssr::render_element(auto_shell);
     assert!(auto_rendered.contains("theme-auto"));
 }
 
@@ -122,7 +122,7 @@ fn test_app_shell_responsive_breakpoints() {
             theme: Some(Theme::Light),
         }
     };
-    let desktop_rendered = dioxus_ssr::render_element(desktop_shell);
+    let _desktop_rendered = dioxus_ssr::render_element(desktop_shell);
     assert!(desktop_rendered.contains("platform-desktop"));
 
     // Test Web breakpoint (responsive)
@@ -133,7 +133,7 @@ fn test_app_shell_responsive_breakpoints() {
             theme: Some(Theme::Light),
         }
     };
-    let web_rendered = dioxus_ssr::render_element(web_shell);
+    let _web_rendered = dioxus_ssr::render_element(web_shell);
     assert!(web_rendered.contains("platform-web"));
 }
 
@@ -149,7 +149,7 @@ fn test_app_shell_component_integration() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     // Verify Header integration
     assert!(rendered.contains("header-brand"));
@@ -179,7 +179,7 @@ fn test_app_shell_navigation_flow() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     // Verify navigation elements are present
     assert!(rendered.contains("nav-item"));
@@ -194,7 +194,7 @@ fn test_app_shell_navigation_flow() {
 
 #[test]
 fn test_app_shell_state_management() {
-    let mut app_state = use_signal(|| AppState::default());
+    let app_state = use_signal(|| AppState::default());
 
     // Modify state
     app_state.write().active_section = "surfpool".to_string();
@@ -207,7 +207,7 @@ fn test_app_shell_state_management() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     // Verify state affects rendering
     assert!(rendered.contains("app-shell"));
@@ -228,7 +228,7 @@ fn test_app_shell_accessibility_features() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(app_shell);
+    let _rendered = dioxus_ssr::render_element(app_shell);
 
     // Verify semantic HTML structure
     assert!(rendered.contains("<header"));

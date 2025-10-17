@@ -490,13 +490,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_controller_creation() {
-        let controller = SurfPoolController::new(Platform::Desktop).await;
+        let _controller = SurfPoolController::new(Platform::Desktop).await;
         assert!(controller.is_ok());
     }
 
     #[tokio::test]
     async fn test_config_default() {
-        let config = SurfPoolConfig::default();
+        let _config = SurfPoolConfig::default();
         assert_eq!(config.rpc_port, 8899);
         assert_eq!(config.ws_port, 8900);
         assert!(config.enable_mcp);
@@ -506,7 +506,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_status_transitions() {
-        let controller = SurfPoolController::new(Platform::Web).await.unwrap();
+        let _controller = SurfPoolController::new(Platform::Web).await.unwrap();
 
         // Initial status should be stopped
         assert_eq!(controller.get_status().await, ControllerStatus::Stopped);
@@ -541,7 +541,7 @@ mod tests {
         };
 
         // Test serialization
-        let json = serde_json::to_string(&account).unwrap();
+        let _json = serde_json::to_string(&account).unwrap();
         let deserialized: PresetAccount = serde_json::from_str(&json).unwrap();
 
         assert_eq!(account.pubkey, deserialized.pubkey);

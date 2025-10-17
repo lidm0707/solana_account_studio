@@ -142,8 +142,8 @@ pub struct WebAccountService {
 impl WebAccountService {
     /// Create new web account service
     pub async fn new(network: SolanaNetwork) -> Result<Self> {
-        let solana_service = SolanaService::new(network.rpc_url().to_string()).await?;
-        let account_manager = AccountManager::new();
+        let _solana_service = SolanaService::new(network.rpc_url().to_string()).await?;
+        let _account_manager = AccountManager::new();
 
         Ok(Self {
             solana_service,

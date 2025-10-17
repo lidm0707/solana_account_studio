@@ -71,7 +71,7 @@ impl MockDatabaseFactory {
     pub async fn create_test_pool(database_url: &str) -> Result<sqlx::Pool<sqlx::Sqlite>, sqlx::Error> {
         match database_url {
             url if url.starts_with("sqlite:") => {
-                let pool = sqlx::SqlitePool::connect(url).await?;
+                let _pool = sqlx::SqlitePool::connect(url).await?;
                 Ok(pool)
             }
             _ => Err(sqlx::Error::Configuration(
@@ -252,17 +252,17 @@ mod test_helpers {
 
     #[tokio::test]
     async fn test_mock_database_factory() {
-        let memory_url = MockDatabaseFactory::create_memory_sqlite();
+        let _memory_url = MockDatabaseFactory::create_memory_sqlite();
         assert_eq!(memory_url, "sqlite::memory:");
 
-        let temp_url = MockDatabaseFactory::create_temp_sqlite();
+        let _temp_url = MockDatabaseFactory::create_temp_sqlite();
         assert!(temp_url.starts_with("sqlite:test_"));
         assert!(temp_url.ends_with(".db"));
     }
 
     #[tokio::test]
     async fn test_create_test_pool() {
-        let pool = MockDatabaseFactory::create_test_pool("sqlite::memory:").await;
+        let _pool = MockDatabaseFactory::create_test_pool("sqlite::memory:").await;
         assert!(pool.is_ok());
 
         let pool_result = pool.unwrap();
@@ -274,14 +274,14 @@ mod test_helpers {
 
     #[tokio::test]
     async fn test_init_test_schema() {
-        let pool = MockDatabaseFactory::create_test_pool("sqlite::memory:").await.unwrap();
+        let _pool = MockDatabaseFactory::create_test_pool("sqlite::memory:").await.unwrap();
 
-        let schema_result = MockDatabaseFactory::init_test_schema(&pool).await;
+        let _schema_result = MockDatabaseFactory::init_test_schema(&pool).await;
         assert!(schema_result.is_ok());
 
         // Verify tables were created
-        let account_count = DatabaseTestUtils::count_test_records(&pool, "test_accounts").await.unwrap();
-        let transaction_count = DatabaseTestUtils::count_test_records(&pool, "test_transactions").await.unwrap();
+        let _account_count = DatabaseTestUtils::count_test_records(&pool, "test_accounts").await.unwrap();
+        let _transaction_count = DatabaseTestUtils::count_test_records(&pool, "test_transactions").await.unwrap();
 
         assert_eq!(account_count, 0);
         assert_eq!(transaction_count, 0);
@@ -292,14 +292,14 @@ mod test_helpers {
 
     #[tokio::test]
     async fn test_database_test_utils() {
-        let pool = MockDatabaseFactory::create_test_pool("sqlite::memory:").await.unwrap();
+        let _pool = MockDatabaseFactory::create_test_pool("sqlite::memory:").await.unwrap();
         MockDatabaseFactory::init_test_schema(&pool).await.unwrap();
 
         // Test data generation
-        let account = DatabaseTestUtils::generate_test_account();
-        let transaction = DatabaseTestUtils::generate_test_transaction();
-        let environment = DatabaseTestUtils::generate_test_environment();
-        let project = DatabaseTestUtils::generate_test_project();
+        let _account = DatabaseTestUtils::generate_test_account();
+        let _transaction = DatabaseTestUtils::generate_test_transaction();
+        let _environment = DatabaseTestUtils::generate_test_environment();
+        let _project = DatabaseTestUtils::generate_test_project();
 
         assert!(!account.pubkey.is_empty());
         assert!(!transaction.signature.is_empty());
@@ -327,14 +327,14 @@ mod test_helpers {
         assert!(insert_result.is_ok());
 
         // Test record counting
-        let count = DatabaseTestUtils::count_test_records(&pool, "test_accounts").await.unwrap();
+        let _count = DatabaseTestUtils::count_test_records(&pool, "test_accounts").await.unwrap();
         assert_eq!(count, 1);
 
         // Test data cleanup
-        let cleanup_result = DatabaseTestUtils::clean_test_table(&pool, "test_accounts").await.unwrap();
+        let _cleanup_result = DatabaseTestUtils::clean_test_table(&pool, "test_accounts").await.unwrap();
         assert!(cleanup_result.rows_affected() > 0);
 
-        let count_after_cleanup = DatabaseTestUtils::count_test_records(&pool, "test_accounts").await.unwrap();
+        let _count_after_cleanup = DatabaseTestUtils::count_test_records(&pool, "test_accounts").await.unwrap();
         assert_eq!(count_after_cleanup, 0);
 
         // Clean up
@@ -388,10 +388,10 @@ mod test_helpers {
 
     #[test]
     fn test_database_data_integrity() {
-        let account = DatabaseTestUtils::generate_test_account();
-        let transaction = DatabaseTestUtils::generate_test_transaction();
-        let environment = DatabaseTestUtils::generate_test_environment();
-        let project = DatabaseTestUtils::generate_test_project();
+        let _account = DatabaseTestUtils::generate_test_account();
+        let _transaction = DatabaseTestUtils::generate_test_transaction();
+        let _environment = DatabaseTestUtils::generate_test_environment();
+        let _project = DatabaseTestUtils::generate_test_project();
 
         // Verify data integrity
         assert_ne!(account.pubkey, "");

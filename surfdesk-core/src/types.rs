@@ -706,7 +706,7 @@ mod tests {
     #[test]
     fn test_solana_pubkey() {
         let pubkey_str = "11111111111111111111111111111112";
-        let pubkey = SolanaPubkey::from_str(pubkey_str).unwrap();
+        let _pubkey = SolanaPubkey::from_str(pubkey_str).unwrap();
         assert_eq!(pubkey.to_string(), pubkey_str);
     }
 
@@ -718,7 +718,7 @@ mod tests {
 
     #[test]
     fn test_project_settings_default() {
-        let settings = ProjectSettings::default();
+        let _settings = ProjectSettings::default();
         assert_eq!(settings.default_network, SolanaNetwork::Devnet);
         assert!(settings.auto_save);
         assert_eq!(settings.auto_save_interval, 30);
@@ -736,7 +736,7 @@ mod tests {
             updated_at: chrono::Utc::now(),
         };
 
-        let serialized = serde_json::to_string(&project).unwrap();
+        let _serialized = serde_json::to_string(&project).unwrap();
         let deserialized: Project = serde_json::from_str(&serialized).unwrap();
         assert_eq!(project.name, deserialized.name);
         assert_eq!(project.owner, deserialized.owner);

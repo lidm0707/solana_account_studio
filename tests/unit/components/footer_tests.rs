@@ -14,7 +14,7 @@ fn test_footer_renders_on_desktop() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(footer_component);
+    let _rendered = dioxus_ssr::render_element(footer_component);
 
     assert!(rendered.contains("footer"));
     assert!(rendered.contains("platform-footer"));
@@ -31,7 +31,7 @@ fn test_footer_renders_on_web() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(footer_component);
+    let _rendered = dioxus_ssr::render_element(footer_component);
 
     assert!(rendered.contains("footer"));
     assert!(rendered.contains("platform-footer"));
@@ -47,7 +47,7 @@ fn test_footer_renders_on_terminal() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(footer_component);
+    let _rendered = dioxus_ssr::render_element(footer_component);
 
     assert!(rendered.contains("footer"));
     assert!(rendered.contains("platform-footer"));
@@ -63,7 +63,7 @@ fn test_footer_connected_status() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(footer_component);
+    let _rendered = dioxus_ssr::render_element(footer_component);
 
     assert!(rendered.contains("status-connected"));
     assert!(rendered.contains("connection-status"));
@@ -79,7 +79,7 @@ fn test_footer_disconnected_status() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(footer_component);
+    let _rendered = dioxus_ssr::render_element(footer_component);
 
     assert!(rendered.contains("status-disconnected"));
     assert!(rendered.contains("connection-status"));
@@ -95,7 +95,7 @@ fn test_footer_status_indicator() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(footer_component);
+    let _rendered = dioxus_ssr::render_element(footer_component);
 
     assert!(rendered.contains("status-indicator"));
     assert!(rendered.contains("indicator-green"));
@@ -111,7 +111,7 @@ fn test_footer_platform_specific_content() {
         }
     };
 
-    let desktop_rendered = dioxus_ssr::render_element(desktop_footer);
+    let _desktop_rendered = dioxus_ssr::render_element(desktop_footer);
     assert!(desktop_rendered.contains("footer-actions"));
     assert!(desktop_rendered.contains("desktop-actions"));
 
@@ -123,7 +123,7 @@ fn test_footer_platform_specific_content() {
         }
     };
 
-    let terminal_rendered = dioxus_ssr::render_element(terminal_footer);
+    let _terminal_rendered = dioxus_ssr::render_element(terminal_footer);
     assert!(terminal_rendered.contains("terminal-status"));
     assert!(terminal_rendered.contains("ascii-indicator"));
 }
@@ -138,7 +138,7 @@ fn test_footer_responsive_classes() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(footer_component);
+    let _rendered = dioxus_ssr::render_element(footer_component);
 
     assert!(rendered.contains("footer"));
     assert!(rendered.contains("platform-footer"));
@@ -156,7 +156,7 @@ fn test_footer_status_transitions() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(footer_component);
+    let _rendered = dioxus_ssr::render_element(footer_component);
 
     assert!(rendered.contains("status-transition"));
     assert!(rendered.contains("transition-enabled"));
@@ -171,7 +171,7 @@ fn test_footer_metadata_display() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(footer_component);
+    let _rendered = dioxus_ssr::render_element(footer_component);
 
     assert!(rendered.contains("footer-metadata"));
     assert!(rendered.contains("version-info"));
@@ -188,7 +188,7 @@ fn test_footer_accessibility_attributes() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(footer_component);
+    let _rendered = dioxus_ssr::render_element(footer_component);
 
     assert!(rendered.contains("role=\"contentinfo\""));
     assert!(rendered.contains("aria-label=\"Footer\""));

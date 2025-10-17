@@ -27,7 +27,7 @@ fn test_cross_platform_app_shell_consistency() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(app_shell);
+        let _rendered = dioxus_ssr::render_element(app_shell);
 
         // Verify core structure is consistent
         assert!(rendered.contains("app-shell"));
@@ -55,7 +55,7 @@ fn test_cross_platform_header_adaptations() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(header);
+        let _rendered = dioxus_ssr::render_element(header);
 
         // Verify platform-specific adaptations
         assert!(rendered.contains("header"));
@@ -86,7 +86,7 @@ fn test_cross_platform_sidebar_behavior() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(sidebar);
+        let _rendered = dioxus_ssr::render_element(sidebar);
 
         // Verify platform-specific sidebar behavior
         assert!(rendered.contains("sidebar"));
@@ -116,7 +116,7 @@ fn test_cross_platform_footer_consistency() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(footer);
+        let _rendered = dioxus_ssr::render_element(footer);
 
         // Verify footer structure consistency
         assert!(rendered.contains("footer"));
@@ -155,7 +155,7 @@ fn test_cross_platform_theme_support() {
                 }
             };
 
-            let rendered = dioxus_ssr::render_element(app_shell);
+            let _rendered = dioxus_ssr::render_element(app_shell);
 
             // Verify theme support across platforms
             assert!(rendered.contains(expected_class));
@@ -184,7 +184,7 @@ fn test_cross_platform_responsive_layout() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(app_shell);
+        let _rendered = dioxus_ssr::render_element(app_shell);
 
         // Verify platform and layout classes
         assert!(rendered.contains(platform_class));
@@ -207,7 +207,7 @@ fn test_cross_platform_navigation_consistency() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(app_shell);
+        let _rendered = dioxus_ssr::render_element(app_shell);
 
         // Verify navigation consistency across platforms
         assert!(rendered.contains("Dashboard"));
@@ -247,7 +247,7 @@ fn test_cross_platform_accessibility_features() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(app_shell);
+        let _rendered = dioxus_ssr::render_element(app_shell);
 
         // Verify semantic HTML structure exists across platforms
         assert!(rendered.contains("<header"));
@@ -266,12 +266,12 @@ fn test_cross_platform_performance_consistency() {
     use std::time::Instant;
 
     let platforms = vec![Platform::Desktop, Platform::Web, Platform::Terminal];
-    let render_times = Vec::new();
+    let _render_times = Vec::new();
 
     for platform in platforms {
         let app_state = use_signal(|| AppState::default());
 
-        let start = Instant::now();
+        let _start = Instant::now();
 
         let app_shell = rsx! {
             AppShell {
@@ -281,7 +281,7 @@ fn test_cross_platform_performance_consistency() {
             }
         };
 
-        let _rendered = dioxus_ssr::render_element(app_shell);
+        let __rendered = dioxus_ssr::render_element(app_shell);
 
         let duration = start.elapsed();
 
@@ -297,7 +297,7 @@ fn test_cross_platform_performance_consistency() {
 #[test]
 fn test_cross_platform_state_management() {
     let platforms = vec![Platform::Desktop, Platform::Web, Platform::Terminal];
-    let mut app_state = use_signal(|| AppState::default());
+    let app_state = use_signal(|| AppState::default());
 
     // Test state changes across platforms
     let sections = vec!["dashboard", "surfpool", "accounts"];
@@ -314,7 +314,7 @@ fn test_cross_platform_state_management() {
                 }
             };
 
-            let rendered = dioxus_ssr::render_element(app_shell);
+            let _rendered = dioxus_ssr::render_element(app_shell);
 
             // Verify state is reflected consistently
             assert!(rendered.contains("app-shell"));
@@ -333,7 +333,7 @@ fn test_cross_platform_error_handling() {
 
     for platform in platforms {
         // Test with invalid state (should not panic)
-        let mut app_state = use_signal(|| AppState::default());
+        let app_state = use_signal(|| AppState::default());
         app_state.write().active_section = "invalid-section".to_string();
 
         let app_shell = rsx! {
@@ -345,7 +345,7 @@ fn test_cross_platform_error_handling() {
         };
 
         // Should render without errors
-        let rendered = dioxus_ssr::render_element(app_shell);
+        let _rendered = dioxus_ssr::render_element(app_shell);
         assert!(rendered.contains("app-shell"));
         assert!(!rendered.is_empty());
     }
@@ -389,7 +389,7 @@ fn test_cross_platform_css_classes() {
             }
         };
 
-        let rendered = dioxus_ssr::render_element(app_shell);
+        let _rendered = dioxus_ssr::render_element(app_shell);
 
         // Verify platform-specific CSS classes
         for class in expected_classes {

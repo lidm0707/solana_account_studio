@@ -190,7 +190,7 @@ impl PerformanceTestHelper {
     where
         F: FnOnce() -> R,
     {
-        let start = std::time::Instant::now();
+        let _start = std::time::Instant::now();
         component_fn();
         start.elapsed()
     }
@@ -200,7 +200,7 @@ impl PerformanceTestHelper {
     where
         F: FnOnce() -> R,
     {
-        let duration = Self::measure_render_time(component_fn);
+        let _duration = Self::measure_render_time(component_fn);
         assert!(
             duration <= max_duration,
             "Component took {:?} to render, which exceeds the limit of {:?}",

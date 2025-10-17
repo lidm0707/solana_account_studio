@@ -16,7 +16,7 @@ fn test_sidebar_renders_on_desktop() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(sidebar_component);
+    let _rendered = dioxus_ssr::render_element(sidebar_component);
 
     assert!(rendered.contains("sidebar"));
     assert!(rendered.contains("platform-sidebar"));
@@ -35,7 +35,7 @@ fn test_sidebar_renders_on_web() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(sidebar_component);
+    let _rendered = dioxus_ssr::render_element(sidebar_component);
 
     assert!(rendered.contains("sidebar"));
     assert!(rendered.contains("platform-sidebar"));
@@ -53,7 +53,7 @@ fn test_sidebar_renders_on_terminal() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(sidebar_component);
+    let _rendered = dioxus_ssr::render_element(sidebar_component);
 
     assert!(rendered.contains("sidebar"));
     assert!(rendered.contains("platform-sidebar"));
@@ -71,7 +71,7 @@ fn test_sidebar_collapsed_state() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(sidebar_component);
+    let _rendered = dioxus_ssr::render_element(sidebar_component);
 
     assert!(rendered.contains("sidebar-collapsed"));
     assert!(rendered.contains("collapsed-sidebar"));
@@ -88,7 +88,7 @@ fn test_sidebar_navigation_sections() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(sidebar_component);
+    let _rendered = dioxus_ssr::render_element(sidebar_component);
 
     assert!(rendered.contains("sidebar-nav"));
     assert!(rendered.contains("nav-section"));
@@ -109,7 +109,7 @@ fn test_sidebar_active_section_highlighting() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(sidebar_component);
+    let _rendered = dioxus_ssr::render_element(sidebar_component);
 
     assert!(rendered.contains("nav-item-active"));
     assert!(rendered.contains("active-surfpool"));
@@ -126,7 +126,7 @@ fn test_sidebar_collapsible_functionality() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(sidebar_component);
+    let _rendered = dioxus_ssr::render_element(sidebar_component);
 
     assert!(rendered.contains("sidebar-toggle"));
     assert!(rendered.contains("collapse-button"));
@@ -144,7 +144,7 @@ fn test_sidebar_responsive_classes() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(sidebar_component);
+    let _rendered = dioxus_ssr::render_element(sidebar_component);
 
     assert!(rendered.contains("sidebar"));
     assert!(rendered.contains("platform-sidebar"));
@@ -164,7 +164,7 @@ fn test_sidebar_hierarchical_structure() {
         }
     };
 
-    let rendered = dioxus_ssr::render_element(sidebar_component);
+    let _rendered = dioxus_ssr::render_element(sidebar_component);
 
     assert!(rendered.contains("nav-hierarchy"));
     assert!(rendered.contains("nav-sections"));
@@ -183,7 +183,7 @@ fn test_sidebar_platform_specific_adaptations() {
         }
     };
 
-    let desktop_rendered = dioxus_ssr::render_element(desktop_sidebar);
+    let _desktop_rendered = dioxus_ssr::render_element(desktop_sidebar);
     assert!(desktop_rendered.contains("desktop-sidebar"));
     assert!(desktop_rendered.contains("native-scroll"));
 
@@ -197,7 +197,7 @@ fn test_sidebar_platform_specific_adaptations() {
         }
     };
 
-    let terminal_rendered = dioxus_ssr::render_element(terminal_sidebar);
+    let _terminal_rendered = dioxus_ssr::render_element(terminal_sidebar);
     assert!(terminal_rendered.contains("terminal-sidebar"));
     assert!(terminal_rendered.contains("ascii-art"));
 }

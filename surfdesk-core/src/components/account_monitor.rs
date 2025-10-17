@@ -94,7 +94,7 @@ pub struct AccountMonitorProps {
 /// Account Monitor Component
 #[component]
 pub fn AccountMonitor(props: AccountMonitorProps) -> Element {
-    let mut monitored_accounts = use_signal(|| {
+    let monitored_accounts = use_signal(|| {
         let mut accounts = HashMap::new();
         for pubkey in &props.initial_accounts {
             accounts.insert(
@@ -113,7 +113,7 @@ pub fn AccountMonitor(props: AccountMonitorProps) -> Element {
     });
 
     let mut connection_status = use_signal(|| "Disconnected".to_string());
-    let mut websocket_messages = use_signal(Vec::<WebSocketMessage>::new);
+    let websocket_messages = use_signal(Vec::<WebSocketMessage>::new);
     let mut error_message = use_signal(|| None::<String>);
 
     // Mock connection effect for demo purposes

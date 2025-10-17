@@ -90,12 +90,12 @@ pub async fn init_core() -> Result<()> {
     // Initialize logger only if not already initialized
     #[cfg(all(not(target_arch = "wasm32"), feature = "desktop"))]
     {
-        let _ = env_logger::try_init();
+        let __ = env_logger::try_init();
     }
 
     #[cfg(target_arch = "wasm32")]
     {
-        let _ = console_log::init();
+        let __ = console_log::init();
     }
 
     log::info!("SurfDesk Core v{} initializing", VERSION);

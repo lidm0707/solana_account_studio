@@ -80,7 +80,7 @@ impl LoggerService {
         if config.file_logging {
             // Set up file logging
             let log_path = Self::get_log_file_path()?;
-            let file = OpenOptions::new()
+            let file = std::fs::OpenOptions::new()
                 .create(true)
                 .append(true)
                 .open(&log_path)?;
@@ -113,9 +113,8 @@ impl LoggerService {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            return Err(SurfDeskError::platform(
-                "Web logger not available on non-wasm target",
-            ));
+            // Desktop and terminal platforms handled above
+            Ok(())
         }
     }
 
@@ -142,7 +141,7 @@ impl LoggerService {
             }
             crate::platform::Platform::Web => {
                 return Err(SurfDeskError::platform(
-                    "File logging not available on web platform",
+                    "Logging not supported on web platform".to_string(),
                 ));
             }
         };

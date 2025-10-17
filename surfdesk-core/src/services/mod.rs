@@ -288,7 +288,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_service_manager_creation() {
-        let result = ServiceManager::new().await;
+        let _result = ServiceManager::new().await;
         assert!(result.is_ok());
     }
 

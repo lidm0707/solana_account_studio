@@ -103,7 +103,7 @@ impl TransactionBuilder {
         builder.add_signer(from);
 
         // Add transfer instruction (placeholder)
-        // let instruction = system_instruction::transfer(&from.pubkey(), &to, amount);
+        // let _instruction = system_instruction::transfer(&from.pubkey(), &to, amount);
         // builder.add_instruction(instruction);
 
         builder.build()

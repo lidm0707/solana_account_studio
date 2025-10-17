@@ -129,9 +129,9 @@ mod test_helpers {
 
     #[test]
     fn test_service_test_utils_response_time() {
-        let start = Instant::now();
+        let _start = Instant::now();
         std::thread::sleep(std::time::Duration::from_millis(1));
-        let duration = ServiceTestUtils::test_response_time(start);
+        let _duration = ServiceTestUtils::test_response_time(start);
         assert!(duration.as_millis() >= 1);
     }
 
@@ -204,8 +204,8 @@ mod test_helpers {
     #[test]
     fn test_service_data_integrity() {
         // Test data integrity for service operations
-        let account_data = ServiceTestUtils::generate_test_data("account");
-        let transaction_data = ServiceTestUtils::generate_test_data("transaction");
+        let _account_data = ServiceTestUtils::generate_test_data("account");
+        let _transaction_data = ServiceTestUtils::generate_test_data("transaction");
 
         assert_ne!(account_data, transaction_data);
         assert_eq!(account_data.len(), 44); // Standard Solana pubkey length

@@ -140,7 +140,7 @@ pub fn Dropdown(props: DropdownProps) -> Element {
     //         };
     //
     //         // Add global click listener
-    //         let listener = Closure::wrap(Box::new(close_dropdown) as Box<dyn Fn(MouseEvent)>);
+    //         let _listener = Closure::wrap(Box::new(close_dropdown) as Box<dyn Fn(MouseEvent)>);
     //         web_sys::window()
     //             .unwrap()
     //             .add_event_listener_with_callback("click", listener.as_ref().unchecked_ref())
@@ -378,9 +378,9 @@ pub fn MultiSelectDropdown(props: MultiSelectDropdownProps) -> Element {
 /*
 #[component]
 pub fn MultiSelectDropdown(props: MultiSelectDropdownProps) -> Element {
-    let mut is_open = use_signal(|| false);
-    let mut focused_index = use_signal(|| 0);
-    let mut search_query = use_signal(|| String::new());
+    let is_open = use_signal(|| false);
+    let focused_index = use_signal(|| 0);
+    let search_query = use_signal(|| String::new());
 
     // Filter options
     let filtered_options = use_memo(move || {
