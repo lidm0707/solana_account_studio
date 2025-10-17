@@ -3,10 +3,10 @@
 //! Simple account management for SurfDesk with clean architecture.
 
 use crate::services::surfpool_service::{
-    system_program, DeploymentRequest, DeploymentResult, DeploymentStatistics, SurfPoolService,
-    SurfPoolStatus, Transaction,
+    system_program, CompiledInstruction, DeploymentRequest, DeploymentResult, DeploymentStatistics,
+    SurfPoolService, SurfPoolStatus, Transaction,
 };
-use crate::solana_rpc::Pubkey;
+use crate::solana_rpc::{Keypair, Pubkey};
 use chrono;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -29,8 +29,8 @@ fn use_validator_status() -> SurfPoolStatus {
     let _service = use_surfpool_service();
     let mut status = use_signal(|| SurfPoolStatus::Stopped);
 
-    use_coroutine(move |_| {
-        let status_signal = status.clone();
+    use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
+        let mut status_signal = status.clone();
         async move {
             // Simulate status updates
             loop {
@@ -54,8 +54,8 @@ fn use_deployment_stats() -> DeploymentStatistics {
         success_rate: 0.0,
     });
 
-    use_coroutine(move |_| {
-        let stats_signal = stats.clone();
+    use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
+        let mut stats_signal = stats.clone();
         async move {
             loop {
                 tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
@@ -77,13 +77,13 @@ fn use_deployment_stats() -> DeploymentStatistics {
 fn use_balance_monitor(pubkey: Pubkey) -> f64 {
     let mut balance = use_signal(|| 0.0);
 
-    use_coroutine(move |_| {
-        let balance_signal = balance.clone();
-        let account_pubkey = pubkey;
+    use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
+        let mut balance_signal = balance.clone();
+        let pubkey_clone = pubkey.clone();
         async move {
             loop {
                 // Mock balance update - in real implementation, this would query RPC
-                let mock_balance = (account_pubkey.to_bytes()[0] as f64) * 0.001;
+                let mock_balance = (pubkey_clone.to_bytes()[0] as f64) * 0.001;
                 balance_signal.set(mock_balance);
                 tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
             }
@@ -192,9 +192,9 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     let deployment_stats = use_deployment_stats();
 
     // Start validator action (simplified)
-    let start_validator = move |_| {
+    let start_validator = move |_: dioxus::prelude::Event<MouseData>| {
         let success_msg = success_message.clone();
-        use_coroutine(move |_| {
+        use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let success = success_msg.clone();
             async move {
                 // Simulate validator startup
@@ -313,6 +313,8 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         success_message.set(String::new());
 
         // Create simplified deployment request
+        // Mock keypair for deployment request
+        let mock_keypair = Arc::new(Keypair::new());
         let deployment_request = DeploymentRequest::new(
             current_builder
                 .account_data
@@ -325,11 +327,11 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
             current_builder.space as u64,
             current_builder.executable,
             current_builder.account_data.as_ref().unwrap().data.clone(),
-            current_builder.keypair.clone(),
+            mock_keypair,
         );
 
         // Deploy using simplified workflow
-        use_coroutine(|_| {
+        use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let builder_state = builder.clone();
             let is_deploying_signal = is_deploying.clone();
             let deployment_req = deployment_request;
@@ -350,7 +352,15 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                 builder_state.set(current);
 
                 // Create mock transaction
-                let mock_transaction = Transaction::new_with_payer(&[], None);
+                // Mock transaction for display
+                let mock_transaction = Transaction {
+                    signatures: vec!["mock_signature".to_string()],
+                    message: CompiledInstruction {
+                        account_keys: vec![],
+                        recent_blockhash: "mock_blockhash".to_string(),
+                        instructions: vec![],
+                    },
+                };
                 on_deploy.call(mock_transaction);
 
                 // Create mock deployment result

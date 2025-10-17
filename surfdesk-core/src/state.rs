@@ -57,7 +57,7 @@ impl Default for AppState {
             active_environment_id: Signal::new(None),
             accounts: Signal::new(Vec::new()),
             transactions: Signal::new(Vec::new()),
-            solana_service: Signal::new(None),
+            surfpool_service: Signal::new(None),
             connection_status: Signal::new(ConnectionStatus::Disconnected),
             current_network: Signal::new(crate::types::SolanaNetwork::Devnet),
             loading: Signal::new(LoadingState::default()),
@@ -454,21 +454,28 @@ impl AppState {
         // Set loading state
         self.set_loading(LoadingOperation::Accounts, true);
 
+        // TODO: Fix get_accounts integration
         // Fetch accounts for the active environment
-        if let Some(ref service) = self.solana_service() {
-            match service.get_accounts(&active_environment).await {
-                Ok(accounts) => {
-                    // Clear existing accounts and add new ones
-                    // This is a simplified approach - in reality you'd want to merge/update
-                    self.accounts.set(accounts);
-                    log::info!("Refreshed {} accounts", self.accounts.read().len());
-                }
-                Err(e) => {
-                    self.set_error(Some(e.clone()));
-                    log::error!("Failed to refresh accounts: {}", e);
-                }
-            }
-        }
+        // if let Some(ref service) = *self.surfpool_service.read() {
+        //     match service.get_accounts(&active_environment).await {
+        //         Ok(accounts) => {
+        //             // Clear existing accounts and add new ones
+        //             // This is a simplified approach - in reality you'd want to merge/update
+        //             self.accounts.set(accounts);
+        //             log::info!("Refreshed {} accounts", self.accounts.read().len());
+        //         }
+        //         Err(e) => {
+        //             log::error!("Failed to refresh accounts: {}", e);
+        //             self.error.set(Some(crate::error::SurfDeskError::Network(
+        //                 format!("Failed to refresh accounts: {}", e),
+        //             )));
+        //         }
+        //     }
+        // }
+
+        // Mock accounts for now
+        self.accounts.set(vec![]);
+        log::info!("Mock: Refreshed accounts (empty list)");
 
         // Clear loading state
         self.set_loading(LoadingOperation::Accounts, false);

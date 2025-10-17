@@ -89,12 +89,16 @@ pub mod utils {
 
     /// Generate CSS class with modifiers
     pub fn class_with_modifiers(base: &str, modifiers: &[&str]) -> String {
-        let mut classes = vec![base];
+        let mut classes = Vec::new();
+
+        classes.push(base.to_string());
+
         for modifier in modifiers {
             if !modifier.is_empty() {
-                classes.push(&format!("{}--{}", base, modifier));
+                classes.push(format!("{}--{}", base, modifier));
             }
         }
+
         classes.join(" ")
     }
 }

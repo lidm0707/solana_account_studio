@@ -59,6 +59,7 @@ impl ServiceManager {
             #[cfg(feature = "database")]
             database_service: None,
             surfpool_service: None,
+            websocket_service: None,
         })
     }
 

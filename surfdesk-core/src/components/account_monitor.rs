@@ -4,11 +4,12 @@
 //! Displays live account balances, transaction status, and real-time updates
 //! for Solana accounts being tracked.
 
-use crate::services::websocket::{AccountNotification, WebSocketManager, WebSocketMessage};
-use crate::solana_rpc::Pubkey;
+use crate::services::websocket::WebSocketMessage;
 use dioxus::prelude::*;
 use std::collections::HashMap;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::fmt;
+
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Account data structure for monitoring
 #[derive(Debug, Clone, PartialEq)]
@@ -42,17 +43,48 @@ pub enum AccountStatus {
     Disconnected,
 }
 
+impl AccountStatus {
+    /// คืนค่า short class name (static str) เหมาะกับ CSS classes
+    pub fn as_class(&self) -> &'static str {
+        match self {
+            AccountStatus::Monitoring => "monitoring",
+            AccountStatus::Connecting => "connecting",
+            AccountStatus::Failed(_) => "failed",
+            AccountStatus::Disconnected => "disconnected",
+            AccountStatus::Idle => "idle",
+        }
+    }
+
+    /// ถ้าต้องการข้อความสั้นๆ แบบไม่รวม message ของ Failed
+    pub fn as_label(&self) -> &'static str {
+        match self {
+            AccountStatus::Monitoring => "Monitoring",
+            AccountStatus::Connecting => "Connecting",
+            AccountStatus::Failed(_) => "Failed",
+            AccountStatus::Disconnected => "Disconnected",
+            AccountStatus::Idle => "Idle",
+        }
+    }
+}
+
+/// Implement Display เพื่อให้ `to_string()` คืนข้อความที่อ่านได้
+impl fmt::Display for AccountStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AccountStatus::Idle => write!(f, "Idle"),
+            AccountStatus::Connecting => write!(f, "Connecting"),
+            AccountStatus::Monitoring => write!(f, "Monitoring"),
+            AccountStatus::Failed(msg) => write!(f, "Failed: {}", msg),
+            AccountStatus::Disconnected => write!(f, "Disconnected"),
+        }
+    }
+}
+
 /// Props for the AccountMonitor component
-#[derive(Debug, Clone, Props)]
+#[derive(PartialEq, Clone, Props)]
 pub struct AccountMonitorProps {
-    /// WebSocket manager for real-time updates
-    websocket_manager: Option<WebSocketManager>,
     /// Initial accounts to monitor
     initial_accounts: Vec<String>,
-    /// Callback when account is added
-    on_account_added: Option<String>,
-    /// Callback when account is removed
-    on_account_removed: Option<String>,
     /// Show detailed view
     show_details: Option<bool>,
 }
@@ -82,80 +114,12 @@ pub fn AccountMonitor(props: AccountMonitorProps) -> Element {
     let mut websocket_messages = use_signal(Vec::<WebSocketMessage>::new);
     let mut error_message = use_signal(|| None::<String>);
 
-    // WebSocket message handling effect
+    // Mock connection effect for demo purposes
     use_effect(move || {
-        let ws_manager = props.websocket_manager.clone();
-        let mut accounts = monitored_accounts.clone();
-        let mut messages = websocket_messages.clone();
-        let mut status = connection_status.clone();
-        let mut error = error_message.clone();
-
         spawn(async move {
-            if let Some(manager) = ws_manager {
-                // Get message receiver
-                if let Some(mut receiver) = manager.get_message_receiver().await {
-                    while let Some(message) = receiver.recv().await {
-                        messages.write().push(message.clone());
-
-                        match message {
-                            WebSocketMessage::ConnectionStatus {
-                                connected,
-                                url,
-                                error: err,
-                            } => {
-                                status.set(if connected {
-                                    format!("Connected to {}", url)
-                                } else {
-                                    "Disconnected".to_string()
-                                });
-
-                                if let Some(err_msg) = err {
-                                    error.set(Some(err_msg));
-                                }
-                            }
-                            WebSocketMessage::AccountNotification { result, .. } => {
-                                // Update account data
-                                let mut accounts_map = accounts.read().clone();
-                                if let Some(account) = accounts_map.get_mut(&result.pubkey) {
-                                    account.balance = result.lamports;
-                                    account.last_updated = current_timestamp();
-                                    account.status = AccountStatus::Monitoring;
-                                }
-                                accounts.set(accounts_map);
-                            }
-                            WebSocketMessage::Error {
-                                error,
-                                subscription,
-                            } => {
-                                error.set(Some(error));
-                                if let Some(sub_id) = subscription {
-                                    // Update account status for this subscription
-                                    let mut accounts_map = accounts.read().clone();
-                                    for account in accounts_map.values_mut() {
-                                        if account.subscription_id == Some(sub_id) {
-                                            account.status = AccountStatus::Failed(
-                                                "WebSocket error".to_string(),
-                                            );
-                                        }
-                                    }
-                                    accounts.set(accounts_map);
-                                }
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-            }
+            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+            connection_status.set("Connected (mock)".to_string());
         });
-    });
-
-    // Auto-connect effect
-    use_effect(move || {
-        if let Some(ref manager) = props.websocket_manager {
-            spawn(async move {
-                let _ = manager.connect().await;
-            });
-        }
     });
 
     // Format balance for display
@@ -192,52 +156,41 @@ pub fn AccountMonitor(props: AccountMonitorProps) -> Element {
 
             // Account list
             div { class: "account-list",
-                for (_, account) in monitored_accounts.read().iter() {
-                    let status_class = match account.status {
-                        AccountStatus::Monitoring => "monitoring",
-                        AccountStatus::Connecting => "connecting",
-                        AccountStatus::Failed(_) => "failed",
-                        AccountStatus::Disconnected => "disconnected",
-                        AccountStatus::Idle => "idle",
-                    };
-
-                    rsx! {
-                        div { class: "account-card {status_class}",
-                            div { class: "account-header",
-                                div { class: "account-pubkey",
-                                    "{account.pubkey}"
-                                }
-                                div { class: "account-status",
-                                    "{status_class}"
-                                }
+                if !monitored_accounts.read().is_empty() {
+                    div { class: "account-card",
+                        div { class: "account-header",
+                            div { class: "account-pubkey",
+                                "Sample Account"
                             }
-                            div { class: "account-details",
-                                div { class: "account-balance",
-                                    "Balance: {format_balance(account.balance)}"
-                                }
-                                div { class: "account-timestamp",
-                                    "Updated: {format_timestamp(account.last_updated)}"
-                                }
+                            div { class: "account-status",
+                                "monitoring"
                             }
                         }
+                        div { class: "account-details",
+                            div { class: "account-balance",
+                                "Balance: 1.000000000 SOL"
+                            }
+                            div { class: "account-timestamp",
+                                "Updated: Just now"
+                            }
+                        }
+                    }
+                } else {
+                    div { class: "no-accounts",
+                        "No accounts being monitored. Add an account to start monitoring."
                     }
                 }
             }
 
             // Add account form
             AddAccountForm {
-                websocket_manager: props.websocket_manager.clone(),
-                on_account_added: props.on_account_added.clone(),
             }
         }
+    }
+}
 
 #[component]
-fn AccountCard<F, G>(account: MonitoredAccount, format_balance: F, format_timestamp: G) -> Element
-where
-    F: Fn(u64) -> String + 'static,
-    G: Fn(u64) -> String + 'static,
-*/
-{
+fn AccountCard(account: MonitoredAccount) -> Element {
     let status_class = match account.status {
         AccountStatus::Monitoring => "monitoring",
         AccountStatus::Connecting => "connecting",
@@ -246,13 +199,43 @@ where
         AccountStatus::Idle => "idle",
     };
 
+    // Format balance for display
+    let format_balance = |balance: u64| {
+        let sol = balance as f64 / 1_000_000_000.0;
+        format!("{:.9} SOL", sol)
+    };
+
+    // Format timestamp
+    let format_timestamp = |timestamp: u64| {
+        let datetime = std::time::UNIX_EPOCH + std::time::Duration::from_secs(timestamp);
+        format!("{:?}", datetime)
+    };
+
+    // Format pubkey short display
+    let format_pubkey_short = |pubkey: &str| {
+        if pubkey.len() > 16 {
+            format!("{}...{}", &pubkey[..8], &pubkey[pubkey.len() - 8..])
+        } else {
+            pubkey.to_string()
+        }
+    };
+
+    // Format transaction short display
+    let format_tx_short = |tx: &str| {
+        if tx.len() > 16 {
+            format!("{}...{}", &tx[..8], &tx[tx.len() - 8..])
+        } else {
+            tx.to_string()
+        }
+    };
+
     rsx! {
         div { class: "account-card {status_class}",
             div { class: "account-header",
                 div { class: "account-info",
                     span { class: "account-pubkey",
                         title: "{account.pubkey}",
-                        "{account.pubkey[..8]}...{account.pubkey[account.pubkey.len()-8..]}"
+                        "{format_pubkey_short(&account.pubkey)}"
                     }
                     span { class: "account-balance", "{format_balance(account.balance)}" }
                 }
@@ -282,7 +265,7 @@ where
                                 li {
                                     span { class: "tx-signature",
                                         title: "{tx}",
-                                        "{tx[..8]}...{tx[tx.len()-8..]}"
+                                        "{format_tx_short(tx)}"
                                     }
                                 }
                             }
@@ -293,24 +276,15 @@ where
         }
     }
 }
-*/
 
 /// Add account form component
 #[component]
-fn AddAccountForm(
-    websocket_manager: Option<WebSocketManager>,
-    on_account_added: Option<String>,
-) -> Element {
+fn AddAccountForm() -> Element {
     let mut pubkey_input = use_signal(String::new);
     let mut is_adding = use_signal(|| false);
     let mut add_error = use_signal(|| None::<String>);
 
     let handle_add_account = move |_| {
-        if websocket_manager.is_none() {
-            add_error.set(Some("WebSocket not available".to_string()));
-            return;
-        }
-
         let pubkey = pubkey_input.read().clone();
         if pubkey.trim().is_empty() {
             add_error.set(Some("Please enter a public key".to_string()));
@@ -320,25 +294,16 @@ fn AddAccountForm(
         is_adding.set(true);
         add_error.set(None);
 
-        let manager = websocket_manager.clone();
         let mut adding = is_adding.clone();
         let mut error = add_error.clone();
+        let pubkey_clone = pubkey.clone();
 
         spawn(async move {
-            if let Some(ws_manager) = manager {
-                match ws_manager.subscribe_account(&pubkey).await {
-                    Ok(_) => {
-                        log::info!("Successfully subscribed to account: {}", pubkey);
-                    }
-                    Err(e) => {
-                        error.set(Some(format!("Failed to subscribe: {}", e)));
-                    }
-                }
-            }
+            // Mock account addition for demo
+            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+            log::info!("Mock: Added account to monitoring: {}", pubkey_clone);
             adding.set(false);
         });
-
-        pubkey_input.set(String::new());
     };
 
     rsx! {
@@ -354,7 +319,7 @@ fn AddAccountForm(
                 }
                 button {
                     onclick: handle_add_account,
-                    disabled: is_adding.read().clone() || websocket_manager.is_none(),
+                    disabled: is_adding.read().clone(),
                     class: format!("add-button {}", if is_adding.read().clone() { "loading" } else { "" }),
                     {if is_adding.read().clone() { "Adding..." } else { "Add Account " }}
                 }

@@ -34,6 +34,58 @@ impl Pubkey {
     pub fn to_string(&self) -> String {
         self.0.clone()
     }
+
+    pub fn new_unique() -> Self {
+        // Generate a mock unique pubkey for testing
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let mut hasher = DefaultHasher::new();
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos()
+            .hash(&mut hasher);
+
+        let hash = hasher.finish();
+        Self(format!("{:0>64x}", hash))
+    }
+
+    pub fn to_bytes(&self) -> [u8; 32] {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+        self.0.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        let mut bytes = [0u8; 32];
+        for (i, byte) in hash.to_be_bytes().iter().take(32).enumerate() {
+            bytes[i] = *byte;
+        }
+        bytes
+    }
+
+    pub fn pubkey(&self) -> &Self {
+        self
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl std::str::FromStr for Pubkey {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, std::string::String> {
+        if s.len() >= 32 {
+            Ok(Self(s.to_string()))
+        } else {
+            Err("Invalid pubkey format".to_string())
+        }
+    }
 }
 
 impl std::fmt::Display for Pubkey {
@@ -109,6 +161,7 @@ pub enum SolanaNetwork {
     #[default]
     Devnet,
     Testnet,
+    Localhost,
 }
 
 // Conversion between SolanaNetwork types
@@ -168,10 +221,16 @@ pub struct AccountInfo {
 }
 
 /// Latest blockhash response
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LatestBlockhash {
     pub blockhash: String,
     pub last_valid_block_height: u64,
+}
+
+impl std::fmt::Display for LatestBlockhash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.blockhash)
+    }
 }
 
 /// Token account balance

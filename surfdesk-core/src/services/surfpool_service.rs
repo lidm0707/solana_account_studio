@@ -138,14 +138,16 @@ pub struct SurfPoolController {
     config: SurfPoolConfig,
     status: Arc<RwLock<SurfPoolStatus>>,
     deployments: Arc<RwLock<HashMap<String, DeploymentStatus>>>,
+    rpc_client: Arc<SolanaRpcClient>,
 }
 
 impl SurfPoolController {
-    pub async fn new(config: SurfPoolConfig) -> Result<Self> {
+    pub async fn new(config: SurfPoolConfig, rpc_client: Arc<SolanaRpcClient>) -> Result<Self> {
         Ok(Self {
             config,
             status: Arc::new(RwLock::new(SurfPoolStatus::Stopped)),
             deployments: Arc::new(RwLock::new(HashMap::new())),
+            rpc_client,
         })
     }
 
@@ -193,7 +195,7 @@ impl SurfPoolController {
         }
 
         // Sign transaction
-        let signed_transaction = self.sign_transaction(transaction, signer).await?;
+        let signed_transaction = self.sign_transaction(&transaction, signer).await?;
 
         // Send transaction
         let signature = self.send_transaction(&signed_transaction).await?;
@@ -203,13 +205,14 @@ impl SurfPoolController {
 
         if confirmed {
             let result = DeploymentResult {
-                deployment_id,
-                signature: signature.to_string(),
                 status: DeploymentStatus::Completed {
                     signature: signature.to_string(),
                 },
+                signature: Some(signature.to_string()),
+                pubkey: config.owner,
                 timestamp: chrono::Utc::now(),
-                account_pubkey: config.owner.to_string(),
+                error: None,
+                block_height: None,
             };
 
             // Update deployment status
@@ -236,7 +239,7 @@ impl SurfPoolController {
                 );
             }
 
-            Err(SurfDeskError::solana_rpc(error))
+            Err(SurfDeskError::SolanaRpc(error))
         }
     }
 
@@ -249,9 +252,16 @@ impl SurfPoolController {
         let instruction = self.build_create_account_instruction(config).await?;
 
         // Create transaction
+        let fee_payer = instruction
+            .accounts
+            .iter()
+            .find(|account| account.is_signer && account.is_writable)
+            .map(|account| account.pubkey.to_string())
+            .unwrap_or_else(|| "11111111111111111111111111111111".to_string());
+
         let transaction = json!({
-            "feePayer": instruction.fee_payer,
-            "recentBlockhash": blockhash,
+            "feePayer": fee_payer,
+            "recentBlockhash": blockhash.to_string(),
             "instructions": [instruction]
         });
 
@@ -266,20 +276,18 @@ impl SurfPoolController {
         Ok(TransactionInstruction {
             program_id: Pubkey::from_string("11111111111111111111111111111111"), // System program
             accounts: vec![
-                AccountMeta {
-                    pubkey: config.payer.clone(),
+                crate::transactions::AccountMeta {
+                    pubkey: config.payer.pubkey().clone(),
                     is_signer: true,
                     is_writable: true,
                 },
-                AccountMeta {
+                crate::transactions::AccountMeta {
                     pubkey: config.owner.clone(),
                     is_signer: false,
                     is_writable: true,
                 },
             ],
-            data: self
-                .encode_create_account_data(config.lamports, config.space)
-                .await?,
+            data: vec![],
         })
     }
 
@@ -341,10 +349,7 @@ impl SurfPoolController {
         log::info!("Getting transaction status: {}", signature);
 
         // Mock implementation
-        Ok(TransactionStatus::Confirmed {
-            signature: signature.to_string(),
-            slot: 12345,
-        })
+        Ok(TransactionStatus::Confirmed)
     }
 
     /// Generate unique deployment ID
@@ -389,7 +394,7 @@ pub struct DeploymentResult {
 }
 
 /// Account deployment configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct AccountDeploymentConfig {
     /// Account public key
     pub pubkey: Pubkey,
@@ -491,7 +496,15 @@ impl SurfPoolService {
     /// Create a new SurfPool service
     pub async fn new() -> Result<Self> {
         let config = SurfPoolConfig::default();
-        let controller = Arc::new(SurfPoolController::new(config.clone()).await?);
+        let controller = Arc::new(
+            SurfPoolController::new(
+                config.clone(),
+                Arc::new(SolanaRpcClient::new(
+                    crate::solana_rpc::SolanaNetwork::Localhost,
+                )),
+            )
+            .await?,
+        );
         let config_clone = config.clone();
         Ok(Self {
             controller,
@@ -588,7 +601,7 @@ impl SurfPoolService {
                     error: "SurfPool validator is not running".to_string(),
                 },
                 signature: None,
-                pubkey: request.pubkey,
+                pubkey: request.pubkey.clone(),
                 timestamp,
                 error: Some("SurfPool validator is not running".to_string()),
                 block_height: None,
@@ -609,7 +622,7 @@ impl SurfPoolService {
                         signature: signature.clone(),
                     },
                     signature: Some(signature.clone()),
-                    pubkey: request.pubkey,
+                    pubkey: request.pubkey.clone(),
                     timestamp,
                     error: None,
                     block_height: Some(100), // Simulated block height
@@ -620,7 +633,7 @@ impl SurfPoolService {
                     error: format!("Deployment failed: {}", e),
                 },
                 signature: None,
-                pubkey: request.pubkey,
+                pubkey: request.pubkey.clone(),
                 timestamp,
                 error: Some(format!("Deployment failed: {}", e)),
                 block_height: None,
