@@ -3,3 +3,15 @@ read doc by srcipt .sh
 1. I think you read alldoc and read all error and summary for best way to fix all them
 2. fix err first
 3. you read all document ,re think and impore agent.md , check roadmap , git push then work to develop
+
+
+next step command
+in each cycle must be no err and warnning
+read doc by srcipt .sh
+I want core feature about surfpool
+surfpool is 3th party program just first insntall in local
+when surfpool start it fork main net to sim net 8999 and can interacti it.
+and can run and kill surfpool next  I want to no code create program & account and deploy by my solana_rpc. the program no code and get raw code to my solana_rpc
+1. I think you read alldoc and read all error and summary for best way to fix all them
+2. fix err first
+3. you read all document ,re think and impore agent.md , check roadmap , git push then work to develop

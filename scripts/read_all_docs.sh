@@ -27,7 +27,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # Function to show help
 show_help() {
     cat << EOF
-📚 SurfDesk All Documentation Reader
+📚 All Documentation Reader
 
 USAGE:
     $0 [OPTIONS]
@@ -50,8 +50,17 @@ EOF
 
 # Function to print colored header
 print_header() {
-    echo -e "${CYAN}📚 SurfDesk All Documentation Reader${NC}"
+    echo -e "${CYAN}📚 All Documentation Reader${NC}"
     echo -e "${BLUE}Project: $PROJECT_ROOT${NC}"
+    echo -e "Avoid using #![allow(dead_code)]"
+    echo -e "Follow best practices"
+    echo -e "Use the Onion Architecture"
+    echo -e "Understand SOLID principles"
+    echo -e "Traits are mostly used in the connection layer"
+    echo -e "When a cycle is completed: git push"
+    echo -e "Reflect, rethink, and continue the next iteration"
+    echo -e "Work step-by-step, so you can safely pause before hitting limits"
+    echo -e "No mock data"
     echo ""
 }
 
@@ -178,6 +187,17 @@ assess_project_status() {
     echo "$compilation:$phase:$framework"
 }
 
+# Function to get the first non-empty line (title or heading)
+get_first_line() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+        # ดึงบรรทัดแรกที่ไม่ว่าง
+        awk 'NF {print; exit}' "$file"
+    else
+        echo ""
+    fi
+}
+
 # Function to generate summary
 generate_summary() {
     local filter_category=""
@@ -204,6 +224,15 @@ generate_summary() {
         if [[ ! -f "$file_path" ]]; then
             continue
         fi
+
+        # Get first line for context
+        local first_line=$(get_first_line "$file_path")
+
+        # Print file info
+        echo -e "${YELLOW}📄 File:${NC} $doc"
+        echo "   Path: $file_path"
+        echo "   First Line: $first_line"
+        echo ""
 
         local category=$(categorize_file "$doc")
         if [[ -n "$filter_category" && "$category" != "$filter_category" ]]; then

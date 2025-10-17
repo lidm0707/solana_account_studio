@@ -79,7 +79,7 @@ pub use crate::services::{
 };
 
 /// Component props for common UI patterns
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct CommonProps {
     /// Component class name
     pub class: Option<String>,
@@ -91,18 +91,6 @@ pub struct CommonProps {
     pub disabled: bool,
     /// Whether component is loading
     pub loading: bool,
-}
-
-impl Default for CommonProps {
-    fn default() -> Self {
-        Self {
-            class: None,
-            id: None,
-            title: None,
-            disabled: false,
-            loading: false,
-        }
-    }
 }
 
 /// Size variants for components
@@ -350,13 +338,12 @@ pub fn Container(
     class: Option<String>,
     children: Element,
 ) -> Element {
-    let max_width_class = max_width
-        .map(|s| format!("max-w-{}", s.css_class().replace("size-", "")))
+    let max_width_class = max_width.map(|m| m.css_class()).unwrap_or_default();
+    let padding_class = padding.map(|p| p.css_class()).unwrap_or_default();
+    let center_class = center
+        .filter(|c| *c)
+        .map(|_| "container-center")
         .unwrap_or_default();
-    let padding_class = padding
-        .map(|p| format!("p-{}", p.css_class().replace("spacing-", "")))
-        .unwrap_or_default();
-    let center_class = center.filter(|c| *c).map(|_| "mx-auto").unwrap_or_default();
 
     rsx! {
         div {

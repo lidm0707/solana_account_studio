@@ -5,10 +5,11 @@
 #![allow(dead_code)]
 
 use crate::services::surfpool_service::{
-    system_program, CompiledInstruction, DeploymentRequest, DeploymentResult, DeploymentStatistics,
-    SurfPoolService, SurfPoolStatus, Transaction,
+    system_program, DeploymentRequest, DeploymentResult, DeploymentStatistics, SurfPoolService,
+    SurfPoolStatus,
 };
 use crate::solana_rpc::{Keypair, Pubkey};
+use crate::transactions::Transaction;
 use chrono;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -375,11 +376,9 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                 // Mock transaction for display
                 let mock_transaction = Transaction {
                     signatures: vec!["mock_signature".to_string()],
-                    message: CompiledInstruction {
-                        account_keys: vec![],
-                        recent_blockhash: "mock_blockhash".to_string(),
-                        instructions: vec![],
-                    },
+                    instructions: vec![],
+                    recent_blockhash: "mock_blockhash".to_string(),
+                    fee_payer: Pubkey::from_string("11111111111111111111111111111111"),
                 };
                 on_deploy.call(mock_transaction);
 

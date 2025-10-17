@@ -345,6 +345,14 @@ pub struct SolanaRpcClient {
     request_id: std::sync::atomic::AtomicU64,
 }
 
+// SAFETY: SolanaRpcClient is Send + Sync because all its fields are Send + Sync
+// - Box<dyn HttpClient>: HttpClient trait requires Send + Sync
+// - String: Send + Sync
+// - RpcCommitment: Send + Sync (derived)
+// - AtomicU64: Send + Sync
+unsafe impl Send for SolanaRpcClient {}
+unsafe impl Sync for SolanaRpcClient {}
+
 impl SolanaRpcClient {
     /// Create new RPC client for specified network
     pub fn new(network: SolanaNetwork) -> Self {

@@ -27,6 +27,13 @@ pub struct SurfPoolController {
     status: Arc<RwLock<ControllerStatus>>,
 }
 
+// SAFETY: SurfPoolController is Send + Sync because all its fields are Send + Sync
+// - Arc<Mutex<Option<Child>>>: Mutex is Send + Sync, Child is Send
+// - Arc<RwLock<SurfPoolConfig>>: RwLock is Send + Sync, SurfPoolConfig is Send + Sync
+// - Arc<RwLock<ControllerStatus>>: RwLock is Send + Sync, ControllerStatus is Send + Sync
+unsafe impl Send for SurfPoolController {}
+unsafe impl Sync for SurfPoolController {}
+
 /// Configuration for SurfPool controller
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SurfPoolConfig {

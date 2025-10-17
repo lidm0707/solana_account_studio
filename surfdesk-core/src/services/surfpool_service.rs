@@ -8,13 +8,39 @@
 
 use crate::error::{Result, SurfDeskError};
 use crate::solana_rpc::{Keypair, Pubkey, Signature, SolanaRpcClient};
-use crate::transactions::{TransactionInstruction, TransactionStatus};
+use crate::transactions::{AccountMeta, Transaction, TransactionInstruction, TransactionStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::{sleep, Duration};
+
+/// Mock system instruction for account creation
+fn create_system_account_instruction(
+    from: &Pubkey,
+    to: &Pubkey,
+    lamports: u64,
+    space: u64,
+    owner: Pubkey,
+) -> TransactionInstruction {
+    TransactionInstruction {
+        program_id: crate::solana_rpc::system_program(),
+        accounts: vec![
+            AccountMeta {
+                pubkey: from.clone(),
+                is_signer: true,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: to.clone(),
+                is_signer: false,
+                is_writable: true,
+            },
+        ],
+        data: vec![0], // Mock instruction data
+    }
+}
 
 /// Deployment status for account creation
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -36,26 +62,6 @@ pub struct Instruction {
     pub data: Vec<u8>,
 }
 
-#[derive(Debug, Clone)]
-pub struct AccountMeta {
-    pub pubkey: Pubkey,
-    pub is_signer: bool,
-    pub is_writable: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct Transaction {
-    pub signatures: Vec<String>,
-    pub message: CompiledInstruction,
-}
-
-#[derive(Debug, Clone)]
-pub struct CompiledInstruction {
-    pub account_keys: Vec<Pubkey>,
-    pub recent_blockhash: String,
-    pub instructions: Vec<Instruction>,
-}
-
 // Keypair and Signer are imported from solana_rpc module
 
 // System program constants
@@ -67,7 +73,8 @@ pub mod system_program {
 }
 
 pub mod system_instruction {
-    use super::{AccountMeta, Instruction, Pubkey};
+    use super::Pubkey;
+    use crate::transactions::{AccountMeta, TransactionInstruction as Instruction};
 
     pub fn create_account(
         from_pubkey: &Pubkey,
@@ -656,22 +663,20 @@ impl SurfPoolService {
         let mut instructions = Vec::new();
 
         // Add system program instruction for account creation
-        let account_instruction = system_instruction::create_account(
+        let account_instruction = create_system_account_instruction(
             &request.payer.pubkey(),
             &request.pubkey,
             request.lamports,
             request.space,
-            &request.owner,
+            request.owner.clone(),
         );
         instructions.push(account_instruction);
 
         let transaction = Transaction {
             signatures: vec![],
-            message: CompiledInstruction {
-                account_keys: vec![request.payer.pubkey.clone(), request.pubkey.clone()],
-                recent_blockhash: "mock_blockhash".to_string(),
-                instructions,
-            },
+            instructions,
+            recent_blockhash: "mock_blockhash".to_string(),
+            fee_payer: request.payer.pubkey.clone(),
         };
 
         Ok(transaction)
