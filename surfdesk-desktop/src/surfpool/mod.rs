@@ -144,24 +144,53 @@ impl SurfPoolManager {
             *status = SurfPoolStatus::Starting;
         }
 
-        // Build command
-        let mut cmd = Command::new("surfpool");
+        // Check if surfpool command exists
+        let surfpool_exists = Command::new("which")
+            .arg("surfpool")
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false);
 
-        // Add arguments
-        cmd.arg("--port")
-            .arg(self.config.port.to_string())
-            .arg("--ledger")
-            .arg(&self.config.ledger_path)
-            .arg("--account-dir")
-            .arg(&self.config.account_path);
+        // Build command based on what's available
+        let mut cmd = if surfpool_exists {
+            info!("Using surfpool command");
+            let mut cmd = Command::new("surfpool");
+            cmd.arg("--port")
+                .arg(self.config.port.to_string())
+                .arg("--ledger")
+                .arg(&self.config.ledger_path)
+                .arg("--account-dir")
+                .arg(&self.config.account_path);
 
-        if self.config.fork_mainnet {
-            cmd.arg("--fork").arg(&self.config.rpc_url);
-        }
+            if self.config.fork_mainnet {
+                cmd.arg("--fork").arg(&self.config.rpc_url);
+            }
 
-        if self.config.enable_logging {
-            cmd.arg("--log-level").arg(&self.config.log_level);
-        }
+            if self.config.enable_logging {
+                cmd.arg("--log-level").arg(&self.config.log_level);
+            }
+            cmd
+        } else {
+            warn!("SurfPool not found, falling back to solana-test-validator");
+            // Use solana-test-validator as fallback
+            let mut cmd = Command::new("solana-test-validator");
+            cmd.arg("--rpc-port")
+                .arg(self.config.port.to_string())
+                .arg("--ledger")
+                .arg(&self.config.ledger_path)
+                .arg("--account-dir")
+                .arg(&self.config.account_path)
+                .arg("--reset");
+
+            if self.config.fork_mainnet {
+                cmd.arg("--url").arg(&self.config.rpc_url);
+            }
+
+            if self.config.enable_logging {
+                cmd.arg("--log-level").arg(&self.config.log_level);
+            }
+            cmd
+        };
 
         // Set up pipes for stdout/stderr
         cmd.stdout(Stdio::piped()).stderr(Stdio::piped());

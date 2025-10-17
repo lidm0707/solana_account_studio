@@ -5,7 +5,9 @@
 
 #![allow(dead_code)]
 
+use crate::surfpool::{SurfPoolConfig, SurfPoolManager, SurfPoolStatus as DesktopSurfPoolStatus};
 use dioxus::prelude::*;
+use std::sync::Arc;
 use surfdesk_core::components::{Button, Card, Size, Variant};
 use surfdesk_core::services::surfpool_service::SurfPoolStatus;
 
@@ -14,9 +16,38 @@ use surfdesk_core::services::surfpool_service::SurfPoolStatus;
 pub fn DashboardPage() -> Element {
     let total_balance = use_signal(|| 2_456_789_000u64); // 2.456 SOL in lamports
     let account_count = use_signal(|| 3);
+    let surfpool_status = use_signal(|| DesktopSurfPoolStatus::Stopped);
 
     // Mock data for portfolio change
     let portfolio_change = || 2.5;
+
+    // Create SurfPool manager for actions
+    let surfpool_manager = Arc::new(SurfPoolManager::new(SurfPoolConfig::default()));
+
+    // Handle SurfPool start/stop
+    let handle_start_validator = {
+        let manager = surfpool_manager.clone();
+        move |_| {
+            let manager = manager.clone();
+            spawn(async move {
+                if let Err(e) = manager.start().await {
+                    log::error!("Failed to start SurfPool: {}", e);
+                }
+            });
+        }
+    };
+
+    let handle_stop_validator = {
+        let manager = surfpool_manager.clone();
+        move |_| {
+            let manager = manager.clone();
+            spawn(async move {
+                if let Err(e) = manager.stop().await {
+                    log::error!("Failed to stop SurfPool: {}", e);
+                }
+            });
+        }
+    };
 
     rsx! {
         div { class: "dashboard-page",
@@ -117,7 +148,7 @@ pub fn DashboardPage() -> Element {
 
                         div { class: "surfpool-dashboard",
                             match surfpool_status() {
-                                SurfPoolStatus::Running { .. } => rsx! {
+                                DesktopSurfPoolStatus::Running { .. } => rsx! {
                                     div { class: "surfpool-running",
                                         div { class: "status-indicator running" }
                                         h3 { "SurfPool Running" }
@@ -125,6 +156,7 @@ pub fn DashboardPage() -> Element {
 
                                         div { class: "surfpool-actions",
                                             Button {
+                                                onclick: handle_stop_validator,
                                                 "Stop Validator"
                                             }
                                             Button {
@@ -133,7 +165,7 @@ pub fn DashboardPage() -> Element {
                                         }
                                     }
                                 },
-                                SurfPoolStatus::Stopped => rsx! {
+                                DesktopSurfPoolStatus::Stopped => rsx! {
                                     div { class: "surfpool-stopped",
                                         div { class: "status-indicator stopped" }
                                         h3 { "SurfPool Stopped" }
@@ -141,6 +173,7 @@ pub fn DashboardPage() -> Element {
 
                                         div { class: "surfpool-actions",
                                             Button {
+                                                onclick: handle_start_validator,
                                                 "Start Validator"
                                             }
                                             Button {
@@ -149,14 +182,29 @@ pub fn DashboardPage() -> Element {
                                         }
                                     }
                                 },
-                                _ => rsx! {
-                                    div { class: "surfpool-error",
-                                        div { class: "status-indicator error" }
-                                        h3 { "SurfPool Error" }
-                                        p { "Validator encountered an issue" }
+                                DesktopSurfPoolStatus::Starting | DesktopSurfPoolStatus::Stopping => rsx! {
+                                    div { class: "surfpool-starting",
+                                        div { class: "status-indicator starting" }
+                                        h3 { "SurfPool Starting..." }
+                                        p { "Local Solana validator is initializing" }
 
                                         div { class: "surfpool-actions",
                                             Button {
+                                                disabled: true,
+                                                "Starting..."
+                                            }
+                                        }
+                                    }
+                                },
+                                DesktopSurfPoolStatus::Error { message, .. } => rsx! {
+                                    div { class: "surfpool-error",
+                                        div { class: "status-indicator error" }
+                                        h3 { "SurfPool Error" }
+                                        p { "Validator encountered an issue: {message}" }
+
+                                        div { class: "surfpool-actions",
+                                            Button {
+                                                onclick: handle_start_validator,
                                                 "Restart"
                                             }
                                             Button {

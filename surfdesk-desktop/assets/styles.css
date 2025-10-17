@@ -6,6 +6,17 @@
 /* Import design system */
 @import url("../styles/design-system.css");
 
+/* === BODY & BASE === */
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    font-family: var(--font-family-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+}
+
 /* === APPLICATION LAYOUT === */
 .surfdesk-desktop {
     min-height: 100vh;
@@ -897,31 +908,60 @@
 
 /* === THEME VARIATIONS === */
 .theme-light {
-    --color-background: var(--gray-50);
+    --color-background: #f9fafb;
     --color-surface: #ffffff;
-    --color-surface-variant: var(--gray-100);
+    --color-surface-variant: #f8fafc;
     --color-card: #ffffff;
-    --color-text-primary: var(--gray-950);
-    --color-text-secondary: var(--gray-700);
-    --color-text-muted: var(--gray-500);
-    --color-border: var(--gray-300);
-    --color-border-variant: var(--gray-200);
+    --color-text-primary: #1e293b;
+    --color-text-secondary: #475569;
+    --color-text-muted: #94a3b8;
+    --color-border: #e2e8f0;
+    --color-border-variant: #f1f5f9;
 }
 
 .theme-dark {
-    --color-background: var(--gray-950);
-    --color-surface: var(--gray-900);
-    --color-surface-variant: var(--gray-800);
-    --color-card: var(--gray-800);
-    --color-text-primary: var(--gray-50);
-    --color-text-secondary: var(--gray-300);
-    --color-text-muted: var(--gray-400);
-    --color-border: var(--gray-700);
-    --color-border-variant: var(--gray-600);
+    --color-background: #111827;
+    --color-surface: #1f2937;
+    --color-surface-variant: #374151;
+    --color-card: #1f2937;
+    --color-text-primary: #f9fafb;
+    --color-text-secondary: #d1d5db;
+    --color-text-muted: #9ca3af;
+    --color-border: #4b5563;
+    --color-border-variant: #374151;
 }
 
 .theme-auto {
     /* Uses system preference via media query in design-system.css */
+}
+
+/* Add system preference detection for auto theme */
+@media (prefers-color-scheme: dark) {
+    .theme-auto {
+        --color-background: #111827;
+        --color-surface: #1f2937;
+        --color-surface-variant: #374151;
+        --color-card: #1f2937;
+        --color-text-primary: #f9fafb;
+        --color-text-secondary: #d1d5db;
+        --color-text-muted: #9ca3af;
+        --color-border: #4b5563;
+        --color-border-variant: #374151;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    .theme-auto {
+        --color-background: #f9fafb;
+        --color-surface: #ffffff;
+        --color-surface-variant: #f8fafc;
+        --color-card: #ffffff;
+        --color-text-primary: #1e293b;
+        --color-text-secondary: #475569;
+        --color-text-muted: #94a3b8;
+        --color-border: #e2e8f0;
+        --color-border-variant: #f1f5f9;
+    }
 }
 
 /* === ACCESSIBILITY === */
