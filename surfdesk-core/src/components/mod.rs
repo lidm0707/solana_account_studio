@@ -38,10 +38,10 @@ pub mod main_content;
 pub mod modal;
 pub mod notification;
 pub mod program_manager;
-// pub mod settings;  // Temporarily commented out
 pub mod sidebar;
+pub mod surfpool;
+// pub mod settings;  // Temporarily commented out
 pub mod status_bar;
-pub mod surfpool_control;
 pub mod table;
 pub mod transaction_builder;
 
@@ -66,7 +66,6 @@ pub use program_manager::ProgramManager;
 // pub use settings::Settings;  // Temporarily commented out
 pub use sidebar::Sidebar;
 // pub use status_bar::StatusBar;  // TODO: Implement
-pub use surfpool_control::SurfPoolControl;
 pub use table::Table; // TODO: Implement
 pub use transaction_builder::TransactionBuilder; // TODO: Implement
 
@@ -286,7 +285,7 @@ pub fn GridLayout(
             class: combine_classes(&[
                 "grid-layout",
                 &columns_class,
-                &gap_class,
+                gap_class,
                 &class.unwrap_or_default()
             ]),
             {children}
@@ -317,11 +316,11 @@ pub fn FlexLayout(
         div {
             class: combine_classes(&[
                 "flex-layout",
-                &direction_class,
-                &align_class,
+                direction_class,
+                align_class,
                 &justify_class,
-                &gap_class,
-                &wrap_class,
+                gap_class,
+                wrap_class,
                 &class.unwrap_or_default()
             ]),
             {children}
@@ -349,9 +348,9 @@ pub fn Container(
         div {
             class: combine_classes(&[
                 "container",
-                &max_width_class,
-                &padding_class,
-                &center_class,
+                max_width_class,
+                padding_class,
+                center_class,
                 &class.unwrap_or_default()
             ]),
             {children}
@@ -373,8 +372,8 @@ pub fn Spacer(
         div {
             class: combine_classes(&[
                 "spacer",
-                &size_class,
-                &direction_class,
+                size_class,
+                direction_class,
                 &class.unwrap_or_default()
             ])
         }
@@ -400,9 +399,9 @@ pub fn Divider(
         div {
             class: combine_classes(&[
                 "divider",
-                &vertical_class,
-                &thickness_class,
-                &color_class,
+                vertical_class,
+                thickness_class,
+                color_class,
                 &class.unwrap_or_default()
             ])
         }

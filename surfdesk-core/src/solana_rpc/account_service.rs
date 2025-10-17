@@ -136,8 +136,8 @@ impl AccountService {
         // Create mock transaction data
         let transaction_data = format!(
             "transfer_from_{}_to_{}_amount_{}",
-            from_keypair.pubkey().to_string(),
-            to_pubkey.to_string(),
+            from_keypair.pubkey(),
+            to_pubkey,
             lamports
         );
 
@@ -188,7 +188,7 @@ impl AccountService {
 
     /// Switch network
     pub fn switch_network(&mut self, network: SolanaNetwork) {
-        self.network = network.clone();
+        self.network = network;
         self.rpc_client = SolanaRpcClient::new(network);
     }
 
@@ -267,9 +267,7 @@ impl TransactionBuilder {
     pub fn add_sol_transfer(mut self, to_pubkey: Pubkey, lamports: u64) -> Self {
         let instruction = format!(
             "transfer_from_{}_to_{}_amount_{}",
-            self.from_pubkey.to_string(),
-            to_pubkey.to_string(),
-            lamports
+            self.from_pubkey, to_pubkey, lamports
         );
         self.instructions.push(instruction);
         self

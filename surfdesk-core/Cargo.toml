@@ -28,6 +28,7 @@ gloo-console = "0.3"
 
 # Additional utilities
 bs58 = "0.5"
+hex = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 log = "0.4"
 rand = "0.8"

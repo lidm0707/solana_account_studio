@@ -316,10 +316,7 @@ impl SurfPoolController {
         // 3. Sign with the provided keypair
         // 4. Return the signed transaction
 
-        log::info!(
-            "Signing transaction with keypair: {}",
-            signer.pubkey().to_string()
-        );
+        log::info!("Signing transaction with keypair: {}", signer.pubkey());
 
         // Mock implementation - return "signed" transaction
         let signed_tx = json!({
@@ -664,7 +661,7 @@ impl SurfPoolService {
 
         // Add system program instruction for account creation
         let account_instruction = create_system_account_instruction(
-            &request.payer.pubkey(),
+            request.payer.pubkey(),
             &request.pubkey,
             request.lamports,
             request.space,

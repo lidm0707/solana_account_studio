@@ -9,6 +9,7 @@ use crate::error::SurfDeskError;
 use crate::platform::Platform;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
@@ -93,7 +94,7 @@ pub struct TokenAccount {
 }
 
 /// Controller status
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ControllerStatus {
     /// Controller is stopped
     Stopped,
@@ -105,6 +106,21 @@ pub enum ControllerStatus {
     Stopping,
     /// Controller encountered an error
     Error(String),
+}
+
+/// Process status information
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProcessStatus {
+    /// Whether the process is currently running
+    pub is_running: bool,
+    /// RPC port the process is listening on
+    pub rpc_port: u16,
+    /// WebSocket port the process is listening on
+    pub ws_port: u16,
+    /// Process ID (if available)
+    pub pid: Option<u32>,
+    /// How long the process has been running
+    pub uptime_seconds: Option<u64>,
 }
 
 impl Default for ControllerStatus {
@@ -197,97 +213,152 @@ impl SurfPoolController {
         std::fs::create_dir_all(&config.ledger_path).map_err(|e| {
             SurfDeskError::platform(format!("Failed to create ledger directory: {}", e))
         })?;
-        std::fs::create_dir_all(&config.accounts_path).map_err(|e| {
-            SurfDeskError::platform(format!("Failed to create accounts directory: {}", e))
-        })?;
 
-        // Build the surfpool command
-        let mut cmd = match self.platform {
-            Platform::Desktop | Platform::Terminal => {
-                let mut cmd = Command::new("surfpool");
-                cmd.arg("start");
-
-                // Add RPC port
-                cmd.arg("--rpc-port").arg(config.rpc_port.to_string());
-
-                // Add WebSocket port
-                cmd.arg("--ws-port").arg(config.ws_port.to_string());
-
-                // Add ledger path
-                cmd.arg("--ledger").arg(&config.ledger_path);
-
-                // Add fork configuration if specified
-                if let Some(ref fork_url) = config.fork_url {
-                    cmd.arg("--fork").arg(fork_url);
-
-                    if let Some(fork_slot) = config.fork_slot {
-                        cmd.arg("--fork-slot").arg(fork_slot.to_string());
-                    }
-                }
-
-                // Enable MCP if requested
-                if config.enable_mcp {
-                    cmd.arg("--mcp");
-                }
-
-                // Enable Anchor project detection
-                if config.anchor_project {
-                    cmd.arg("--anchor");
-                }
-
-                // Add preset accounts
-                for account in &config.preset_accounts {
-                    cmd.arg("--account")
-                        .arg(format!("{}:{}", account.pubkey, account.lamports));
-                }
-
-                cmd
+        // Start surfpool with mainnet fork
+        let result = self.start_mainnet_fork().await;
+        match result {
+            Ok(_) => {
+                *self.status.write().await = ControllerStatus::Running;
+                Ok(())
             }
-            Platform::Web => {
-                // On web platform, we'll simulate a validator
-                return self.start_web_validator().await;
+            Err(e) => {
+                *self.status.write().await = ControllerStatus::Error(e.to_string());
+                Err(e)
             }
-        };
+        }
+    }
+
+    /// Check if surfpool is installed locally
+    pub async fn check_installation() -> Result<bool, SurfDeskError> {
+        let output = Command::new("surfpool").arg("--version").output();
+
+        match output {
+            Ok(output) => {
+                if output.status.success() {
+                    log::info!(
+                        "SurfPool is installed: {}",
+                        String::from_utf8_lossy(&output.stdout)
+                    );
+                    Ok(true)
+                } else {
+                    log::warn!(
+                        "SurfPool command failed: {}",
+                        String::from_utf8_lossy(&output.stderr)
+                    );
+                    Ok(false)
+                }
+            }
+            Err(e) => {
+                log::info!("SurfPool not found in PATH: {}", e);
+                Ok(false)
+            }
+        }
+    }
+
+    /// Install surfpool if needed (placeholder implementation)
+    pub async fn install_if_needed() -> Result<(), SurfDeskError> {
+        if !Self::check_installation().await? {
+            log::info!("SurfPool not installed. Please install surfpool manually:");
+            log::info!(
+                "1. Install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+            );
+            log::info!("2. Install surfpool: cargo install surfpool");
+            Err(SurfDeskError::platform(
+                "SurfPool not installed. Please install it manually.",
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Start surfpool with mainnet fork on port 8999
+    pub async fn start_mainnet_fork(&self) -> Result<(), SurfDeskError> {
+        // Check installation first
+        Self::install_if_needed().await?;
+
+        let config = self.config.read().await;
+
+        // Start surfpool with mainnet fork
+        let mut cmd = Command::new("surfpool");
+        cmd.arg("start")
+            .arg("--fork")
+            .arg("https://api.mainnet-beta.solana.com")
+            .arg("--rpc-port")
+            .arg("8999")
+            .arg("--ws-port")
+            .arg("9000")
+            .arg("--ledger")
+            .arg(&config.ledger_path)
+            .arg("--accounts")
+            .arg(&config.accounts_path);
+
+        // Add preset accounts
+        for account in &config.preset_accounts {
+            cmd.arg("--preset-account")
+                .arg(&account.pubkey)
+                .arg(account.lamports.to_string());
+        }
+
+        // Enable MCP if configured
+        if config.enable_mcp {
+            cmd.arg("--mcp");
+        }
 
         // Start the process
         let child = cmd
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
             .spawn()
             .map_err(|e| SurfDeskError::platform(format!("Failed to start surfpool: {}", e)))?;
 
-        let mut process_guard = self.process.lock().await;
-        *process_guard = Some(child);
-        drop(process_guard);
+        // Store the process handle
+        *self.process.lock().await = Some(child);
 
-        // Wait a moment for SurfPool to initialize
-        sleep(Duration::from_millis(1000)).await;
-
-        // Update status
-        let mut status = self.status.write().await;
-        *status = ControllerStatus::Running;
-
+        log::info!("SurfPool started with mainnet fork on port 8999");
         Ok(())
     }
 
-    /// Start a simulated validator for web platform
-    async fn start_web_validator(&self) -> Result<(), SurfDeskError> {
-        // For web platform, we simulate a validator with a timeout
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    /// Stop the surfpool process
+    pub async fn stop_process(&self) -> Result<(), SurfDeskError> {
+        let mut process_guard = self.process.lock().await;
 
-        let mut status = self.status.write().await;
-        *status = ControllerStatus::Running;
+        if let Some(mut child) = process_guard.take() {
+            // Try to stop gracefully first
+            match child.kill() {
+                Ok(_) => {
+                    log::info!("SurfPool process stopped gracefully");
+                    // Wait for process to actually stop
+                    let _ = child.wait();
+                }
+                Err(e) => {
+                    log::warn!("Failed to kill SurfPool process gracefully: {}", e);
+                }
+            }
 
-        Ok(())
+            *self.status.write().await = ControllerStatus::Stopped;
+            Ok(())
+        } else {
+            Err(SurfDeskError::platform("No SurfPool process is running"))
+        }
+    }
+
+    /// Get current process status
+    pub async fn get_process_status(&self) -> Result<ProcessStatus, SurfDeskError> {
+        let status = self.status.read().await;
+        let is_running = matches!(*status, ControllerStatus::Running);
+
+        Ok(ProcessStatus {
+            is_running,
+            rpc_port: 8999,
+            ws_port: 9000,
+            pid: None,            // TODO: Get actual PID from process
+            uptime_seconds: None, // TODO: Track uptime
+        })
     }
 
     /// Stop the Solana validator
     pub async fn stop(&self) -> Result<(), SurfDeskError> {
         let mut status = self.status.write().await;
-        if *status != ControllerStatus::Running {
-            return Err(SurfDeskError::platform(
-                "SurfPool controller is not running",
-            ));
+        if *status == ControllerStatus::Stopped {
+            return Ok(());
         }
 
         *status = ControllerStatus::Stopping;
@@ -295,31 +366,15 @@ impl SurfPoolController {
 
         let mut process_guard = self.process.lock().await;
         if let Some(mut child) = process_guard.take() {
-            match self.platform {
-                Platform::Desktop | Platform::Terminal => {
-                    // Try graceful shutdown first
-                    if let Err(e) = child.kill() {
-                        log::warn!(
-                            "Failed to gracefully stop surfpool: {}, forcing termination",
-                            e
-                        );
-                    }
-
-                    child.wait().map_err(|e| {
-                        SurfDeskError::platform(format!("Failed to wait for surfpool: {}", e))
-                    })?;
-                }
-                Platform::Web => {
-                    // Simulate stopping
-                    sleep(Duration::from_millis(200)).await;
-                }
+            if let Err(e) = child.kill() {
+                log::warn!("Failed to kill surfpool process: {}", e);
+            } else {
+                log::info!("SurfPool process stopped");
+                let _ = child.wait();
             }
         }
-        drop(process_guard);
 
-        let mut status = self.status.write().await;
-        *status = ControllerStatus::Stopped;
-
+        *self.status.write().await = ControllerStatus::Stopped;
         Ok(())
     }
 
@@ -335,14 +390,6 @@ impl SurfPoolController {
 
     /// Update the configuration
     pub async fn update_config(&self, new_config: SurfPoolConfig) -> Result<(), SurfDeskError> {
-        let status = self.status.read().await;
-        if *status == ControllerStatus::Running {
-            return Err(SurfDeskError::platform(
-                "Cannot update config while SurfPool is running",
-            ));
-        }
-        drop(status);
-
         let mut config = self.config.write().await;
         *config = new_config;
         Ok(())
@@ -476,7 +523,7 @@ pub async fn install_surfpool() -> Result<(), SurfDeskError> {
 
 /// Hook to use SurfPool controller in Dioxus components
 pub fn use_surfpool_controller(platform: Platform) -> Signal<SurfPoolController> {
-    let controller = use_signal(|| {
+    use_signal(|| {
         // Create a simple placeholder controller for initialization
         // We'll initialize it properly when needed
         let config = SurfPoolConfig::default();
@@ -486,9 +533,7 @@ pub fn use_surfpool_controller(platform: Platform) -> Signal<SurfPoolController>
             config: Arc::new(RwLock::new(config)),
             status: Arc::new(RwLock::new(ControllerStatus::Stopped)),
         }
-    });
-
-    controller
+    })
 }
 
 #[cfg(test)]

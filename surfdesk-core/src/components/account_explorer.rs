@@ -200,9 +200,9 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
 
     // Start validator action (simplified)
     let start_validator = move |_: dioxus::prelude::Event<MouseData>| {
-        let success_msg = success_message.clone();
+        let success_msg = success_message;
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-            let mut success = success_msg.clone();
+            let mut success = success_msg;
             async move {
                 // Simulate validator startup
                 tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
@@ -213,9 +213,9 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
 
     // Stop validator action (simplified)
     let stop_validator = move |_: dioxus::prelude::Event<MouseData>| {
-        let success_msg = success_message.clone();
+        let success_msg = success_message;
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-            let mut success = success_msg.clone();
+            let mut success = success_msg;
             async move {
                 // Simulate validator shutdown
                 tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;

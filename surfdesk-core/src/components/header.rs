@@ -48,7 +48,7 @@ fn ThemeToggle() -> Element {
     let mut current_theme = use_signal(|| "auto".to_string());
 
     let on_toggle = move |_| {
-        let themes = vec!["auto", "light", "dark"];
+        let themes = ["auto", "light", "dark"];
         let current_pos = themes
             .iter()
             .position(|&t| t == *current_theme.read())

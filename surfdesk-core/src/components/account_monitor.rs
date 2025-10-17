@@ -296,8 +296,8 @@ fn AddAccountForm() -> Element {
         is_adding.set(true);
         add_error.set(None);
 
-        let mut adding = is_adding.clone();
-        let mut error = add_error.clone();
+        let mut adding = is_adding;
+        let mut error = add_error;
         let pubkey_clone = pubkey.clone();
 
         spawn(async move {
@@ -321,9 +321,9 @@ fn AddAccountForm() -> Element {
                 }
                 button {
                     onclick: handle_add_account,
-                    disabled: is_adding.read().clone(),
-                    class: format!("add-button {}", if is_adding.read().clone() { "loading" } else { "" }),
-                    {if is_adding.read().clone() { "Adding..." } else { "Add Account " }}
+                    disabled: *is_adding.read(),
+                    class: format!("add-button {}", if *is_adding.read() { "loading" } else { "" }),
+                    {if *is_adding.read() { "Adding..." } else { "Add Account " }}
                 }
             }
 

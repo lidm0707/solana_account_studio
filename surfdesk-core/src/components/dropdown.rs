@@ -129,7 +129,7 @@ pub struct DropdownProps {
 pub fn Dropdown(props: DropdownProps) -> Element {
     let mut is_open = use_signal(|| false);
     let mut focused_index = use_signal(|| 0);
-    let mut search_query = use_signal(|| String::new());
+    let mut search_query = use_signal(String::new);
 
     // Close dropdown when clicking outside
     // TODO: Fix web-specific click listener for desktop compatibility
@@ -290,7 +290,7 @@ pub fn Dropdown(props: DropdownProps) -> Element {
                                 class: format!("dropdown-option {} {} {}",
                                     if index == focused_index() { "focused" } else { "" },
                                     if option.disabled { "disabled" } else { "enabled" },
-                                    if props.value.as_ref().map_or(false, |v| v == &option.value) { "selected" } else { "" }
+                                    if props.value.as_ref() == Some(&option.value) { "selected" } else { "" }
                                 ),
                                 r#type: "button",
                                 disabled: option.disabled,
@@ -701,7 +701,7 @@ pub struct SearchableDropdownProps {
 pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
     let mut is_open = use_signal(|| false);
     let mut focused_index = use_signal(|| 0);
-    let mut search_query = use_signal(|| String::new());
+    let mut search_query = use_signal(String::new);
     let mut input_focused = use_signal(|| false);
 
     // Custom search function or default
@@ -794,7 +794,7 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
         input_focused.set(false);
         // Delay closing to allow option clicks
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-            let mut is_open = is_open.clone();
+            let mut is_open = is_open;
             async move {
                 tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
                 is_open.set(false);
@@ -865,7 +865,7 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
                                 class: format!("dropdown-option {} {} {}",
                                     if index == focused_index() { "focused" } else { "" },
                                     if option.disabled { "disabled" } else { "enabled" },
-                                    if props.value.as_ref().map_or(false, |v| v == &option.value) { "selected" } else { "" }
+                                    if props.value.as_ref() == Some(&option.value) { "selected" } else { "" }
                                 ),
                                 "type": "button",
                                 disabled: option.disabled,

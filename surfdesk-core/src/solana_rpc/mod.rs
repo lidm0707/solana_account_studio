@@ -20,19 +20,11 @@ impl Signature {
     pub fn as_str(&self) -> &str {
         &self.0
     }
-
-    pub fn to_string(&self) -> String {
-        self.0.clone()
-    }
 }
 
 impl Pubkey {
     pub fn from_string(s: &str) -> Self {
         Self(s.to_string())
-    }
-
-    pub fn to_string(&self) -> String {
-        self.0.clone()
     }
 
     pub fn new_unique() -> Self {
@@ -61,7 +53,10 @@ impl Pubkey {
         let hash = hasher.finish();
 
         let mut bytes = [0u8; 32];
-        for (i, byte) in hash.to_be_bytes().iter().take(32).enumerate() {
+        for (i, byte) in hash.to_be_bytes().iter().enumerate() {
+            if i >= 32 {
+                break;
+            }
             bytes[i] = *byte;
         }
         bytes
@@ -73,6 +68,10 @@ impl Pubkey {
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 
@@ -94,10 +93,22 @@ impl std::fmt::Display for Pubkey {
     }
 }
 
+impl std::fmt::Display for Signature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Keypair {
     pub pubkey: Pubkey,
     pub secret: String,
+}
+
+impl Default for Keypair {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Keypair {
@@ -495,6 +506,66 @@ impl SolanaRpcClient {
 
         let signature: String = self.make_request("sendTransaction", params).await?;
         Ok(TransactionSignature::new(signature))
+    }
+
+    /// Deploy raw program without code generation
+    pub async fn deploy_raw_program(&self, raw_code: &[u8]) -> Result<Pubkey> {
+        // For now, return a mock program ID
+        // In real implementation, this would:
+        // 1. Create a program account
+        // 2. Deploy the raw bytecode
+        // 3. Return the program ID
+
+        log::info!("Deploying raw program of {} bytes", raw_code.len());
+
+        // Mock deployment - generate a program ID based on the code hash
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        raw_code.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        let program_id = format!("Program{}{}", hash, "11111111111111111111111111111111");
+        Ok(Pubkey::from_string(&program_id[..44])) // Truncate to valid length
+    }
+
+    /// Create account without code generation for a program
+    pub async fn create_account_no_code(&self, program_id: Pubkey) -> Result<Pubkey> {
+        log::info!("Creating account for program: {}", program_id);
+
+        // Mock account creation - generate account ID
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        program_id.to_string().hash(&mut hasher);
+        let hash = hasher.finish();
+
+        let account_id = format!("Account{}{}", hash, "11111111111111111111111111111111");
+        Ok(Pubkey::from_string(&account_id[..44])) // Truncate to valid length
+    }
+
+    /// Get raw program bytecode
+    pub async fn get_program_raw_code(&self, program_id: Pubkey) -> Result<Vec<u8>> {
+        log::info!("Getting raw code for program: {}", program_id);
+
+        // Mock implementation - return some dummy bytecode
+        // In real implementation, this would query the program account
+        Ok(vec![
+            0x01, 0x02, 0x03, 0x04, // Mock program bytecode
+            0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
+        ])
+    }
+
+    /// Deploy program using SurfPool's port 8999
+    pub async fn deploy_via_surfpool(&self, raw_code: &[u8]) -> Result<Pubkey> {
+        // This method specifically uses the SurfPool RPC on port 8999
+        log::info!("Deploying via SurfPool on port 8999");
+
+        // Create a temporary client for SurfPool
+        let surfpool_client =
+            SolanaRpcClient::new_with_url("http://localhost:8999", self.commitment);
+
+        surfpool_client.deploy_raw_program(raw_code).await
     }
 
     /// Confirm transaction

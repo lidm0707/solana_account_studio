@@ -481,7 +481,7 @@ pub fn KeyboardShortcutsDialog(
     show: Signal<bool>,
     keyboard_manager: Signal<KeyboardManager>,
 ) -> Element {
-    let mut search_query = use_signal(|| String::new());
+    let mut search_query = use_signal(String::new);
     let mut selected_category = use_signal(|| Option::<ShortcutCategory>::None);
 
     let categories = [
@@ -495,7 +495,7 @@ pub fn KeyboardShortcutsDialog(
         ShortcutCategory::Help,
     ];
 
-    let mut filtered_shortcuts = use_signal(|| Vec::<Shortcut>::new());
+    let mut filtered_shortcuts = use_signal(Vec::<Shortcut>::new);
 
     // Update filtered shortcuts when search or category changes
     use_effect(move || {
