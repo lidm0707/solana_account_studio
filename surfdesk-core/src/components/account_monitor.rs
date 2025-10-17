@@ -193,10 +193,33 @@ pub fn AccountMonitor(props: AccountMonitorProps) -> Element {
             // Account list
             div { class: "account-list",
                 for (_, account) in monitored_accounts.read().iter() {
-                    AccountCard {
-                        account: account.clone(),
-                        format_balance,
-                        format_timestamp,
+                    let status_class = match account.status {
+                        AccountStatus::Monitoring => "monitoring",
+                        AccountStatus::Connecting => "connecting",
+                        AccountStatus::Failed(_) => "failed",
+                        AccountStatus::Disconnected => "disconnected",
+                        AccountStatus::Idle => "idle",
+                    };
+
+                    rsx! {
+                        div { class: "account-card {status_class}",
+                            div { class: "account-header",
+                                div { class: "account-pubkey",
+                                    "{account.pubkey}"
+                                }
+                                div { class: "account-status",
+                                    "{status_class}"
+                                }
+                            }
+                            div { class: "account-details",
+                                div { class: "account-balance",
+                                    "Balance: {format_balance(account.balance)}"
+                                }
+                                div { class: "account-timestamp",
+                                    "Updated: {format_timestamp(account.last_updated)}"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -212,11 +235,11 @@ pub fn AccountMonitor(props: AccountMonitorProps) -> Element {
 
 /// Individual account card component
 #[component]
-fn AccountCard(
-    account: MonitoredAccount,
-    format_balance: impl Fn(u64) -> String + 'static,
-    format_timestamp: impl Fn(u64) -> String + 'static,
-) -> Element {
+fn AccountCard<F, G>(account: MonitoredAccount, format_balance: F, format_timestamp: G) -> Element
+where
+    F: Fn(u64) -> String + 'static,
+    G: Fn(u64) -> String + 'static,
+{
     let status_class = match account.status {
         AccountStatus::Monitoring => "monitoring",
         AccountStatus::Connecting => "connecting",
