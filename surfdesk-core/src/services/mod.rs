@@ -133,7 +133,7 @@ impl ServiceManager {
     }
 
     /// Get the SurfPool deployment service
-    pub fn surfpool_deployment_service(&self) -> Option<&surfpool_service::SurfPoolService> {
+    pub fn surfpool_deployment_service(&self) -> Option<&services::surfpool::SurfPoolService> {
         self.surfpool_service.as_ref()
     }
 

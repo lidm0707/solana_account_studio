@@ -205,7 +205,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     };
 
     // Stop validator action (simplified)
-    let stop_validator = move |_| {
+    let stop_validator = move |_: dioxus::prelude::Event<MouseData>| {
         let success_msg = success_message.clone();
         use_coroutine(move |_| {
             let success = success_msg.clone();

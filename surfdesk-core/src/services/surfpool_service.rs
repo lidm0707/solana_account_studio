@@ -472,7 +472,8 @@ impl DeploymentRequest {
 
     /// Create deployment request with custom instruction
     pub fn with_custom_instruction(mut self, instruction: Instruction) -> Self {
-        self.custom_instruction = Some(instruction);
+        // TODO: Implement custom instruction storage
+        // self.custom_instruction = Some(instruction);
         self
     }
 }
@@ -521,6 +522,10 @@ impl SurfPoolService {
         let controller = Arc::new(SurfPoolController {
             config: config.clone(),
             status: Arc::new(RwLock::new(SurfPoolStatus::Stopped)),
+            deployments: Arc::new(RwLock::new(HashMap::new())),
+            rpc_client: Arc::new(SolanaRpcClient::new(
+                crate::solana_rpc::SolanaNetwork::Localhost,
+            )),
         });
 
         Self {

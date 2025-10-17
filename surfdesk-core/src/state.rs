@@ -171,7 +171,7 @@ impl AppState {
             active_environment_id: Signal::new(None),
             accounts: Signal::new(Vec::new()),
             transactions: Signal::new(Vec::new()),
-            solana_service: Signal::new(None),
+            surfpool_service: Signal::new(None),
             connection_status: Signal::new(ConnectionStatus::Disconnected),
             current_network: Signal::new(SolanaNetwork::Devnet),
             loading: Signal::new(LoadingState::default()),
