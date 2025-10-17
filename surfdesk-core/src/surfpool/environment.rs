@@ -453,12 +453,12 @@ mod tests {
     #[test]
     fn test_environment_config_default() {
         let _config = EnvironmentConfig::default();
-        assert_eq!(config.r#type, EnvironmentType::LocalDevnet);
-        assert_eq!(config.rpc_port, 8899);
-        assert_eq!(config.ws_port, 8900);
-        assert_eq!(config.preset_accounts.len(), 2);
-        assert!(config.enable_mcp);
-        assert!(config.anchor_project);
+        assert_eq!(_config.r#type, EnvironmentType::LocalDevnet);
+        assert_eq!(_config.rpc_port, 8899);
+        assert_eq!(_config.ws_port, 8900);
+        assert_eq!(_config.preset_accounts.len(), 2);
+        assert!(_config.enable_mcp);
+        assert!(_config.anchor_project);
     }
 
     #[test]
@@ -469,10 +469,10 @@ mod tests {
 
     #[test]
     fn test_config_validation() {
-        let _manager = EnvironmentManager::new(Platform::Desktop);
+        let manager = EnvironmentManager::new(Platform::Desktop);
 
         // Valid config should pass
-        let _valid_config = EnvironmentConfig::default();
+        let valid_config = EnvironmentConfig::default();
         assert!(manager.validate_config(&valid_config).is_ok());
 
         // Invalid config (same ports) should fail
@@ -486,7 +486,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_environment_switching() {
-        let _manager = EnvironmentManager::new(Platform::Web);
+        let manager = EnvironmentManager::new(Platform::Web);
 
         // Should be able to switch to local-devnet
         let config = manager.switch_environment("local-devnet").await;
@@ -500,8 +500,8 @@ mod tests {
 
     #[test]
     fn test_to_surfpool_config() {
-        let _manager = EnvironmentManager::new(Platform::Desktop);
-        let _env_config = EnvironmentConfig::default();
+        let manager = EnvironmentManager::new(Platform::Desktop);
+        let env_config = EnvironmentConfig::default();
         let surfpool_config = manager.to_surfpool_config(&env_config);
 
         assert_eq!(surfpool_config.rpc_port, env_config.rpc_port);
@@ -512,8 +512,8 @@ mod tests {
 
     #[test]
     fn test_generate_surfpool_args() {
-        let _manager = EnvironmentManager::new(Platform::Desktop);
-        let _config = EnvironmentConfig::default();
+        let manager = EnvironmentManager::new(Platform::Desktop);
+        let config = EnvironmentConfig::default();
         let args = manager.generate_surfpool_args(&config);
 
         assert!(args.contains(&"start".to_string()));

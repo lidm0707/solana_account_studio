@@ -368,16 +368,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_websocket_manager_creation() {
-        let _config = WebSocketConfig::default();
-        let _manager = WebSocketManager::new(config);
+        let config = WebSocketConfig::default();
+        let manager = WebSocketManager::new(config);
 
         assert_eq!(manager.get_status().await, ConnectionStatus::Disconnected);
     }
 
     #[tokio::test]
     async fn test_websocket_connection() {
-        let _config = WebSocketConfig::default();
-        let _manager = WebSocketManager::new(config);
+        let config = WebSocketConfig::default();
+        let manager = WebSocketManager::new(config);
 
         let result = manager.connect().await;
         assert!(result.is_ok());
@@ -387,8 +387,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_account_subscription() {
-        let _config = WebSocketConfig::default();
-        let _manager = WebSocketManager::new(config);
+        let config = WebSocketConfig::default();
+        let manager = WebSocketManager::new(config);
 
         manager.connect().await.unwrap();
 
@@ -403,8 +403,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_websocket_service() {
-        let _config = WebSocketConfig::default();
-        let _service = WebSocketService::new(config);
+        let config = WebSocketConfig::default();
+        let service = WebSocketService::new(config);
 
         let result = service.initialize().await;
         assert!(result.is_ok());

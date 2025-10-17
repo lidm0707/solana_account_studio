@@ -489,7 +489,7 @@ mod tests {
 
     #[test]
     fn test_common_props_default() {
-        let _props = CommonProps::default();
+        let props = CommonProps::default();
         assert!(props.class.is_none());
         assert!(props.id.is_none());
         assert!(props.title.is_none());

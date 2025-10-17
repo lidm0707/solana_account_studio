@@ -129,7 +129,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
         let db_url = db_path.to_string_lossy();
 
-        let _result = DatabaseInitializer::initialize(&db_url).await;
+        let result = DatabaseInitializer::initialize(&db_url).await;
         assert!(result.is_ok());
 
         // Verify connection works

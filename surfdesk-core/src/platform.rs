@@ -450,17 +450,17 @@ mod tests {
 
     #[test]
     fn test_platform_default_settings() {
-        let _desktop_settings = Platform::Desktop.default_settings();
+        let desktop_settings = Platform::Desktop.default_settings();
         assert!(desktop_settings.auto_save);
         assert!(desktop_settings.native_window_controls);
         assert!(desktop_settings.system_tray);
 
-        let _web_settings = Platform::Web.default_settings();
+        let web_settings = Platform::Web.default_settings();
         assert!(web_settings.auto_save);
         assert!(!web_settings.native_window_controls);
         assert!(!web_settings.system_tray);
 
-        let _terminal_settings = Platform::Terminal.default_settings();
+        let terminal_settings = Platform::Terminal.default_settings();
         assert!(!terminal_settings.auto_save);
         assert!(!terminal_settings.native_window_controls);
         assert!(!terminal_settings.system_tray);
@@ -469,7 +469,7 @@ mod tests {
 
     #[test]
     fn test_system_info() {
-        let _info = PlatformAdapter::get_system_info();
+        let info = PlatformAdapter::get_system_info();
         assert!(info.contains_key("os"));
         assert!(info.contains_key("arch"));
         assert!(info.contains_key("family"));
@@ -478,13 +478,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_platform_adapter_init() {
-        let _result = PlatformAdapter::initialize().await;
+        let result = PlatformAdapter::initialize().await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_platform_adapter_cleanup() {
-        let _result = PlatformAdapter::cleanup().await;
+        let result = PlatformAdapter::cleanup().await;
         assert!(result.is_ok());
     }
 
