@@ -65,7 +65,7 @@ pub use notification::Notification;
 pub use program_manager::ProgramManager;
 // pub use settings::Settings;  // Temporarily commented out
 pub use sidebar::Sidebar;
-// pub use status_bar::StatusBar;  // TODO: Implement
+pub use status_bar::StatusBar;
 pub use table::Table;
 pub use transaction_builder::TransactionBuilder;
 
