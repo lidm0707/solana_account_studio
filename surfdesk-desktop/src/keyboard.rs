@@ -63,6 +63,8 @@ pub enum ShortcutAction {
     GoToSurfPool,
     /// Navigate to settings
     GoToSettings,
+    /// Navigate to analytics
+    GoToAnalytics,
     /// Request airdrop
     RequestAirdrop,
     /// Toggle theme
@@ -78,6 +80,7 @@ pub enum ShortcutAction {
 }
 
 /// Keyboard shortcuts manager
+#[derive(Clone)]
 pub struct KeyboardManager {
     /// Registered shortcuts
     shortcuts: HashMap<String, Shortcut>,
@@ -293,7 +296,7 @@ impl KeyboardManager {
     pub fn register_shortcut(&mut self, shortcut: Shortcut, action: ShortcutAction) {
         let combination = shortcut.combination.clone();
         self.shortcuts.insert(combination.clone(), shortcut);
-        self.handlers.insert(combination, action);
+        self.handlers.insert(combination.clone(), action);
         debug!("Registered keyboard shortcut: {}", combination);
     }
 
@@ -335,51 +338,67 @@ impl KeyboardManager {
     }
 
     /// Convert keyboard event to combination string
-    fn key_event_to_combination(&self, event: &KeyboardEvent) -> String {
-        let mut parts = Vec::new();
+    fn key_event_to_combination(&self, event: &dioxus::prelude::Event<KeyboardData>) -> String {
+        let mut parts: Vec<String> = Vec::new();
 
-        // Modifier keys
-        if event.ctrl_key() {
-            parts.push("Ctrl");
-        }
-        if event.shift_key() {
-            parts.push("Shift");
-        }
-        if event.alt_key() {
-            parts.push("Alt");
-        }
-        if event.meta_key() {
-            parts.push("Meta");
+        // Dioxus keyboard API - check modifiers
+        // Note: Dioxus doesn't provide direct modifier key detection
+        // For now, we'll handle simple key combinations
+        let key_str = format!("{:?}", event.data.key());
+
+        // Simplified key mapping for basic keys
+        match key_str.as_str() {
+            s if s.contains("Control") => parts.push("Ctrl".to_string()),
+            s if s.contains("Shift") => parts.push("Shift".to_string()),
+            s if s.contains("Alt") => parts.push("Alt".to_string()),
+            s if s.contains("Meta") => parts.push("Meta".to_string()),
+            _ => {}
         }
 
-        // Main key
-        let key = &event.key();
+        // Main key handling
+        let key = format!("{:?}", event.data.key());
         match key.as_str() {
-            // Special keys
-            "Control" | "Shift" | "Alt" | "Meta" => return String::new(),
-            "Escape" => parts.push("Escape"),
-            "Enter" => parts.push("Enter"),
-            "Tab" => parts.push("Tab"),
-            "Backspace" => parts.push("Backspace"),
-            "Delete" => parts.push("Delete"),
-            "Home" => parts.push("Home"),
-            "End" => parts.push("End"),
-            "PageUp" => parts.push("PageUp"),
-            "PageDown" => parts.push("PageDown"),
-            "ArrowUp" => parts.push("Up"),
-            "ArrowDown" => parts.push("Down"),
-            "ArrowLeft" => parts.push("Left"),
-            "ArrowRight" => parts.push("Right"),
-            "F1" | "F2" | "F3" | "F4" | "F5" | "F6" | "F7" | "F8" | "F9" | "F10" | "F11"
-            | "F12" => {
-                parts.push(key);
+            s if s.contains("Escape") => parts.push("Escape".to_string()),
+            s if s.contains("Enter") => parts.push("Enter".to_string()),
+            s if s.contains("Tab") => parts.push("Tab".to_string()),
+            s if s.contains("Backspace") => parts.push("Backspace".to_string()),
+            s if s.contains("Delete") => parts.push("Delete".to_string()),
+            s if s.contains("Home") => parts.push("Home".to_string()),
+            s if s.contains("End") => parts.push("End".to_string()),
+            s if s.contains("PageUp") => parts.push("PageUp".to_string()),
+            s if s.contains("PageDown") => parts.push("PageDown".to_string()),
+            s if s.contains("ArrowUp") => parts.push("Up".to_string()),
+            s if s.contains("ArrowDown") => parts.push("Down".to_string()),
+            s if s.contains("ArrowLeft") => parts.push("Left".to_string()),
+            s if s.contains("ArrowRight") => parts.push("Right".to_string()),
+            s if s.contains("F1")
+                | s.contains("F2")
+                | s.contains("F3")
+                | s.contains("F4")
+                | s.contains("F5")
+                | s.contains("F6")
+                | s.contains("F7")
+                | s.contains("F8")
+                | s.contains("F9")
+                | s.contains("F10")
+                | s.contains("F11")
+                | s.contains("F12") =>
+            {
+                parts.push(key.clone());
             }
-            // Regular keys
+            // Regular keys - extract the character if possible
             _ => {
-                if key.len() == 1 {
-                    parts.push(key.to_uppercase());
+                // Try to extract single character from the debug representation
+                if let Some(c) = key.chars().next() {
+                    if c.is_alphabetic() {
+                        parts.push(c.to_uppercase().to_string());
+                    } else if c.is_numeric() {
+                        parts.push(c.to_string());
+                    } else {
+                        parts.push(key.clone());
+                    }
                 } else {
-                    parts.push(key);
+                    parts.push(key.clone());
                 }
             }
         }
@@ -432,7 +451,7 @@ pub fn KeyboardShortcutsProvider(
     let keyboard_manager = use_keyboard_shortcuts();
 
     // Global keyboard event listener
-    use_coroutine(|_| {
+    use_coroutine(move |_: UnboundedReceiver<()>| {
         let manager = keyboard_manager.clone();
         let action_handler = on_action.clone();
 

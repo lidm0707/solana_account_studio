@@ -127,6 +127,55 @@ impl ServiceManager {
         self.database_service.as_ref()
     }
 
+    /// Switch database backend to Turso
+    #[cfg(feature = "database")]
+    pub async fn switch_to_turso(
+        &mut self,
+        url: String,
+        auth_token: String,
+        database_name: String,
+    ) -> Result<()> {
+        log::info!("Switching database backend to Turso: {}", database_name);
+
+        // Create new Turso database configuration
+        let config = database::DatabaseConfig::from_turso(url.clone(), auth_token, database_name);
+
+        // Create new database service with Turso configuration
+        let new_service = database::DatabaseService::with_config(config).await?;
+
+        // Replace the existing service
+        self.database_service = Some(new_service);
+
+        log::info!("Successfully switched to Turso database backend");
+        Ok(())
+    }
+
+    /// Switch database backend to SQLite
+    #[cfg(feature = "database")]
+    pub async fn switch_to_sqlite(&mut self, path: String) -> Result<()> {
+        log::info!("Switching database backend to SQLite: {}", path);
+
+        // Create new SQLite database configuration
+        let config = database::DatabaseConfig::from_platform().with_sqlite(path);
+
+        // Create new database service with SQLite configuration
+        let new_service = database::DatabaseService::with_config(config).await?;
+
+        // Replace the existing service
+        self.database_service = Some(new_service);
+
+        log::info!("Successfully switched to SQLite database backend");
+        Ok(())
+    }
+
+    /// Get current database backend information
+    #[cfg(feature = "database")]
+    pub fn database_backend_info(&self) -> Option<String> {
+        self.database_service
+            .as_ref()
+            .map(|service| service.backend_info())
+    }
+
     /// Get the SurfPool service
     pub fn surfpool_service(&self) -> Option<&surfpool::SurfPoolService> {
         self.surfpool_service.as_ref()

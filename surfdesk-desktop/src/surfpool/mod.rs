@@ -7,14 +7,16 @@
 use anyhow::{Context, Result};
 use dioxus::prelude::*;
 use log::{debug, error, info, warn};
-// use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
+use tokio::spawn;
 use tokio::time::sleep;
 
 /// SurfPool configuration and management
+#[derive(Debug)]
 pub struct SurfPoolManager {
     /// Current process instance
     process: Arc<Mutex<Option<Child>>>,
@@ -25,6 +27,8 @@ pub struct SurfPoolManager {
     /// Last status update time
     last_update: Arc<Mutex<Instant>>,
 }
+
+// Skip PartialEq for SurfPoolManager - we'll handle this differently
 
 /// SurfPool configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -422,6 +426,14 @@ pub struct SurfPoolControlsProps {
     pub on_status_change: Option<EventHandler<SurfPoolStatus>>,
 }
 
+impl PartialEq for SurfPoolControlsProps {
+    fn eq(&self, other: &Self) -> bool {
+        // Compare by pointer address for Arc<SurfPoolManager>
+        std::ptr::eq(&*self.manager, &*other.manager)
+            && self.on_status_change.is_some() == other.on_status_change.is_some()
+    }
+}
+
 /// SurfPool controls component
 #[component]
 pub fn SurfPoolControls(props: SurfPoolControlsProps) -> Element {
@@ -447,7 +459,7 @@ pub fn SurfPoolControls(props: SurfPoolControlsProps) -> Element {
         let manager = Arc::clone(&props.manager);
         let loading = is_loading.clone();
 
-        spawn_local(async move {
+        spawn(async move {
             loading.set(true);
             match manager.start().await {
                 Ok(_) => {
@@ -465,7 +477,7 @@ pub fn SurfPoolControls(props: SurfPoolControlsProps) -> Element {
         let manager = Arc::clone(&props.manager);
         let loading = is_loading.clone();
 
-        spawn_local(async move {
+        spawn(async move {
             loading.set(true);
             match manager.stop().await {
                 Ok(_) => {
@@ -483,7 +495,7 @@ pub fn SurfPoolControls(props: SurfPoolControlsProps) -> Element {
         let manager = Arc::clone(&props.manager);
         let logs_signal = logs.clone();
 
-        spawn_local(async move {
+        spawn(async move {
             let recent_logs = manager.get_recent_logs(50);
             logs_signal.set(recent_logs);
         });

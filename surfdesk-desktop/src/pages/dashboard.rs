@@ -10,7 +10,7 @@ use surfdesk_core::components::{Card, Size};
 
 /// Dashboard page component
 #[component]
-pub fn DashboardPage(_surfpool_manager: Arc<SurfPoolManager>) -> Element {
+pub fn DashboardPage() -> Element {
     let mut total_balance = use_signal(|| 2_456_789_000); // 2.456 SOL in lamports
     let mut account_count = use_signal(|| 3);
 

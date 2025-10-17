@@ -33,7 +33,7 @@ pub struct DatabaseService {
 /// Database configuration
 #[derive(Debug, Clone)]
 pub struct DatabaseConfig {
-    /// Database file path
+    /// Database file path or URL
     pub database_path: String,
     /// Connection pool size
     pub pool_size: u32,
@@ -43,12 +43,52 @@ pub struct DatabaseConfig {
     pub foreign_keys: bool,
     /// Whether to enable WAL mode
     pub wal_mode: bool,
+    /// Database backend type
+    pub backend: DatabaseBackend,
+    /// Turso-specific configuration
+    pub turso_config: Option<TursoConfig>,
+}
+
+/// Database backend types
+#[derive(Debug, Clone, PartialEq)]
+pub enum DatabaseBackend {
+    /// Local SQLite database
+    SQLite,
+    /// Turso (libSQL) cloud database
+    Turso,
+}
+
+/// Turso database configuration
+#[derive(Debug, Clone)]
+pub struct TursoConfig {
+    /// Database URL
+    pub url: String,
+    /// Authentication token
+    pub auth_token: String,
+    /// Remote database name
+    pub database_name: String,
 }
 
 impl DatabaseService {
     /// Create a new database service
     pub async fn new(_config_service: &crate::services::config::ConfigService) -> Result<Self> {
-        let config = DatabaseConfig::from_platform();
+        let config = DatabaseConfig::from_env();
+        Self::with_config(config).await
+    }
+
+    /// Create a new database service with custom configuration
+    pub async fn with_config(config: DatabaseConfig) -> Result<Self> {
+        log::info!(
+            "Initializing database service with backend: {:?}",
+            config.backend
+        );
+        if config.is_turso() {
+            if let Some(turso_config) = &config.turso_config {
+                log::info!("Turso database: {}", turso_config.database_name);
+            }
+        } else {
+            log::info!("SQLite database path: {}", config.database_path);
+        }
 
         // Create database directory if it doesn't exist
         if let Some(parent) = std::path::Path::new(&config.database_path).parent() {
@@ -67,12 +107,26 @@ impl DatabaseService {
             std::fs::create_dir_all(parent)?;
         }
 
-        // Create connection pool
-        let manager = ConnectionManager::<SqliteConnection>::new(&config.database_path);
-        let pool = Pool::builder()
-            .max_size(config.pool_size)
-            .build(manager)
-            .map_err(|e| SurfDeskError::database(e.to_string()))?;
+        // Create connection pool based on backend
+        let pool = match config.backend {
+            DatabaseBackend::SQLite => {
+                let manager = ConnectionManager::<SqliteConnection>::new(&config.database_path);
+                Pool::builder()
+                    .max_size(config.pool_size)
+                    .build(manager)
+                    .map_err(|e| SurfDeskError::database(e.to_string()))?
+            }
+            DatabaseBackend::Turso => {
+                // For now, fall back to SQLite with Turso URL as database path
+                // TODO: Implement proper Turso integration with libsql
+                log::warn!("Turso backend not yet fully implemented, falling back to SQLite");
+                let manager = ConnectionManager::<SqliteConnection>::new(&config.database_path);
+                Pool::builder()
+                    .max_size(config.pool_size)
+                    .build(manager)
+                    .map_err(|e| SurfDeskError::database(e.to_string()))?
+            }
+        };
 
         let service = Self {
             pool: Arc::new(pool),
@@ -95,6 +149,13 @@ impl DatabaseService {
     async fn run_migrations(&self) -> Result<()> {
         let mut migrations_run = self.migrations_run.write().await;
         if *migrations_run {
+            return Ok(());
+        }
+
+        // Skip migrations for Turso (assume they're run separately)
+        if matches!(self.config.backend, DatabaseBackend::Turso) {
+            log::info!("Skipping migrations for Turso database");
+            *migrations_run = true;
             return Ok(());
         }
 
@@ -185,9 +246,12 @@ impl DatabaseService {
 
         // Enable WAL mode
         if self.config.wal_mode {
-            diesel::sql_query("PRAGMA journal_mode = WAL")
-                .execute(conn)
-                .map_err(|e| SurfDeskError::database(e.to_string()))?;
+            // Only configure WAL mode for SQLite
+            if self.config.wal_mode && matches!(self.config.backend, DatabaseBackend::SQLite) {
+                diesel::sql_query("PRAGMA journal_mode = WAL")
+                    .execute(conn)
+                    .map_err(|e| SurfDeskError::database(e.to_string()))?;
+            }
         }
 
         // Set connection timeout
@@ -390,6 +454,112 @@ impl DatabaseConfig {
             timeout: 30,
             foreign_keys: true,
             wal_mode: true,
+            backend: DatabaseBackend::SQLite,
+            turso_config: None,
+        }
+    }
+
+    /// Create Turso database configuration
+    pub fn from_turso(url: String, auth_token: String, database_name: String) -> Self {
+        log::info!("Configuring Turso database: {}", database_name);
+        Self {
+            database_path: url.clone(),
+            pool_size: 10,
+            timeout: 30,
+            foreign_keys: true,
+            wal_mode: false, // WAL mode not available in Turso
+            backend: DatabaseBackend::Turso,
+            turso_config: Some(TursoConfig {
+                url,
+                auth_token,
+                database_name,
+            }),
+        }
+    }
+
+    /// Create configuration from environment variables
+    pub fn from_env() -> Self {
+        // Check for Turso environment variables
+        if let (Ok(url), Ok(auth_token), Ok(database_name)) = (
+            std::env::var("TURSO_URL"),
+            std::env::var("TURSO_AUTH_TOKEN"),
+            std::env::var("TURSO_DATABASE_NAME"),
+        ) {
+            Self::from_turso(url, auth_token, database_name)
+        } else {
+            log::info!("Using local SQLite database");
+            Self::from_platform()
+        }
+    }
+
+    /// Switch to Turso backend
+    pub fn with_turso(mut self, url: String, auth_token: String, database_name: String) -> Self {
+        self.backend = DatabaseBackend::Turso;
+        self.database_path = url.clone();
+        self.wal_mode = false;
+        self.turso_config = Some(TursoConfig {
+            url,
+            auth_token,
+            database_name,
+        });
+        self
+    }
+
+    /// Switch to SQLite backend
+    pub fn with_sqlite(mut self, path: String) -> Self {
+        self.backend = DatabaseBackend::SQLite;
+        self.database_path = path;
+        self.wal_mode = true;
+        self.turso_config = None;
+        self
+    }
+
+    /// Check if using Turso backend
+    pub fn is_turso(&self) -> bool {
+        matches!(self.backend, DatabaseBackend::Turso)
+    }
+
+    /// Check if using SQLite backend
+    pub fn is_sqlite(&self) -> bool {
+        matches!(self.backend, DatabaseBackend::SQLite)
+    }
+}
+
+/// Turso migration helper
+impl DatabaseService {
+    /// Run migrations on Turso database
+    pub async fn run_turso_migrations(&self) -> Result<()> {
+        if !self.config.is_turso() {
+            return Err(SurfDeskError::database("Not a Turso database backend"));
+        }
+
+        log::info!("Running migrations on Turso database");
+
+        // For now, assume migrations are handled externally
+        // TODO: Implement proper Turso migration system
+        let mut migrations_run = self.migrations_run.write().await;
+        *migrations_run = true;
+
+        log::info!("Turso migrations marked as complete");
+        Ok(())
+    }
+
+    /// Get backend information
+    pub fn backend_info(&self) -> String {
+        match self.config.backend {
+            DatabaseBackend::SQLite => {
+                format!("SQLite (path: {})", self.config.database_path)
+            }
+            DatabaseBackend::Turso => {
+                if let Some(turso_config) = &self.config.turso_config {
+                    format!(
+                        "Turso (database: {}, url: {})",
+                        turso_config.database_name, turso_config.url
+                    )
+                } else {
+                    "Turso (configuration incomplete)".to_string()
+                }
+            }
         }
     }
 }
