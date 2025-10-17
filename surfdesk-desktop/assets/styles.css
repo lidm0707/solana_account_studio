@@ -338,7 +338,12 @@ body {
 
 /* === DASHBOARD STYLES === */
 .dashboard-page {
-    @extend .page-container;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding: var(--space-6);
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .stats-row {
@@ -929,10 +934,6 @@ body {
     --color-text-muted: #9ca3af;
     --color-border: #4b5563;
     --color-border-variant: #374151;
-}
-
-.theme-auto {
-    /* Uses system preference via media query in design-system.css */
 }
 
 /* Add system preference detection for auto theme */

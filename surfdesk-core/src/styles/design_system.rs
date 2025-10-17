@@ -4,8 +4,6 @@
 //! Core design system variables and utilities for SurfDesk application.
 //! Provides consistent theming, colors, spacing, and typography across all platforms.
 
-#![allow(dead_code)]
-
 // use dioxus::prelude::*;  // Currently unused
 
 /// CSS variables for design system

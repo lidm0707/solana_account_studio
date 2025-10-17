@@ -19,7 +19,7 @@ fn use_surfpool_service() -> Arc<SurfPoolService> {
     // Use thread_local storage instead of static mut for safety
     use std::cell::RefCell;
     thread_local! {
-        static SERVICE: RefCell<Option<Arc<SurfPoolService>>> = RefCell::new(None);
+        static SERVICE: RefCell<Option<Arc<SurfPoolService>>> = const { RefCell::new(None) };
     }
 
     SERVICE.with(|service| {
@@ -36,7 +36,7 @@ fn use_validator_status() -> SurfPoolStatus {
     let status = use_signal(|| SurfPoolStatus::Stopped);
 
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-        let mut status_signal = status.clone();
+        let mut status_signal = status;
         async move {
             // Simulate status updates
             loop {
@@ -61,7 +61,7 @@ fn use_deployment_stats() -> DeploymentStatistics {
     });
 
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-        let mut stats_signal = stats.clone();
+        let mut stats_signal = stats;
         async move {
             loop {
                 tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
@@ -84,7 +84,7 @@ fn use_balance_monitor(pubkey: Pubkey) -> f64 {
     let balance = use_signal(|| 0.0);
 
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-        let mut balance_signal = balance.clone();
+        let mut balance_signal = balance;
         let pubkey_clone = pubkey.clone();
         async move {
             loop {
@@ -252,11 +252,11 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         success_message.set(String::new());
 
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-            let mut builder_state = builder.clone();
-            let mut is_building_signal = is_building.clone();
-            let mut accounts_signal = accounts.clone();
-            let on_account_created = props.on_account_created.clone();
-            let mut success_msg = success_message.clone();
+            let mut builder_state = builder;
+            let mut is_building_signal = is_building;
+            let mut accounts_signal = accounts;
+            let on_account_created = props.on_account_created;
+            let mut success_msg = success_message;
 
             async move {
                 tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
@@ -352,13 +352,13 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
 
         // Deploy using simplified workflow
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-            let mut builder_state = builder.clone();
-            let mut is_deploying_signal = is_deploying.clone();
+            let mut builder_state = builder;
+            let mut is_deploying_signal = is_deploying;
             let deployment_req = deployment_request.clone();
-            let on_deploy = props.on_deploy.clone();
-            let on_deployment_result = props.on_deployment_result.clone();
-            let mut success_msg = success_message.clone();
-            let mut error_msg = error_message.clone();
+            let on_deploy = props.on_deploy;
+            let on_deployment_result = props.on_deployment_result;
+            let mut success_msg = success_message;
+            let mut error_msg = error_message;
 
             async move {
                 // Simulate deployment process

@@ -454,8 +454,8 @@ pub fn KeyboardShortcutsProvider(
 
     // Global keyboard event listener
     use_coroutine(move |_: UnboundedReceiver<()>| {
-        let _manager = keyboard_manager.clone();
-        let _action_handler = on_action.clone();
+        let _manager = keyboard_manager;
+        let _action_handler = on_action;
 
         async move {
             // This would typically use a proper event listener
@@ -484,7 +484,7 @@ pub fn KeyboardShortcutsDialog(
     let mut search_query = use_signal(|| String::new());
     let mut selected_category = use_signal(|| Option::<ShortcutCategory>::None);
 
-    let categories = vec![
+    let categories = [
         ShortcutCategory::File,
         ShortcutCategory::Edit,
         ShortcutCategory::View,
@@ -504,22 +504,14 @@ pub fn KeyboardShortcutsDialog(
         let category = selected_category();
 
         let shortcuts = if !query.is_empty() {
-            manager
-                .search_shortcuts(&query)
-                .into_iter()
-                .cloned()
-                .collect()
+            manager.search_shortcuts(&query)
         } else if let Some(cat) = category {
-            manager
-                .get_shortcuts_by_category(cat)
-                .into_iter()
-                .cloned()
-                .collect()
+            manager.get_shortcuts_by_category(cat)
         } else {
-            manager.get_all_shortcuts().into_iter().cloned().collect()
+            manager.get_all_shortcuts()
         };
 
-        filtered_shortcuts.set(shortcuts);
+        filtered_shortcuts.set(shortcuts.into_iter().cloned().collect());
     });
 
     rsx! {

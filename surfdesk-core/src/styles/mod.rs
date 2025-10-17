@@ -4,8 +4,6 @@
 //! Centralized styling system for SurfDesk cross-platform application.
 //! Provides consistent styling across desktop, web, and terminal platforms.
 
-#![allow(dead_code)]
-
 // Re-export all style files
 pub use design_system::*;
 // pub use dropdown::*;  // Commented out to avoid ambiguous re-exports
