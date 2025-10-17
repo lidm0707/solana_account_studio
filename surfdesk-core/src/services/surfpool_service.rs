@@ -137,6 +137,7 @@ pub enum SurfPoolStatus {
 pub struct SurfPoolController {
     config: SurfPoolConfig,
     status: Arc<RwLock<SurfPoolStatus>>,
+    deployments: Arc<RwLock<HashMap<String, DeploymentStatus>>>,
 }
 
 impl SurfPoolController {
@@ -144,6 +145,7 @@ impl SurfPoolController {
         Ok(Self {
             config,
             status: Arc::new(RwLock::new(SurfPoolStatus::Stopped)),
+            deployments: Arc::new(RwLock::new(HashMap::new())),
         })
     }
 
