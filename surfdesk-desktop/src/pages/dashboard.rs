@@ -6,12 +6,12 @@
 use crate::surfpool::{SurfPoolManager, SurfPoolStatus};
 use dioxus::prelude::*;
 use std::sync::Arc;
-use surfdesk_core::components::{Card, Size};
+use surfdesk_core::components::{Button, Card, Size, Variant};
 
 /// Dashboard page component
 #[component]
 pub fn DashboardPage() -> Element {
-    let mut total_balance = use_signal(|| 2_456_789_000); // 2.456 SOL in lamports
+    let mut total_balance = use_signal(|| 2_456_789_000u64); // 2.456 SOL in lamports
     let mut account_count = use_signal(|| 3);
 
     // Mock data for portfolio change
@@ -38,7 +38,7 @@ pub fn DashboardPage() -> Element {
                         size: Size::Large,
                         children: rsx! {
                             div { class: "stat-value",
-                                "{format!("{:.3} SOL ", total_balance() as f64 / 1_000_000_000.0)}"
+                                {format!("{:.3} SOL", total_balance() as f64 / 1_000_000_000.0)}
                             }
                             div { class: "stat-description",
                                 "Across all accounts"
@@ -66,7 +66,7 @@ pub fn DashboardPage() -> Element {
                         size: Size::Medium,
                         children: rsx! {
                             div { class: "stat-value",
-                                "{format!("{:+.1}%", portfolio_change())}"
+                                {format!("{:+.1}%", portfolio_change())}
                             }
                             div { class: "stat-description",
                                 "Portfolio performance"
@@ -188,15 +188,15 @@ pub fn DashboardPage() -> Element {
                                     div { class: "transaction-item",
                                         div { class: "transaction-info",
                                             span { class: "transaction-signature",
-                                                format!("{}...", &tx.signature[..8.min(tx.signature.len())])
+                                                {format!("{}...", &tx.signature[..8.min(tx.signature.len())])}
                                             }
                                             span { class: "transaction-time",
-                                                format!("{} min ago", tx.timestamp)
+                                                {format!("{} min ago", tx.timestamp)}
                                             }
                                         }
                                         div { class: "transaction-amount",
                                             span { class: "amount",
-                                                format!("{:.4} SOL", tx.amount)
+                                                {format!("{:.4} SOL", tx.amount)}
                                             }
                                         }
                                     }

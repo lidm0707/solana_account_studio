@@ -632,4 +632,9 @@ impl std::fmt::Debug for SolanaRpcClient {
 pub mod account_service;
 pub use account_service::{AccountService, AccountWithBalance, TransactionBuilder};
 
+// System program ID
+pub fn system_program() -> Pubkey {
+    Pubkey::from_string("11111111111111111111111111111112")
+}
+
 // Export mock Solana types (already defined above)

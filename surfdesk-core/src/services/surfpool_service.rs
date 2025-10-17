@@ -768,8 +768,8 @@ mod tests {
     async fn test_deployment_request_creation() {
         let keypair = Arc::new(Keypair::new());
         let request = DeploymentRequest::new(
-            keypair.pubkey(),
-            solana_sdk::system_program::id(),
+            *keypair.pubkey(),
+            crate::solana_rpc::system_program(),
             1_000_000_000,
             100,
             false,
@@ -777,7 +777,7 @@ mod tests {
             keypair.clone(),
         );
 
-        assert_eq!(request.pubkey, keypair.pubkey());
+        assert_eq!(request.pubkey, *keypair.pubkey());
         assert_eq!(request.lamports, 1_000_000_000);
         assert_eq!(request.space, 100);
         assert!(!request.executable);

@@ -75,7 +75,8 @@ pub enum Theme {
 }
 
 /// Desktop views/pages
-#[derive(Debug, Clone, PartialEq)]
+/// Desktop application views
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DesktopView {
     Dashboard,
     Accounts,
@@ -122,7 +123,7 @@ fn NavigationItem(
 
     rsx! {
         div {
-            class: "nav-item {if is_active { "active" } else { "" }}",
+            class: format!("nav-item {}", if is_active { "active" } else { "" }),
             onclick: move |_| on_click(view),
             span { class: "nav-icon", "{icon}" }
             span { class: "nav-label", "{label}" }
@@ -210,7 +211,7 @@ fn SurfDeskDesktopApp() -> Element {
     let surfpool_manager = Arc::new(SurfPoolManager::new(surfpool_config));
 
     // Initialize application state
-    let app_state = AppState {
+    let mut app_state = AppState {
         theme: use_signal(|| match args.theme.as_str() {
             "light" => Theme::Light,
             "dark" => Theme::Dark,
@@ -262,14 +263,11 @@ fn SurfDeskDesktopApp() -> Element {
 
                 // Content area
                 div { class: "desktop-content",
-
                     // Render current view
-                    let current_view_signal = app_state.current_view;
-                    match current_view_signal() {
+                    {let current_view_signal = (app_state.current_view)();
+                    match current_view_signal {
                         DesktopView::Dashboard => {
-                            rsx! {
-                                DashboardPage {}
-                            }
+                            rsx! { DashboardPage {} }
                         }
                         DesktopView::Accounts => {
                             rsx! {
@@ -315,7 +313,7 @@ fn SurfDeskDesktopApp() -> Element {
                                 }
                             }
                         }
-                    }
+                    }}
                 }
             }
 

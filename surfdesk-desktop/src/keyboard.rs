@@ -452,8 +452,8 @@ pub fn KeyboardShortcutsProvider(
 
     // Global keyboard event listener
     use_coroutine(move |_: UnboundedReceiver<()>| {
-        let manager = keyboard_manager.clone();
-        let action_handler = on_action.clone();
+        let _manager = keyboard_manager.clone();
+        let _action_handler = on_action.clone();
 
         async move {
             // This would typically use a proper event listener
@@ -479,8 +479,8 @@ pub fn KeyboardShortcutsDialog(
     show: Signal<bool>,
     keyboard_manager: Signal<KeyboardManager>,
 ) -> Element {
-    let search_query = use_signal(|| String::new());
-    let selected_category = use_signal(|| Option::<ShortcutCategory>::None);
+    let mut search_query = use_signal(|| String::new());
+    let mut selected_category = use_signal(|| Option::<ShortcutCategory>::None);
 
     let categories = vec![
         ShortcutCategory::File,
@@ -493,7 +493,7 @@ pub fn KeyboardShortcutsDialog(
         ShortcutCategory::Help,
     ];
 
-    let filtered_shortcuts = use_signal(|| Vec::<&Shortcut>::new());
+    let mut filtered_shortcuts = use_signal(|| Vec::<Shortcut>::new());
 
     // Update filtered shortcuts when search or category changes
     use_effect(move || {
@@ -502,11 +502,19 @@ pub fn KeyboardShortcutsDialog(
         let category = selected_category();
 
         let shortcuts = if !query.is_empty() {
-            manager.search_shortcuts(&query)
+            manager
+                .search_shortcuts(&query)
+                .into_iter()
+                .cloned()
+                .collect()
         } else if let Some(cat) = category {
-            manager.get_shortcuts_by_category(cat)
+            manager
+                .get_shortcuts_by_category(cat)
+                .into_iter()
+                .cloned()
+                .collect()
         } else {
-            manager.get_all_shortcuts()
+            manager.get_all_shortcuts().into_iter().cloned().collect()
         };
 
         filtered_shortcuts.set(shortcuts);
@@ -546,7 +554,7 @@ pub fn KeyboardShortcutsDialog(
 
                         select {
                             class: "category-filter",
-                            value: "{selected_category().map_or(String::new(), |c| format!("{:?}", c))}",
+                            value: {selected_category().map_or(String::new(), |c| format!("{:?}", c))},
                             onchange: move |evt| {
                                 let value = evt.value();
                                 selected_category.set(if value.is_empty() {

@@ -943,10 +943,10 @@ mod tests {
 
     #[test]
     fn test_css_class_generation() {
-        let result = css_class("dropdown", &["open", "enabled"]);
+        let result = crate::styles::utils::class_with_modifiers("dropdown", &["open", "enabled"]);
         assert_eq!(result, "dropdown dropdown--open dropdown--enabled");
 
-        let result = css_class("dropdown", &[]);
+        let result = crate::styles::utils::class_with_modifiers("dropdown", &[]);
         assert_eq!(result, "dropdown");
     }
 }

@@ -123,29 +123,30 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
-    #[test]
-    fn test_database_initialization() {
+    #[tokio::test]
+    async fn test_database_initialization() {
         let temp_dir = tempdir().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let db_url = db_path.to_string_lossy();
 
-        let result = DatabaseInitializer::initialize(&db_url);
+        let result = DatabaseInitializer::initialize(&db_url).await;
         assert!(result.is_ok());
 
         // Verify connection works
-        let conn = establish_connection(&db_url);
+        let conn = establish_connection(&db_url).await;
         assert!(conn.is_ok());
     }
 
-    #[test]
-    fn test_connection_pool() {
+    #[tokio::test]
+    async fn test_connection_pool() {
         let temp_dir = tempdir().unwrap();
         let db_path = temp_dir.path().join("test_pool.db");
         let db_url = db_path.to_string_lossy();
 
-        DatabaseInitializer::initialize(&db_url).unwrap();
+        DatabaseInitializer::initialize(&db_url).await.unwrap();
 
-        let pool = create_pool(&db_url, 5);
-        assert!(pool.is_ok());
+        // For libsql, we just test establishing a connection
+        let conn = establish_connection(&db_url).await;
+        assert!(conn.is_ok());
     }
 }
