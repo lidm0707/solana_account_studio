@@ -83,7 +83,7 @@ impl TransactionBuilder {
             signatures: Vec::new(), // Would be populated during signing
             instructions: self.instructions.clone(),
             recent_blockhash: self.recent_blockhash.clone(),
-            fee_payer: self.payer,
+            fee_payer: self.payer.clone(),
         };
 
         Ok(transaction)
@@ -97,7 +97,7 @@ impl TransactionBuilder {
     ) -> Result<Transaction, Box<dyn std::error::Error>> {
         // For MVP, create a placeholder transaction
         // In real implementation, this would create a SystemProgram transfer
-        let mut builder = Self::new(from.pubkey());
+        let mut builder = Self::new(from.pubkey().clone());
         builder.add_signer(from);
 
         // Add transfer instruction (placeholder)

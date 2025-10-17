@@ -230,15 +230,13 @@ pub fn AccountMonitor(props: AccountMonitorProps) -> Element {
                 on_account_added: props.on_account_added.clone(),
             }
         }
-    }
-}
 
-/// Individual account card component
 #[component]
 fn AccountCard<F, G>(account: MonitoredAccount, format_balance: F, format_timestamp: G) -> Element
 where
     F: Fn(u64) -> String + 'static,
     G: Fn(u64) -> String + 'static,
+*/
 {
     let status_class = match account.status {
         AccountStatus::Monitoring => "monitoring",
@@ -295,6 +293,7 @@ where
         }
     }
 }
+*/
 
 /// Add account form component
 #[component]

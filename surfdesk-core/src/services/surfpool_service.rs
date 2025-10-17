@@ -471,7 +471,7 @@ impl DeploymentRequest {
 }
 
 /// SurfPool service for managing validator and account deployments
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SurfPoolService {
     /// SurfPool controller
     controller: Arc<SurfPoolController>,
@@ -489,8 +489,7 @@ impl SurfPoolService {
     /// Create a new SurfPool service
     pub async fn new() -> Result<Self> {
         let config = SurfPoolConfig::default();
-        let controller = Arc::new(SurfPoolController::new(config).await?);
-
+        let controller = Arc::new(SurfPoolController::new(config.clone()).await?);
         let config_clone = config.clone();
         Ok(Self {
             controller,
