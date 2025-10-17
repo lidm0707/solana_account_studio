@@ -55,7 +55,7 @@ pub fn AccountsPage() -> Element {
 
             // Fetch real balances from SurfPool RPC
             for account in &mut accounts_with_balances {
-                if let Ok(balance) = rpc.get_balance(&account.pubkey.to_string()).await {
+                if let Ok(balance): Result<u64, _> = rpc.get_balance(&account.pubkey.to_string()).await {
                     account.lamports = balance;
                 }
             }
