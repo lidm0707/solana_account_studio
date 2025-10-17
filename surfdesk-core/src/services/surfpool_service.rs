@@ -748,15 +748,30 @@ pub struct DeploymentStatistics {
 }
 
 /// Hook for using SurfPool service in Dioxus components
+/// Note: This service requires external SurfPool installation
 pub fn use_surfpool_service() -> Result<Arc<SurfPoolService>> {
-    // TODO: Implement proper async service initialization in Dioxus context
-    // For now, return a placeholder service that can be initialized later
-    // In a real implementation, this would use Dioxus's use_coroutine or similar
-    // to handle the async constructor properly
-    Err(crate::error::SurfDeskError::internal(
-        "SurfPoolService async initialization not yet implemented in use_surfpool_service hook. \
-         This requires proper Dioxus context management for async operations.",
-    ))
+    // Check if SurfPool is available before creating service
+    let is_available = std::process::Command::new("surfpool")
+        .arg("--version")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false);
+
+    if is_available {
+        log::info!("SurfPool is available - service can be used");
+        // Return a placeholder indicating SurfPool is available
+        // Actual service will be initialized asynchronously when needed
+        Err(crate::error::SurfDeskError::internal(
+            "SurfPool is available but requires async initialization. \
+             Use SurfPoolController directly for external process management.",
+        ))
+    } else {
+        log::warn!("SurfPool not available - install with: cargo install surfpool");
+        Err(crate::error::SurfDeskError::platform(format!(
+            "SurfPool is not installed. {}\n\nInstall with: cargo install surfpool",
+            crate::surfpool::SurfPoolController::get_installation_instructions()
+        )))
+    }
 }
 
 #[cfg(test)]

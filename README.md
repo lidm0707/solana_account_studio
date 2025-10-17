@@ -24,7 +24,7 @@ SurfDesk is a **complete Solana account management solution** that runs on every
 - ✅ **Real-time Balance Monitoring** - Track SOL balances across all accounts
 - ✅ **Network Switching** - Seamlessly switch between Mainnet, Devnet, and Testnet
 - ✅ **Cross-Platform** - Native apps for Desktop, Web, Terminal, and CLI
-- ✅ **Local Validator Integration** - Built-in SurfPool support for local development
+- ✅ **Local Validator Integration** - External SurfPool integration for local development
 - ✅ **Perfect Code Quality** - Zero compilation errors, zero warnings, production-ready code
 
 ### 🏆 Code Quality Achievements
@@ -36,7 +36,7 @@ SurfDesk is a **complete Solana account management solution** that runs on every
 - ✅ **Base58 Encoding** - Proper Solana-compatible encoding implementation
 - ✅ **Major TODO Resolution** - Critical infrastructure TODOs implemented and resolved
 - ✅ **Database Migration System** - Comprehensive Turso migration with version tracking
-- ✅ **Process Monitoring** - Real PID and uptime tracking for SurfPool services
+- ✅ **Process Monitoring** - Real PID and uptime tracking for external SurfPool services
 
 ---
 
@@ -271,6 +271,29 @@ max_file_size = "10MB"
 max_files = 5
 ```
 
+### 🔧 SurfPool Integration (Optional)
+
+SurfPool is an optional third-party tool for local Solana development. SurfDesk integrates WITH SurfPool but does not include it.
+
+#### Installation
+
+```bash
+# Install SurfPool (requires Rust)
+cargo install surfpool
+
+# Verify installation
+surfpool --version
+```
+
+#### Usage
+
+SurfPool features are available when SurfPool is installed:
+- Local validator with mainnet fork
+- Program deployment and testing
+- Account management with preset accounts
+
+If SurfPool is not installed, SurfDesk will show installation instructions and gracefully degrade functionality.
+
 ### Environment Variables
 
 ```bash
@@ -291,8 +314,8 @@ export SURFDESK_NETWORK="mainnet"
 
 ### 🚀 Recent Achievements (Cycle 18)
 
-- 🏆 **SurfPool Service Enhancement** - Added custom instruction support to DeploymentRequest
-- 🏆 **Real Process Monitoring** - PID tracking and actual memory usage on Unix systems  
+- 🏆 **SurfPool Integration Enhancement** - Added custom instruction support for external SurfPool integration
+- 🏆 **Real Process Monitoring** - PID tracking and actual memory usage for external SurfPool processes
 - 🏆 **Turso Migration System** - Database migrations with proper version tracking
 - 🏆 **Component Library Updates** - Cleaned up outdated TODOs for implemented components
 - 🏆 **Code Quality Excellence** - Maintained zero errors and zero warnings throughout

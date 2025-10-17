@@ -40,6 +40,7 @@ pub mod notification;
 pub mod program_manager;
 pub mod sidebar;
 pub mod surfpool;
+pub mod surfpool_control;
 // pub mod settings;  // Temporarily commented out
 pub mod status_bar;
 pub mod table;
@@ -76,6 +77,9 @@ pub use crate::services::{
     },
     ServiceManager,
 };
+
+// Re-export SurfPool control components
+pub use surfpool_control::{SurfPoolControl, SurfPoolInstallGuide, SurfPoolStatus};
 
 /// Component props for common UI patterns
 #[derive(Debug, Clone, PartialEq, Default)]

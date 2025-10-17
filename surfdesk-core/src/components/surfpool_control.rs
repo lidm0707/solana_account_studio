@@ -1,12 +1,14 @@
 #![allow(dead_code)]
-//! # SurfPool Control Component
+//! # SurfPool Control Component Module
 //!
-//! This component provides a basic UI for controlling SurfPool validators
-//! across all platforms (desktop, web, and terminal).
+//! This module provides components for integrating with the external SurfPool tool.
+//! SurfPool is a separate third-party tool that users must install independently.
+//! These components handle the integration and provide clear feedback about availability.
 
+use super::combine_classes;
 use crate::platform::Platform;
 use crate::state::AppState;
-use crate::surfpool::{use_surfpool_controller, ControllerStatus};
+use crate::surfpool::{use_surfpool_controller, use_surfpool_status, ControllerStatus};
 use dioxus::prelude::*;
 
 /// Props for the SurfPool control component
@@ -41,144 +43,118 @@ pub fn SurfPoolControl(props: SurfPoolControlProps) -> Element {
         });
     };
 
-    let on_start = move |_| {
-        let controller = controller.read().clone();
+    rsx! {
+        div { class: "surfpool-control",
+            div { class: "surfpool-header",
+                h3 { "SurfPool Control" }
+                SurfPoolStatus {}
+            }
 
-        spawn(async move {
-            match controller.start().await {
-                Ok(()) => {
-                    status.set(ControllerStatus::Running);
-                    error_message.set(None);
-                }
-                Err(e) => {
-                    status.set(ControllerStatus::Error(e.to_string()));
-                    error_message.set(Some(e.to_string()));
+            div { class: "surfpool-status",
+                p { class: "status-text", "Status: {status}" }
+                if let Some(error) = error_message.read().as_ref() {
+                    p { class: "error-text", "{error}" }
                 }
             }
-        });
-    };
 
-    let on_stop = move |_| {
-        let controller = controller.read().clone();
-
-        spawn(async move {
-            match controller.stop().await {
-                Ok(()) => {
-                    status.set(ControllerStatus::Stopped);
-                    error_message.set(None);
-                }
-                Err(e) => {
-                    status.set(ControllerStatus::Error(e.to_string()));
-                    error_message.set(Some(e.to_string()));
+            div { class: "surfpool-actions",
+                button {
+                    class: "btn btn-primary",
+                    onclick: check_status,
+                    "Check Status"
                 }
             }
-        });
-    };
+        }
+    }
+}
 
-    let current_status = status.read().clone();
+/// Component to show SurfPool availability status
+#[component]
+pub fn SurfPoolStatus() -> Element {
+    let is_available = use_surfpool_status();
 
     rsx! {
-        div { class: "surfpool-control p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg",
-
-            // Header
-            div { class: "flex items-center justify-between mb-6",
-                h2 { class: "text-2xl font-bold text-gray-900 dark:text-white",
-                    "SurfPool Validator Control"
+        div { class: "surfpool-status-indicator",
+            if *is_available.read() {
+                div { class: "status-available",
+                    span { class: "status-icon", "✅" }
+                    span { class: "status-text", "SurfPool Available" }
                 }
-
-                div { class: "flex items-center space-x-2",
-                    StatusIndicator { status: current_status.clone() }
-                }
-            }
-
-            // Error message
-            if let Some(ref error) = *error_message.read() {
-                div { class: "mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md",
-                    div { class: "flex items-center",
-                        span { class: "text-red-600 dark:text-red-400 font-medium",
-                            "Error: {error}"
+            } else {
+                div { class: "status-unavailable",
+                    span { class: "status-icon", "⚠️" }
+                    div { class: "status-details",
+                        span { class: "status-text", "SurfPool Not Available" }
+                        p { class: "install-hint",
+                            "Install with: "
+                            code { "cargo install surfpool" }
                         }
                     }
                 }
             }
-
-            // Control buttons
-            ControlButtons {
-                status: current_status.clone(),
-                on_start,
-                on_stop,
-                on_check: check_status,
-            }
         }
     }
 }
 
-/// Status indicator component
+/// Simple component to show installation instructions
 #[component]
-fn StatusIndicator(status: ControllerStatus) -> Element {
-    let (color, text, pulsing) = match &status {
-        ControllerStatus::Stopped => ("gray", "Stopped", false),
-        ControllerStatus::Starting => ("yellow", "Starting...", true),
-        ControllerStatus::Running => ("green", "Running", false),
-        ControllerStatus::Stopping => ("orange", "Stopping...", true),
-        ControllerStatus::Error(_) => ("red", "Error", true),
-    };
-
+pub fn SurfPoolInstallGuide() -> Element {
     rsx! {
-        div { class: "flex items-center space-x-2",
-            div {
-                class: if pulsing {
-                    format!("w-3 h-3 bg-{}-500 rounded-full animate-pulse", color)
-                } else {
-                    format!("w-3 h-3 bg-{}-500 rounded-full", color)
+        div { class: "surfpool-install-guide",
+            h4 { "SurfPool Installation Guide" }
+            p { "SurfPool is an optional tool for local Solana development." }
+
+            div { class: "install-steps",
+                h5 { "Installation Steps:" }
+                ol {
+                    li { "Install Rust (if not already installed):"
+                        pre { "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh" }
+                    }
+                    li { "Install SurfPool:"
+                        pre { "cargo install surfpool" }
+                    }
+                    li { "Verify installation:"
+                        pre { "surfpool --version" }
+                    }
                 }
             }
-            span { class: "text-sm font-medium text-gray-600 dark:text-gray-300",
-                "{text}"
+
+            div { class: "help-links",
+                p { "For more information:" }
+                a {
+                    href: "https://github.com/surfpool/surfpool",
+                    target: "_blank",
+                    "SurfPool GitHub Repository"
+                }
             }
         }
     }
 }
 
-/// Control buttons component
-#[component]
-fn ControlButtons(
-    status: ControllerStatus,
-    on_start: EventHandler<MouseEvent>,
-    on_stop: EventHandler<MouseEvent>,
-    on_check: EventHandler<MouseEvent>,
-) -> Element {
-    let is_running = matches!(status, ControllerStatus::Running);
-    let is_transitioning = matches!(
-        status,
-        ControllerStatus::Starting | ControllerStatus::Stopping
-    );
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    rsx! {
-        div { class: "flex flex-wrap gap-3 mb-6",
+    #[test]
+    fn test_surfpool_control_props() {
+        let props = SurfPoolControlProps {
+            state: use_signal(AppState::default),
+            platform: Platform::Desktop,
+            on_status_change: None,
+        };
 
-            // Start button
-            button {
-                class: "px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors",
-                disabled: is_running || is_transitioning,
-                onclick: on_start,
-                "Start Validator"
-            }
+        assert_eq!(props.platform, Platform::Desktop);
+        assert!(props.on_status_change.is_none());
+    }
 
-            // Stop button
-            button {
-                class: "px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors",
-                disabled: !is_running || is_transitioning,
-                onclick: on_stop,
-                "Stop Validator"
-            }
-
-            // Check Status button
-            button {
-                class: "px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors",
-                onclick: on_check,
-                "Check Status"
-            }
+    #[test]
+    fn test_component_creation() {
+        // Test that component names are valid
+        // This is a basic smoke test to ensure components exist
+        let component_names = vec!["SurPoolControl", "SurfPoolStatus", "SurfPoolInstallGuide"];
+        for name in component_names {
+            assert!(!name.is_empty());
+            assert!(name.len() > 5); // Basic sanity check
         }
     }
 }

@@ -1,7 +1,14 @@
-//! SurfPool: Multi-Platform Solana Development Controller
+//! SurfPool Integration: External Service Integration
 //!
-//! This module provides cross-platform process management for local Solana validators
-//! and development environments, supporting desktop, web, and terminal platforms.
+//! This module provides integration with SurfPool, which is a separate third-party tool
+//! that users must install independently. SurfDesk integrates WITH SurfPool but does not
+//! include it. Users need to install SurfPool separately using `cargo install surfpool`.
+//!
+//! This integration:
+//! - Checks if SurfPool is installed
+//! - Provides fallback behavior when not available
+//! - Manages external SurfPool processes
+//! - Shows clear installation instructions to users
 
 pub mod environment;
 
@@ -108,6 +115,18 @@ pub enum ControllerStatus {
     Stopping,
     /// Controller encountered an error
     Error(String),
+}
+
+impl std::fmt::Display for ControllerStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ControllerStatus::Stopped => write!(f, "Stopped"),
+            ControllerStatus::Starting => write!(f, "Starting"),
+            ControllerStatus::Running => write!(f, "Running"),
+            ControllerStatus::Stopping => write!(f, "Stopping"),
+            ControllerStatus::Error(msg) => write!(f, "Error: {}", msg),
+        }
+    }
 }
 
 /// Process status information
@@ -259,26 +278,48 @@ impl SurfPoolController {
         }
     }
 
-    /// Install surfpool if needed (placeholder implementation)
-    pub async fn install_if_needed() -> Result<(), SurfDeskError> {
-        if !Self::check_installation().await? {
-            log::info!("SurfPool not installed. Please install surfpool manually:");
-            log::info!(
-                "1. Install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-            );
-            log::info!("2. Install surfpool: cargo install surfpool");
-            Err(SurfDeskError::platform(
-                "SurfPool not installed. Please install it manually.",
-            ))
+    /// Check if SurfPool is available and provide installation guidance
+    pub async fn ensure_available() -> Result<bool, SurfDeskError> {
+        if Self::check_installation().await? {
+            log::info!("SurfPool is available and ready to use");
+            Ok(true)
         } else {
-            Ok(())
+            log::warn!("SurfPool is not installed. This is an optional dependency.");
+            log::info!("To enable SurfPool features, install it with:");
+            log::info!("  cargo install surfpool");
+            log::info!("Or visit: https://github.com/surfpool/surfpool");
+            Ok(false)
         }
+    }
+
+    /// Get installation instructions for the current platform
+    pub fn get_installation_instructions() -> &'static str {
+        r#"SurfPool Installation Required
+
+SurfPool is an optional third-party tool for local Solana development.
+To install SurfPool:
+
+1. Install Rust (if not already installed):
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+2. Install SurfPool:
+   cargo install surfpool
+
+3. Verify installation:
+   surfpool --version
+
+For more information: https://github.com/surfpool/surfpool"#
     }
 
     /// Start surfpool with mainnet fork on port 8999
     pub async fn start_mainnet_fork(&self) -> Result<(), SurfDeskError> {
-        // Check installation first
-        Self::install_if_needed().await?;
+        // Check if SurfPool is available
+        if !Self::check_installation().await? {
+            return Err(SurfDeskError::platform(format!(
+                "SurfPool is not installed. {}\n\nSurfPool features will be unavailable until it is installed.",
+                Self::get_installation_instructions()
+            )));
+        }
 
         let config = self.config.read().await;
 
@@ -586,11 +627,37 @@ pub async fn install_surfpool() -> Result<(), SurfDeskError> {
     Ok(())
 }
 
+/// Hook to get SurfPool availability status in Dioxus components
+pub fn use_surfpool_status() -> Signal<bool> {
+    let is_available = use_signal(|| false);
+
+    use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
+        let mut is_available_signal = is_available;
+        async move {
+            // Check SurfPool availability
+            let available = std::process::Command::new("surfpool")
+                .arg("--version")
+                .output()
+                .map(|output| output.status.success())
+                .unwrap_or(false);
+
+            is_available_signal.set(available);
+
+            if available {
+                log::info!("SurfPool is available for use");
+            } else {
+                log::warn!("SurfPool not available. Install with: cargo install surfpool");
+            }
+        }
+    });
+
+    is_available
+}
+
 /// Hook to use SurfPool controller in Dioxus components
 pub fn use_surfpool_controller(platform: Platform) -> Signal<SurfPoolController> {
     use_signal(|| {
-        // Create a simple placeholder controller for initialization
-        // We'll initialize it properly when needed
+        // Create a controller that checks for SurfPool availability
         let config = SurfPoolConfig::default();
         SurfPoolController {
             platform,
