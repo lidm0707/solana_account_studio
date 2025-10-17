@@ -2,8 +2,9 @@ You must work in continuous development cycles until there are no errors or warn
 Each cycles must be to git push.
 Dioxus can't use Arc.
 Solana uses Base58.
+dir/docs is main context.
 In each cycle:
-1. Run `scripts/read_all_docs.sh to read all project documentation, code comments, and logs. Collect all errors, warnings, and TODO notes. Summarize them and plan the best way to fix them.
+1. Run `scripts/read_all_docs.sh to and read all project documentation, code comments, and logs. Collect all errors, warnings, and TODO notes. Summarize them and plan the best way to fix them then git push.
 2. Fix all errors first. Then resolve warnings and improve code quality without introducing new issues.
 3. Re-read all documentation, rethink project direction, and improve `README.md`, `agent.md` and `ROADMAP.md` based on new understanding. After improvements, commit and git push your changes.
 

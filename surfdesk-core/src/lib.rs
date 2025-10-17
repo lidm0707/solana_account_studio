@@ -138,15 +138,20 @@ mod tests {
 
     #[test]
     fn test_version() {
-        assert!(!VERSION.is_empty());
+        // Verify version follows semantic versioning pattern
+        assert!(VERSION.contains('.'));
+        // Verify version has at least major.minor format
+        let parts: Vec<&str> = VERSION.split('.').collect();
+        assert!(parts.len() >= 2);
     }
 
     #[test]
     fn test_default_urls() {
-        assert!(!DEFAULT_SOLANA_RPC_URL.is_empty());
-        assert!(!LOCAL_VALIDATOR_URL.is_empty());
-        assert!(!DEVNET_URL.is_empty());
-        assert!(!TESTNET_URL.is_empty());
+        // Verify URLs start with expected protocols
+        assert!(DEFAULT_SOLANA_RPC_URL.starts_with("https://"));
+        assert!(LOCAL_VALIDATOR_URL.starts_with("http://"));
+        assert!(DEVNET_URL.starts_with("https://"));
+        assert!(TESTNET_URL.starts_with("https://"));
     }
 
     #[tokio::test]

@@ -239,25 +239,24 @@ mod tests {
     fn test_status_footer() {
         // Test status footer component creation
         let status = "Connected".to_string();
-        let connected = Some(true);
+        let connected = true;
         let class: Option<String> = None;
 
         // Verify component parameters are valid
         assert!(!status.is_empty());
-        assert!(connected.is_some());
-        assert_eq!(connected.unwrap(), true);
+        assert!(connected);
         assert!(class.is_none());
     }
 
     #[test]
     fn test_minimal_footer() {
         // Test minimal footer component creation
-        let text = Some("Minimal".to_string());
+        let text = "Minimal".to_string();
         let class: Option<String> = None;
 
         // Verify component parameters are valid
-        assert!(text.is_some());
-        assert_eq!(text.unwrap(), "Minimal");
+        assert!(!text.is_empty());
+        assert_eq!(text, "Minimal");
         assert!(class.is_none());
     }
 }
