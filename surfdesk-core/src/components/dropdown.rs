@@ -3,7 +3,7 @@
 //! Professional dropdown system with search, multi-select, and accessibility features
 //! for the SurfDesk desktop application.
 
-use super::css_class;
+// use super::css_class; // Temporarily disabled to fix compilation
 use dioxus::prelude::*;
 use std::collections::HashSet;
 #[cfg(feature = "web")]
@@ -184,16 +184,15 @@ pub fn Dropdown(props: DropdownProps) -> Element {
         .map(|opt| opt.label.clone())
         .unwrap_or_else(|| props.placeholder.clone());
 
-    let dropdown_classes = css_class(
-        "dropdown",
-        &[
-            if is_open() { "open" } else { "closed" },
-            if props.disabled {
-                "disabled"
-            } else {
-                "enabled"
-            },
-        ],
+    let dropdown_classes = format!(
+        "dropdown {} {} {}",
+        "basic",
+        if is_open() { "open" } else { "closed" },
+        if props.disabled {
+            "disabled"
+        } else {
+            "enabled"
+        }
     );
 
     let final_classes = match &props.class {
@@ -249,11 +248,11 @@ pub fn Dropdown(props: DropdownProps) -> Element {
                     div { class: "dropdown-options",
                         for (index, option) in filtered_options().iter().enumerate() {
                             button {
-                                class: css_class("dropdown-option", &[
+                                class: format!("dropdown-option {} {} {}",
                                     if index == focused_index() { "focused" } else { "" },
                                     if option.disabled { "disabled" } else { "enabled" },
-                                    if props.value.as_ref() == Some(&option.value) { "selected" } else { "" },
-                                ]),
+                                    if props.value.as_ref().map_or(false, |v| v == &option.value) { "selected" } else { "" }
+                                ),
                                 r#type: "button",
                                 disabled: option.disabled,
                                 onclick: move |_| handle_select(option.clone()),
@@ -441,15 +440,14 @@ pub fn MultiSelectDropdown(props: MultiSelectDropdownProps) -> Element {
     };
 
     let dropdown_classes = format!(
-        "dropdown {} {} {} {}",
+        "dropdown {} {} {}",
         "multi-select",
         if is_open() { "open" } else { "closed" },
         if props.disabled {
             "disabled"
         } else {
             "enabled"
-        },
-        css_class("")
+        }
     );
 
     let final_classes = match &props.class {
@@ -549,11 +547,11 @@ pub fn MultiSelectDropdown(props: MultiSelectDropdownProps) -> Element {
                             let is_selected = props.values.contains(&option.value);
 
                             button {
-                                class: css_class("dropdown-option", &[
+                                class: format!("dropdown-option {} {} {}",
                                     if index == focused_index() { "focused" } else { "" },
                                     if option.disabled { "disabled" } else { "enabled" },
-                                    if is_selected { "selected" } else { "" },
-                                ]),
+                                    if is_selected { "selected" } else { "" }
+                                ),
                                 r#type: "button",
                                 disabled: option.disabled,
                                 onclick: move |_| handle_toggle(option.clone()),
@@ -734,13 +732,11 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
         props.onblur.call(evt);
     };
 
-    let dropdown_classes = css_class(
-        "dropdown",
-        &[
-            "searchable",
-            if is_open() { "open" } else { "closed" },
-            if input_focused() { "focused" } else { "" },
-        ],
+    let dropdown_classes = format!(
+        "dropdown {} {} {}",
+        "searchable",
+        if is_open() { "open" } else { "closed" },
+        if input_focused() { "focused" } else { "" }
     );
 
     let final_classes = match &props.class {
@@ -794,23 +790,18 @@ pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
                     // Options list
                     div { class: "dropdown-options",
                         for (index, option) in filtered_options().iter().enumerate() {
-                            let is_selected = match &props.value {
-                                Some(value) => value == &option.value,
-                                None => false,
-                            };
-
                             button {
-                                class: css_class("dropdown-option", &[
+                                class: format!("dropdown-option {} {} {}",
                                     if index == focused_index() { "focused" } else { "" },
                                     if option.disabled { "disabled" } else { "enabled" },
-                                    if is_selected { "selected" } else { "" },
-                                ]),
+                                    if props.value.as_ref().map_or(false, |v| v == &option.value) { "selected" } else { "" }
+                                ),
                                 "type": "button",
                                 disabled: option.disabled,
                                 onclick: move |_| handle_select(option.clone()),
                                 role: "option",
                                 id: "dropdown-option-{index}",
-                                "aria-selected": "{is_selected}",
+                                "aria-selected": "{props.value.as_ref().map_or(false, |v| v == &option.value)}",
                                 "aria-disabled": "{option.disabled}",
 
                                 // Option icon
