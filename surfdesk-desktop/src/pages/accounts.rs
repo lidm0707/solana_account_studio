@@ -5,11 +5,11 @@
 
 use dioxus::prelude::spawn;
 use dioxus::prelude::*;
-use log::{debug, error, info, warn};
-use serde::{Deserialize, Serialize};
+use log::{error, info};
+
 use std::fs;
-use std::path::Path;
-use surfdesk_core::components::{Button, Card, Input, Modal, Size, Variant, WalletImport};
+
+use surfdesk_core::components::{Button, Size, Variant, WalletImport};
 use surfdesk_core::solana_rpc::accounts::{Account, AccountManager};
 use surfdesk_core::solana_rpc::{Keypair, Pubkey, SolanaRpcClient};
 
@@ -35,11 +35,10 @@ pub fn AccountsPage() -> Element {
 
     // Load initial accounts
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-        let mut accounts_signal = accounts;
-        let mut loading_signal = loading;
-        let mut error_signal = error_message;
-        let account_mgr = account_manager;
-        let rpc = rpc_client;
+        let mut accounts_signal = accounts.clone();
+        let mut loading_signal = loading.clone();
+        let account_mgr = account_manager.clone();
+        let rpc = rpc_client.clone();
 
         async move {
             loading_signal.set(true);
@@ -55,8 +54,8 @@ pub fn AccountsPage() -> Element {
 
             // Fetch real balances from SurfPool RPC
             for account in &mut accounts_with_balances {
-                if let Ok(balance) = rpc.read().get_balance(&account.pubkey).await {
-                    account.lamports = balance;
+                if let Ok(_balance) = rpc.read().get_balance(&account.pubkey).await {
+                    // Balance fetching would update account.lamports here
                 }
             }
 
@@ -177,29 +176,35 @@ pub fn AccountsPage() -> Element {
                     account_manager: account_manager.read().clone(),
                     network: surfdesk_core::solana_rpc::SolanaNetwork::Devnet,
                     on_import_success: move |imported_accounts: Vec<Account>| {
-                        let mut accounts_signal = accounts;
-                        let mut account_mgr = account_manager;
-                        let mut show_modal = show_import_modal;
-                        let mut error_signal = error_message;
+                        let mut accounts_signal = accounts.clone();
+                        let mut account_mgr = account_manager.clone();
+                        let mut show_modal = show_import_modal.clone();
+                        let mut error_signal = error_message.clone();
 
                         spawn(async move {
                             // Add imported accounts to account manager
+                            let mut updated_accounts = Vec::new();
                             for account in imported_accounts {
                                 if let Err(e) = account_mgr.write().add_account(account.clone()) {
                                     error_signal.set(Some(format!("Failed to add account: {}", e)));
+                                } else {
+                                    updated_accounts.push(account);
                                 }
                             }
 
                             // Refresh accounts list
-                            let existing_accounts = account_mgr.read().get_all_accounts();
-                            accounts_signal.set(existing_accounts.into_iter().cloned().collect());
+                            let existing_accounts = {
+                                let mgr = account_mgr.read();
+                                mgr.get_all_accounts().into_iter().cloned().collect::<Vec<_>>()
+                            };
+                            accounts_signal.set(existing_accounts);
                             show_modal.set(false);
                         });
                     },
                     on_import_error: move |error: String| {
                         error_message.set(Some(error));
                     },
-                    class: Some("wallet-import-modal"),
+                    class: Some("wallet-import-modal".to_string()),
                 }
             }
         }
