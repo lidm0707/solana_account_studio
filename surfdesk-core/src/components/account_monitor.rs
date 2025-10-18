@@ -115,12 +115,7 @@ pub fn AccountMonitor(props: AccountMonitorProps) -> Element {
     let mut error_message = use_signal(|| None::<String>);
 
     // Initialize service
-    let service = use_coroutine(|_rx: UnboundedReceiver<()>| {
-        async move {
-            // Service initialization
-            crate::services::surfpool::SurfPoolService::new_fallback()
-        }
-    });
+    let service = crate::services::surfpool::SurfPoolService::new_fallback();
 
     // Real connection status using SurfPool
     use_effect(move || {

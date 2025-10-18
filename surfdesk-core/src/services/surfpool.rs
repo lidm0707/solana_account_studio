@@ -15,7 +15,7 @@ use tokio::process::Command as TokioCommand;
 use tokio::sync::RwLock;
 
 /// SurfPool service using terminal command strategy
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SurfPoolService {
     /// Current platform
     platform: Platform,

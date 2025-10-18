@@ -8,9 +8,8 @@ use dioxus::prelude::*;
 // Hook for accessing SurfPool service (terminal strategy)
 fn use_surfpool_service() -> crate::services::surfpool::SurfPoolService {
     use std::cell::RefCell;
-    use std::sync::Arc;
     thread_local! {
-        static SERVICE: RefCell<Option<Arc<crate::services::surfpool::SurfPoolService>>> = const { RefCell::new(None) };
+        static SERVICE: RefCell<Option<crate::services::surfpool::SurfPoolService>> = const { RefCell::new(None) };
     }
 
     SERVICE.with(|service| {
@@ -21,16 +20,19 @@ fn use_surfpool_service() -> crate::services::surfpool::SurfPoolService {
                     .block_on(crate::services::surfpool::SurfPoolService::new())
             }) {
                 Ok(svc) => {
-                    *service.borrow_mut() = Some(Arc::new(svc));
+                    *service.borrow_mut() = Some(svc.clone());
+                    service.borrow().as_ref().unwrap().clone()
                 }
                 Err(_) => {
-                    // Return a fallback service if SurfPool is not available
+                    // Return a dummy service if SurfPool is not available
                     let fallback = crate::services::surfpool::SurfPoolService::new_fallback();
-                    *service.borrow_mut() = Some(Arc::new(fallback));
+                    *service.borrow_mut() = Some(fallback.clone());
+                    fallback
                 }
             }
+        } else {
+            service.borrow().as_ref().unwrap().clone()
         }
-        service.borrow().as_ref().unwrap().clone()
     })
 }
 
@@ -59,7 +61,7 @@ pub fn ProgramDeploymentWizard() -> Element {
         // Real deployment using SurfPool terminal strategy
         let service = use_surfpool_service();
 
-        use_coroutine(move |mut rx: dioxus::prelude::UnboundedReceiver<()>| {
+        use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let code_clone = code.clone();
             let mut deploying = is_deploying;
             let mut deployed_id = deployed_program_id;
@@ -81,27 +83,19 @@ pub fn ProgramDeploymentWizard() -> Element {
                         match service.deploy_program(&temp_file).await {
                             Ok(program_pubkey) => {
                                 // Parse the pubkey string into a Pubkey
-                                if let Ok(pubkey) = Pubkey::from_string(&program_pubkey) {
-                                    deployed_id.set(Some(pubkey));
-                                    success_msg.set(format!(
-                                        "Program deployed successfully via SurfPool terminal: {}",
-                                        program_pubkey
-                                    ));
-                                } else {
-                                    error_msg.set(format!(
-                                        "Invalid program pubkey returned: {}",
-                                        program_pubkey
-                                    ));
-                                }
-                                // Clean up temp file
-                                let _ = std::fs::remove_file(&temp_file);
+                                let pubkey = Pubkey::from_string(&program_pubkey);
+                                deployed_id.set(Some(pubkey));
+                                success_msg.set(format!(
+                                    "Program deployed successfully via SurfPool terminal: {}",
+                                    program_pubkey
+                                ));
                             }
                             Err(e) => {
                                 error_msg.set(format!("Deployment failed: {}", e));
-                                // Clean up temp file
-                                let _ = std::fs::remove_file(&temp_file);
                             }
                         }
+                        // Clean up temp file
+                        let _ = std::fs::remove_file(&temp_file);
                     }
                     Err(e) => {
                         error_msg.set(format!("Failed to write program file: {}", e));

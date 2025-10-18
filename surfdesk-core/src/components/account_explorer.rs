@@ -255,9 +255,10 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
             let mut error = error_msg;
+            let service_clone = svc.clone();
             async move {
                 // Real validator startup using SurfPool
-                if let Ok(()) = svc.start_validator().await {
+                if let Ok(()) = service_clone.start_validator().await {
                     success.set("SurfPool validator started successfully".to_string());
                 } else {
                     error.set("Failed to start SurfPool validator".to_string());
@@ -274,9 +275,10 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
             let mut error = error_msg;
+            let service_clone = svc.clone();
             async move {
                 // Real validator shutdown using SurfPool
-                if let Ok(()) = svc.stop_validator().await {
+                if let Ok(()) = service_clone.stop_validator().await {
                     success.set("SurfPool validator stopped successfully".to_string());
                 } else {
                     error.set("Failed to stop SurfPool validator".to_string());
@@ -435,7 +437,8 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut builder_state = builder;
             let mut is_deploying_signal = is_deploying;
-            let _deployment_req = deployment_request.clone();
+            let deployment_request_clone = deployment_request.clone();
+            let account_data_clone = current_builder.account_data.clone();
             let on_deploy = props.on_deploy;
             let on_deployment_result = props.on_deployment_result;
             let mut success_msg = success_message;
@@ -463,12 +466,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                     signatures: vec![result_signature.as_str().to_string()],
                     instructions: vec![],
                     recent_blockhash: "mock_blockhash".to_string(),
-                    fee_payer: current_builder
-                        .account_data
-                        .as_ref()
-                        .unwrap()
-                        .pubkey
-                        .clone(),
+                    fee_payer: account_data_clone.as_ref().unwrap().pubkey.clone(),
                 };
                 on_deploy.call(transaction);
 
