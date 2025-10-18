@@ -5,6 +5,35 @@
 use crate::solana_rpc::Pubkey;
 use dioxus::prelude::*;
 
+// Hook for accessing SurfPool service (terminal strategy)
+fn use_surfpool_service() -> crate::services::surfpool::SurfPoolService {
+    use std::cell::RefCell;
+    use std::sync::Arc;
+    thread_local! {
+        static SERVICE: RefCell<Option<Arc<crate::services::surfpool::SurfPoolService>>> = const { RefCell::new(None) };
+    }
+
+    SERVICE.with(|service| {
+        if service.borrow().is_none() {
+            // Create service using terminal strategy
+            match tokio::task::block_in_place(|| {
+                tokio::runtime::Handle::current()
+                    .block_on(crate::services::surfpool::SurfPoolService::new())
+            }) {
+                Ok(svc) => {
+                    *service.borrow_mut() = Some(Arc::new(svc));
+                }
+                Err(_) => {
+                    // Return a fallback service if SurfPool is not available
+                    let fallback = crate::services::surfpool::SurfPoolService::new_fallback();
+                    *service.borrow_mut() = Some(Arc::new(fallback));
+                }
+            }
+        }
+        service.borrow().as_ref().unwrap().clone()
+    })
+}
+
 /// Program Deployment Wizard Component
 #[component]
 pub fn ProgramDeploymentWizard() -> Element {
@@ -27,24 +56,61 @@ pub fn ProgramDeploymentWizard() -> Element {
         error_message.set(String::new());
         success_message.set(String::new());
 
-        // Mock deployment
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
-        let mut hasher = DefaultHasher::new();
-        code.hash(&mut hasher);
-        let hash = hasher.finish();
+        // Real deployment using SurfPool terminal strategy
+        let service = use_surfpool_service();
 
-        let mock_program_id = format!("Program{}{}", hash, "11111111111111111111111111111111");
-        let program_pubkey = Pubkey::from_string(&mock_program_id[..44]);
-        let program_pubkey_string = program_pubkey.to_string();
+        use_coroutine(move |mut rx: dioxus::prelude::UnboundedReceiver<()>| {
+            let code_clone = code.clone();
+            let mut deploying = is_deploying;
+            let mut deployed_id = deployed_program_id;
+            let mut error_msg = error_message;
+            let mut success_msg = success_message;
 
-        deployed_program_id.set(Some(program_pubkey));
-        success_message.set(format!(
-            "Program deployed successfully: {}",
-            program_pubkey_string
-        ));
+            async move {
+                // Save the code to a temporary file for deployment
+                let temp_file = format!(
+                    "/tmp/temp_program_{}.so",
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs()
+                );
 
-        is_deploying.set(false);
+                match std::fs::write(&temp_file, &code_clone) {
+                    Ok(_) => {
+                        match service.deploy_program(&temp_file).await {
+                            Ok(program_pubkey) => {
+                                // Parse the pubkey string into a Pubkey
+                                if let Ok(pubkey) = Pubkey::from_string(&program_pubkey) {
+                                    deployed_id.set(Some(pubkey));
+                                    success_msg.set(format!(
+                                        "Program deployed successfully via SurfPool terminal: {}",
+                                        program_pubkey
+                                    ));
+                                } else {
+                                    error_msg.set(format!(
+                                        "Invalid program pubkey returned: {}",
+                                        program_pubkey
+                                    ));
+                                }
+                                // Clean up temp file
+                                let _ = std::fs::remove_file(&temp_file);
+                            }
+                            Err(e) => {
+                                error_msg.set(format!("Deployment failed: {}", e));
+                                // Clean up temp file
+                                let _ = std::fs::remove_file(&temp_file);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        error_msg.set(format!("Failed to write program file: {}", e));
+                    }
+                }
+
+                deploying.set(false);
+            }
+        });
     };
 
     rsx! {

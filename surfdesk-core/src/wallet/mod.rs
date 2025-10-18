@@ -276,14 +276,21 @@ impl WalletImportService {
         label: Option<String>,
         network: SolanaNetwork,
     ) -> Result<Account> {
-        // For now, create a mock pubkey from the secret key bytes
-        // In a real implementation, this would use proper ed25519 key derivation
+        // Production implementation: derive pubkey from secret key using ed25519
         let pubkey = if secret_bytes.len() >= 32 {
-            // Create a mock pubkey by taking first 32 bytes and encoding as base58
+            // Create a real pubkey from secret key bytes using proper ed25519 derivation
             let key_bytes: [u8; 32] = secret_bytes[..32]
                 .try_into()
                 .map_err(|_| SurfDeskError::Validation("Invalid secret key length".to_string()))?;
-            bs58::encode(key_bytes).into_string()
+
+            // Use proper Solana keypair derivation
+            let secret_key = ed25519_dalek::SecretKey::from_bytes(&key_bytes)
+                .map_err(|_| SurfDeskError::Validation("Invalid secret key format".to_string()))?;
+            let public_key = ed25519_dalek::PublicKey::from(&secret_key);
+
+            // Convert to Solana pubkey format and then to base58
+            let solana_pubkey = solana_sdk::pubkey::Pubkey::new_from_array(public_key.to_bytes());
+            solana_pubkey.to_string()
         } else {
             return Err(SurfDeskError::Validation(
                 "Secret key must be 32 or 64 bytes".to_string(),

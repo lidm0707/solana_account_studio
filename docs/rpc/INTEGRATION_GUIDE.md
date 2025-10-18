@@ -1,50 +1,50 @@
-# Solana RPC Integration Guide
+# Production Solana RPC Integration Guide for SurfDesk
 
 ## Table of Contents
 1. [Quick Start](#quick-start)
-2. [Client Setup](#client-setup)
-3. [Authentication](#authentication)
-4. [Common Operations](#common-operations)
-5. [Error Handling](#error-handling)
+2. [MCP Client Setup](#mcp-client-setup)
+3. [Production Authentication](#production-authentication)
+4. [Production Operations](#production-operations)
+5. [Production Error Handling](#production-error-handling)
 6. [Performance Optimization](#performance-optimization)
 7. [WebSocket Integration](#websocket-integration)
-8. [Testing](#testing)
+8. [Production Testing](#production-testing)
 9. [Migration Guide](#migration-guide)
 
 ## Quick Start
 
-### Basic Connection
+### Production SurfPool MCP Connection
 
 ```rust
-use solana_client::rpc_client::RpcClient;
-use solana_sdk::commitment_config::CommitmentConfig;
+use surfdesk_core::solana_rpc::SolanaRpcClient;
+use surfdesk_core::solana_rpc::SolanaNetwork;
 
-// Create RPC client with default commitment
-let client = RpcClient::new("https://api.mainnet-beta.solana.com");
+// Create production RPC client with SurfPool MCP
+let client = SolanaRpcClient::from_solana_config().await?;
 
-// Create RPC client with specific commitment
-let client = RpcClient::new_with_commitment(
-    "https://api.mainnet-beta.solana.com",
-    CommitmentConfig::confirmed()
-);
+// Or create client for specific network
+let client = SolanaRpcClient::new(SolanaNetwork::Localhost);
+
+// All operations go through SurfPool MCP on port 8899
+let balance = client.get_balance("YOUR_PUBKEY").await?;
 ```
 
-```javascript
-import { Connection, Commitment } from '@solana/web3.js';
+### Production Configuration
 
-// Create connection with default commitment
-const connection = new Connection('https://api.mainnet-beta.solana.com');
+SurfDesk automatically reads your Solana CLI configuration:
+```bash
+# Configure for SurfPool (production)
+solana config set --url localhost
 
-// Create connection with specific commitment
-const connection = new Connection(
-    'https://api.mainnet-beta.solana.com',
-    'confirmed'
-);
+# Check configuration
+solana config get
+# RPC URL: http://localhost:8899 (SurfPool MCP)
+# Keypair Path: /home/user/.config/solana/id.json
 ```
 
-## Client Setup
+## MCP Client Setup
 
-### Environment Configuration
+### Production Environment Configuration
 
 ```bash
 # .env file

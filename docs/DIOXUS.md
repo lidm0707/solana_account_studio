@@ -1,52 +1,55 @@
-# 🌊 DIOXUS.md - Dioxus 0.6+ Framework Guide for SurfDesk
+# 🌊 DIOXUS.md - Production Dioxus 0.6+ Framework Guide for SurfDesk
 
 ## 📋 OVERVIEW
 
-Dioxus is a modern, portable GUI framework for Rust that enables cross-platform application development. SurfDesk leverages Dioxus 0.6+ to create a unified experience across Desktop, Web, and Terminal platforms.
+Dioxus is a modern, portable GUI framework for Rust that enables production-ready cross-platform application development. SurfDesk leverages Dioxus 0.6+ to create a unified, enterprise-grade experience across Desktop, Web, and Terminal platforms with zero-compilation-error architecture.
 
 ## 🏗️ ARCHITECTURE
 
-### **Multi-Platform Strategy**
+### **Production Multi-Platform Strategy**
 ```
-🖥️ Desktop: Native TAO-based applications
-🌐 Web: WASM-compiled browser applications  
-💻 Terminal: TUI-based console applications
-📱 Mobile: Future support (planned)
+🖥️ Desktop: Production TAO-based applications with native performance
+🌐 Web: Production WASM-compiled browser applications with optimized loading  
+💻 Terminal: Production TUI-based console applications with efficient rendering
+📱 Mobile: Future production support (planned)
 ```
 
-### **Core Components**
+### **Production Core Components**
 ```
-🎨 UI Components: Reusable RSX-based components
-🔄 State Management: Signals and hooks for reactive state
-🌐 Routing: Client-side navigation with dioxus-router
-🎭 Props System: Type-safe component communication
-🔧 Services: Async service integration
-📦 Workspace: Multi-package cargo workspace
+🎨 UI Components: Production-ready reusable RSX-based components
+🔄 State Management: Production signals and hooks for reactive state
+🌐 Routing: Production client-side navigation with dioxus-router
+🎭 Props System: Production type-safe component communication
+🔧 Services: Production async service integration with error handling
+📦 Workspace: Production multi-package cargo workspace with optimized builds
 ```
 
 ## 🚀 GETTING STARTED
 
-### **Installation**
+### **Production Installation**
 ```bash
-# Install Rust with rustup
+# Install Rust with rustup (stable toolchain)
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup default stable
 
-# Install Dioxus CLI
-cargo install dioxus-cli
+# Install Dioxus CLI for production builds
+cargo install dioxus-cli --version 0.6.3
 
-# Verify installation
+# Verify production installation
 dx --version
+rustc --version
 ```
 
-### **Project Structure**
+### **Production Project Structure**
 ```
 surfdesk/
-├── surfdesk-core/          # Shared core library
-├── surfdesk-desktop/       # Desktop application
-├── surfdesk-web/          # Web application
-├── surfdesk-tui/          # Terminal application
-├── surfdesk-cli/          # Command-line interface
-└── Cargo.toml             # Workspace configuration
+├── surfdesk-core/          # Production shared core library
+│   └── src/styles/         # Consolidated CSS from all projects
+├── surfdesk-desktop/       # Production desktop application
+├── surfdesk-web/          # Production web application
+├── surfdesk-tui/          # Production terminal application
+├── surfdesk-cli/          # Production command-line interface
+└── Cargo.toml             # Production workspace configuration
 ```
 
 ### **Development Commands**

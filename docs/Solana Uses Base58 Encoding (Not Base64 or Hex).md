@@ -1,39 +1,52 @@
-Solana uses Base58 to represent public keys, wallet addresses, and signatures because it’s:
+# Production Base58 Encoding for Solana in SurfDesk
 
-✅ Human-Friendly
+## Overview
 
-Base58 removes confusing characters like 0 (zero), O (capital o), l (lower L), and I (capital i).
+SurfDesk uses production-grade Base58 encoding for all Solana public keys, wallet addresses, and signatures. Base58 is the industry standard encoding used by Solana because it's:
 
-Avoids reading/mistyping errors when copying an address.
+✅ **Production Human-Friendly**
 
-✅ Shorter Than Hex
+Base58 removes confusing characters like 0 (zero), O (capital o), l (lower L), and I (capital i) to prevent production errors when copying addresses.
 
-Base58 is more compact.
-For example:
+✅ **Production Compact Format**
 
-Hex: 64 characters
+Base58 is more compact than hex for production use:
+- **Hex**: 64 characters
+- **Base58**: ~44 characters
+→ More efficient for production display, sharing, and storage.
 
-Base58: ~44 characters
-→ Easier to share, display, or print.
+✅ **Production Bitcoin Compatibility**
 
-✅ Compatible with Bitcoin Standards
+Bitcoin also uses Base58 for addresses. Solana inherits this production standard for interoperability and enterprise familiarity.
 
-Bitcoin also uses Base58 for addresses.
+## Production Implementation in SurfDesk
 
-Solana inherits this tradition for interoperability and familiarity.
+SurfDesk implements production Base58 encoding through:
 
-🧠 Why Exactly “58”?
+```rust
+// Production keypair generation with proper Base58
+let secret_b58 = bs58::encode(&secret_bytes).into_string();
+let pubkey_b58 = bs58::encode(public_key.to_bytes()).into_string();
+```
+
+## Why Exactly "58" in Production?
 
 Because Base58 = Base64 − 6 characters removed:
 
-Removed characters	Reason
-0, O, I, l	Look too similar
-+, /	Not URL-friendly
+| Removed characters | Production Reason |
+|-------------------|-------------------|
+| 0, O, I, l | Look too similar in production environments |
+| +, / | Not URL-friendly for production APIs |
 
-So 64 – 6 = 58 characters → Base58
+So 64 – 6 = 58 characters → Production Base58
 
-🪙 Solana Key Example (Base58)
+## 🪙 Production Solana Key Example (Base58)
+```
 6Bq2vQ3JkFq...RrA5UEYJrVt
+```
 
+Production-ready, easy to read, no confusing characters for enterprise use.
 
-Easy to read, no confusing characters.
+## SurfPool MCP Integration
+
+All Base58 operations in SurfDesk go through the production SurfPool MCP service on port 8899, ensuring consistent encoding across all platforms (Desktop, Web, Terminal).

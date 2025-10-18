@@ -4,7 +4,11 @@
 //! It uses Dioxus signals for reactive state management across all platforms and
 //! provides a centralized store for application data.
 
-use crate::{error::Result, services::surfpool_service::SurfPoolService, types::*};
+use crate::{
+    error::Result,
+    services::{monitoring::MonitoringService, surfpool_service::SurfPoolService},
+    types::*,
+};
 use dioxus::prelude::*;
 use std::sync::Arc;
 
@@ -36,6 +40,10 @@ pub struct AppState {
     pub accounts: Signal<Vec<Account>>,
     /// Transactions in the active environment
     pub transactions: Signal<Vec<Transaction>>,
+    /// Monitoring service instance
+    pub monitoring_service: Signal<Option<Arc<MonitoringService>>>,
+    /// Monitoring statistics
+    pub monitoring_stats: Signal<MonitoringStats>,
     /// SurfPool service instance
     pub surfpool_service: Signal<Option<Arc<SurfPoolService>>>,
     /// Connection status
@@ -57,9 +65,11 @@ impl Default for AppState {
             active_environment_id: Signal::new(None),
             accounts: Signal::new(Vec::new()),
             transactions: Signal::new(Vec::new()),
+            monitoring_service: Signal::new(None),
+            monitoring_stats: Signal::new(MonitoringStats::default()),
             surfpool_service: Signal::new(None),
             connection_status: Signal::new(ConnectionStatus::Disconnected),
-            current_network: Signal::new(crate::types::SolanaNetwork::Devnet),
+            current_network: Signal::new(SolanaNetwork::Devnet),
             loading: Signal::new(LoadingState::default()),
             error: Signal::new(None),
         }
@@ -171,6 +181,8 @@ impl AppState {
             active_environment_id: Signal::new(None),
             accounts: Signal::new(Vec::new()),
             transactions: Signal::new(Vec::new()),
+            monitoring_service: Signal::new(None),
+            monitoring_stats: Signal::new(MonitoringStats::default()),
             surfpool_service: Signal::new(None),
             connection_status: Signal::new(ConnectionStatus::Disconnected),
             current_network: Signal::new(SolanaNetwork::Devnet),
@@ -476,10 +488,117 @@ impl AppState {
         // Mock accounts for now
         self.accounts.set(vec![]);
         log::info!("Mock: Refreshed accounts (empty list)");
+        // }
 
         // Clear loading state
         self.set_loading(LoadingOperation::Accounts, false);
         Ok(())
+    }
+
+    /// Initialize monitoring service
+    pub async fn initialize_monitoring_service(&mut self) -> Result<()> {
+        match MonitoringService::new().await {
+            Ok(service) => {
+                self.monitoring_service.set(Some(Arc::new(service)));
+                log::info!("Monitoring service initialized successfully");
+                Ok(())
+            }
+            Err(e) => {
+                log::error!("Failed to initialize monitoring service: {}", e);
+                self.set_error(Some(e.clone()));
+                Err(e)
+            }
+        }
+    }
+
+    /// Get the monitoring service
+    pub fn monitoring_service(&self) -> Option<Arc<MonitoringService>> {
+        self.monitoring_service.read().clone()
+    }
+
+    /// Update monitoring statistics
+    pub fn update_monitoring_stats(&mut self, stats: MonitoringStats) {
+        self.monitoring_stats.set(stats);
+    }
+
+    /// Get current monitoring statistics
+    pub fn monitoring_stats(&self) -> MonitoringStats {
+        self.monitoring_stats.read().clone()
+    }
+
+    /// Start monitoring for an account
+    pub async fn start_account_monitoring(&mut self, account: &Account) -> Result<()> {
+        if let Some(ref service) = self.monitoring_service() {
+            service.add_account_monitoring(account).await?;
+            log::info!("Started monitoring for account {}", account.pubkey);
+            Ok(())
+        } else {
+            Err(crate::error::SurfDeskError::service(
+                "Monitoring service not initialized",
+            ))
+        }
+    }
+
+    /// Stop monitoring for an account
+    pub async fn stop_account_monitoring(&mut self, pubkey: &SolanaPubkey) -> Result<()> {
+        if let Some(ref service) = self.monitoring_service() {
+            service.remove_account_monitoring(pubkey).await?;
+            log::info!("Stopped monitoring for account {}", pubkey);
+            Ok(())
+        } else {
+            Err(crate::error::SurfDeskError::service(
+                "Monitoring service not initialized",
+            ))
+        }
+    }
+
+    /// Add alert to account monitoring
+    pub async fn add_account_alert(
+        &mut self,
+        pubkey: &SolanaPubkey,
+        alert: AlertConfig,
+    ) -> Result<()> {
+        if let Some(ref service) = self.monitoring_service() {
+            service.add_alert(pubkey, alert).await?;
+            log::info!("Added alert for account {}", pubkey);
+            Ok(())
+        } else {
+            Err(crate::error::SurfDeskError::service(
+                "Monitoring service not initialized",
+            ))
+        }
+    }
+
+    /// Refresh monitoring statistics
+    pub async fn refresh_monitoring_stats(&mut self) -> Result<()> {
+        if let Some(ref service) = self.monitoring_service() {
+            let stats = service.get_stats().await;
+            self.update_monitoring_stats(stats);
+            Ok(())
+        } else {
+            Err(crate::error::SurfDeskError::service(
+                "Monitoring service not initialized",
+            ))
+        }
+    }
+
+    /// Update monitoring configuration for an account
+    pub async fn update_account_monitoring(
+        &mut self,
+        pubkey: &SolanaPubkey,
+        monitoring: AccountMonitoring,
+    ) -> Result<()> {
+        if let Some(ref service) = self.monitoring_service() {
+            service
+                .update_account_monitoring(pubkey, monitoring)
+                .await?;
+            log::info!("Updated monitoring configuration for account {}", pubkey);
+            Ok(())
+        } else {
+            Err(crate::error::SurfDeskError::service(
+                "Monitoring service not initialized",
+            ))
+        }
     }
 }
 

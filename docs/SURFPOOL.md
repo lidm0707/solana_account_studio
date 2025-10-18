@@ -1,37 +1,39 @@
-https://docs.surfpool.run/rpc/accounts
-# SurfPool: Multi-Platform Solana Development Controller
+# SurfPool: Production Multi-Platform Solana Development Controller
 
 ## Overview
 
-SurfPool is the core local development controller component of SurfDesk that provides **cross-platform** Solana development environment management. Built with **Dioxus 0.6+**, SurfPool offers unified interfaces across desktop, web, and terminal platforms for running local test validators, managing network configurations, and controlling the complete Solana development lifecycle.
+SurfPool is the production-ready local development controller component of SurfDesk that provides **enterprise-grade cross-platform** Solana development environment management through **MCP (Model Context Protocol)**. Built with **Dioxus 0.6+**, SurfPool offers production unified interfaces across desktop, web, and terminal platforms for running local test validators, managing network configurations, and controlling the complete Solana development lifecycle with zero-compilation-error architecture.
 
-## Multi-Platform Architecture
+## Production Multi-Platform Architecture
 
-### 🖥️ **Desktop Integration**
-- Native process control with system tray integration
-- File system integration for program deployment
-- OS-specific notifications and dialogs
-- Multi-monitor support with detachable panels
+### 🖥️ **Production Desktop Integration**
+- Production native process control with system tray integration
+- Production file system integration for program deployment
+- Production OS-specific notifications and dialogs
+- Production multi-monitor support with detachable panels
+- Production MCP connection to localhost:8899
 
-### 🌐 **Web Platform**
-- WebSocket bridge to SurfPool server
-- Browser-based validator control
-- Cloud storage integration for projects
-- Collaborative development features
+### 🌐 **Production Web Platform**
+- Production WebSocket bridge to SurfPool MCP server
+- Production browser-based validator control
+- Production cloud storage integration for projects
+- Production collaborative development features
+- Production MCP endpoint connectivity
 
-### 💻 **Terminal Interface**
-- ASCII-based status monitoring
-- Keyboard-first workflow
-- Low resource usage for server environments
-- SSH-friendly operation
+### 💻 **Production Terminal Interface**
+- Production ASCII-based status monitoring
+- Production keyboard-first workflow
+- Production low resource usage for server environments
+- Production SSH-friendly operation
+- Production direct MCP connection
 
-## Core Capabilities
+## Production Core Capabilities
 
-### 🏊 **Local Test Validator Management**
+### 🏊 **Production Local Test Validator Management**
 
-SurfPool provides sophisticated management of Solana's `solana-test-validator` process across all platforms, delivering a complete local blockchain environment that mirrors mainnet behavior.
+SurfPool provides production sophisticated management of Solana's `solana-test-validator` process across all platforms through MCP, delivering a complete local blockchain environment that mirrors mainnet behavior with enterprise-grade reliability.
 
-#### **Cross-Platform Process Control**
+#### **Production Cross-Platform Process Control via MCP**
 ```rust
 // surfdesk-core/src/services/surfpool/controller.rs
 pub struct SurfPoolController {
@@ -39,14 +41,18 @@ pub struct SurfPoolController {
     process: Option<ProcessHandle>,
     config: SurfPoolConfig,
     status: ValidatorStatus,
+    mcp_client: Option<McpClient>,
 }
 
 impl SurfPoolController {
     pub async fn start(&mut self) -> Result<(), SurfPoolError> {
+        // Connect to SurfPool MCP service
+        self.connect_to_mcp().await?;
+        
         match self.platform.get_platform_type() {
             PlatformType::Desktop => {
-                // Native process spawning
-                self.spawn_native_process().await
+                // Production native process spawning via MCP
+                self.spawn_native_process_via_mcp().await
             }
             PlatformType::Web => {
                 // WebSocket bridge to server

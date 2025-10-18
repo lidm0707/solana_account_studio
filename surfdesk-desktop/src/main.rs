@@ -59,6 +59,7 @@ struct Args {
 }
 
 /// Application state
+/// Desktop application state
 #[derive(Debug, Clone)]
 pub struct AppState {
     /// Current theme
@@ -71,6 +72,8 @@ pub struct AppState {
     pub settings: Signal<AppSettings>,
     /// Notification system
     pub notifications: Signal<Vec<Notification>>,
+    /// Core application state
+    pub core_state: Signal<surfdesk_core::state::AppState>,
 }
 
 /// Application theme
@@ -224,6 +227,7 @@ fn SurfDeskDesktopApp() -> Element {
         surfpool_manager: surfpool_manager.clone(),
         settings: use_signal(AppSettings::default),
         notifications: use_signal(Vec::<Notification>::new),
+        core_state: use_signal(surfdesk_core::state::AppState::new),
     };
 
     // Provide context to child components
@@ -238,8 +242,7 @@ fn SurfDeskDesktopApp() -> Element {
     };
 
     rsx! {
-        // Include styles from core
-        style { {include_str!("../../surfdesk-core/src/styles/styles.css")} }
+        // Include all styles from core (includes design-system.css)
         style { {surfdesk_core::styles::include_all_styles()} }
 
         div {

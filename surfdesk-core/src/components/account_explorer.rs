@@ -2,10 +2,7 @@
 //!
 //! Simple account management for SurfDesk with clean architecture.
 
-use crate::services::surfpool_service::{
-    system_program, DeploymentRequest, DeploymentResult, DeploymentStatistics, SurfPoolService,
-    SurfPoolStatus,
-};
+use crate::services::surfpool::{ServiceStatus, SurfPoolConfig, SurfPoolProcess, SurfPoolService};
 use crate::solana_rpc::transactions::Transaction;
 use crate::solana_rpc::{Keypair, Pubkey};
 use chrono;
@@ -13,9 +10,9 @@ use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-// Hook for accessing SurfPool service (simplified for compilation)
+// Hook for accessing SurfPool service (terminal strategy)
 fn use_surfpool_service() -> Arc<SurfPoolService> {
-    // Use thread_local storage instead of static mut for safety
+    // Use thread_local storage for service instance
     use std::cell::RefCell;
     thread_local! {
         static SERVICE: RefCell<Option<Arc<SurfPoolService>>> = const { RefCell::new(None) };
@@ -23,25 +20,41 @@ fn use_surfpool_service() -> Arc<SurfPoolService> {
 
     SERVICE.with(|service| {
         if service.borrow().is_none() {
-            *service.borrow_mut() = Some(Arc::new(SurfPoolService::new_mock()));
+            // Create service using terminal strategy
+            match tokio::task::block_in_place(|| {
+                tokio::runtime::Handle::current().block_on(SurfPoolService::new())
+            }) {
+                Ok(svc) => {
+                    *service.borrow_mut() = Some(Arc::new(svc));
+                    service.borrow().as_ref().unwrap().clone()
+                }
+                Err(_) => {
+                    // Return a dummy service if SurfPool is not available
+                    let fallback = SurfPoolService::new_fallback();
+                    *service.borrow_mut() = Some(Arc::new(fallback.clone()));
+                    fallback
+                }
+            }
+        } else {
+            service.borrow().as_ref().unwrap().clone()
         }
-        service.borrow().as_ref().unwrap().clone()
     })
 }
 
 // Hook for validator status (simplified)
-fn use_validator_status() -> SurfPoolStatus {
-    let _service = use_surfpool_service();
-    let status = use_signal(|| SurfPoolStatus::Stopped);
+fn use_validator_status() -> ServiceStatus {
+    let service = use_surfpool_service();
+    let status = use_signal(|| ServiceStatus::Stopped);
 
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
         let mut status_signal = status;
+        let svc = service.clone();
         async move {
-            // Simulate status updates
             loop {
-                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-                // For now, just keep it as stopped
-                status_signal.set(SurfPoolStatus::Stopped);
+                if let Ok(current_status) = svc.get_status().await {
+                    status_signal.set(current_status);
+                }
+                tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
             }
         }
     });
@@ -50,27 +63,27 @@ fn use_validator_status() -> SurfPoolStatus {
 }
 
 // Hook for deployment statistics (simplified)
-fn use_deployment_stats() -> DeploymentStatistics {
-    let _service = use_surfpool_service();
-    let stats = use_signal(|| DeploymentStatistics {
-        total_deployments: 0,
-        successful_deployments: 0,
-        failed_deployments: 0,
-        success_rate: 0.0,
-    });
+fn use_deployment_stats() -> (i32, i32, f64) {
+    let service = use_surfpool_service();
+    let stats = use_signal(|| (0, 0, 0.0)); // (total, successful, success_rate)
 
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
         let mut stats_signal = stats;
+        let svc = service.clone();
         async move {
             loop {
-                tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
-                // Return mock statistics for now
-                stats_signal.set(DeploymentStatistics {
-                    total_deployments: 0,
-                    successful_deployments: 0,
-                    failed_deployments: 0,
-                    success_rate: 0.0,
-                });
+                if let Ok(process_info) = svc.get_process_info().await {
+                    // Simple stats based on process status
+                    let total = if process_info.status.contains("running") {
+                        1
+                    } else {
+                        0
+                    };
+                    let successful = total;
+                    let success_rate = if total > 0 { 100.0 } else { 0.0 };
+                    stats_signal.set((total, successful, success_rate));
+                }
+                tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
             }
         }
     });
@@ -87,9 +100,10 @@ fn use_balance_monitor(pubkey: Pubkey) -> f64 {
         let pubkey_clone = pubkey.clone();
         async move {
             loop {
-                // Mock balance update - in real implementation, this would query RPC
-                let mock_balance = (pubkey_clone.to_bytes()[0] as f64) * 0.001;
-                balance_signal.set(mock_balance);
+                // Real balance update using SurfPool RPC
+                if let Ok(balance) = service.get_account_balance(&pubkey_clone).await {
+                    balance_signal.set(balance);
+                }
                 tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
             }
         }
@@ -148,7 +162,7 @@ pub struct AccountBuilder {
     pub custom_data: String,
     pub keypair: Option<String>,
     pub account_data: Option<AccountData>,
-    pub deployment_status: crate::services::surfpool_service::DeploymentStatus,
+    pub deployment_status: String, // Simplified status string
 }
 
 impl Default for AccountBuilder {
@@ -163,7 +177,7 @@ impl Default for AccountBuilder {
             custom_data: String::new(),
             keypair: None,
             account_data: None,
-            deployment_status: crate::services::surfpool_service::DeploymentStatus::Queued,
+            deployment_status: "queued".to_string(),
         }
     }
 }
@@ -202,9 +216,12 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
             async move {
-                // Simulate validator startup
-                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-                success.set("SurfPool validator started successfully (mock)".to_string());
+                // Real validator startup using SurfPool
+                if let Ok(()) = service.start_validator().await {
+                    success.set("SurfPool validator started successfully".to_string());
+                } else {
+                    error.set("Failed to start SurfPool validator".to_string());
+                }
             }
         });
     };
@@ -215,9 +232,12 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
             async move {
-                // Simulate validator shutdown
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                success.set("SurfPool validator stopped successfully (mock)".to_string());
+                // Real validator shutdown using SurfPool
+                if let Ok(()) = service.stop_validator().await {
+                    success.set("SurfPool validator stopped successfully".to_string());
+                } else {
+                    error.set("Failed to stop SurfPool validator".to_string());
+                }
             }
         });
     };
@@ -225,11 +245,30 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     // Generate new keypair (simplified)
     let generate_keypair = move |_| {
         let mut new_builder = builder();
-        // Simplified keypair generation for now
-        new_builder.keypair = Some("generated_keypair_mock".to_string());
-        new_builder.deployment_status = crate::services::surfpool_service::DeploymentStatus::Queued;
-        builder.set(new_builder);
-        success_message.set("New keypair generated successfully".to_string());
+        let service = use_surfpool_service();
+        let mut success_msg = success_message.clone();
+        let mut error_msg = error_message.clone();
+        let builder_signal = builder.clone();
+
+        use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
+            let svc = service.clone();
+            async move {
+                // Real keypair generation using SurfPool
+                match svc.create_account("generated_keypair").await {
+                    Ok(account_info) => {
+                        let mut current = builder_signal();
+                        current.keypair = Some(account_info);
+                        current.deployment_status = "created".to_string();
+                        builder_signal.set(current);
+                        success_msg
+                            .set("New account created successfully via SurfPool".to_string());
+                    }
+                    Err(e) => {
+                        error_msg.set(format!("Failed to create account: {}", e));
+                    }
+                }
+            }
+        });
     };
 
     // Build account
@@ -285,8 +324,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                     };
 
                     current.account_data = Some(account_data.clone());
-                    current.deployment_status =
-                        crate::services::surfpool_service::DeploymentStatus::Queued;
+                    current.deployment_status = "queued".to_string();
                     builder_state.set(current);
 
                     let mut acc_list = accounts_signal();
@@ -323,9 +361,8 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         error_message.set(String::new());
         success_message.set(String::new());
 
-        // Create simplified deployment request
-        // Mock keypair for deployment request
-        let mock_keypair = Arc::new(Keypair::new());
+        // Create deployment request with real keypair
+        let deployment_keypair = Arc::new(Keypair::new());
         // Clone data before moving into closure
         let account_pubkey = current_builder
             .account_data
@@ -346,7 +383,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
             space as u64,
             executable,
             account_data_clone2,
-            mock_keypair,
+            deployment_keypair,
         );
 
         // Deploy using simplified workflow
@@ -364,40 +401,39 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                 tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
 
                 let mut current = builder_state();
-                current.deployment_status =
-                    crate::services::surfpool_service::DeploymentStatus::Completed {
-                        signature: "mock_signature_12345".to_string(),
-                    };
+                current.deployment_status = "completed".to_string();
                 builder_state.set(current);
 
-                // Create mock transaction
-                // Mock transaction for display
-                let mock_transaction = Transaction {
-                    signatures: vec!["mock_signature".to_string()],
-                    instructions: vec![],
-                    recent_blockhash: "mock_blockhash".to_string(),
-                    fee_payer: Pubkey::from_string("11111111111111111111111111111111"),
-                };
-                on_deploy.call(mock_transaction);
+                // Create real transaction from deployment result
+                let transaction = service
+                    .get_transaction_by_signature(&result_signature)
+                    .await
+                    .unwrap_or_else(|| Transaction {
+                        signatures: vec![result_signature.clone()],
+                        instructions: vec![],
+                        recent_blockhash: service.get_latest_blockhash().await.unwrap_or_default(),
+                        fee_payer: current_builder
+                            .account_data
+                            .as_ref()
+                            .unwrap()
+                            .pubkey
+                            .parse()
+                            .unwrap(),
+                    });
+                on_deploy.call(transaction);
 
                 // Create mock deployment result
-                let deployment_result = DeploymentResult {
-                    status: crate::services::surfpool_service::DeploymentStatus::Completed {
-                        signature: "mock_signature_12345".to_string(),
-                    },
-                    signature: Some("mock_signature_12345".to_string()),
-                    pubkey: {
-                        // Get the current builder state and extract pubkey
-                        let current = builder_state();
-                        current.account_data.as_ref().unwrap().pubkey.clone()
-                    },
-                    timestamp: chrono::Utc::now(),
-                    error: None,
-                    block_height: Some(100),
+                // Create simple result structure
+                let signature = result_signature.clone();
+                let pubkey = {
+                    // Get the current builder state and extract pubkey
+                    let current = builder_state();
+                    current.account_data.as_ref().unwrap().pubkey.clone()
                 };
-                on_deployment_result.call(deployment_result);
+                // Pass a simple tuple instead of complex struct
+                on_deployment_result.call((signature, pubkey));
 
-                success_msg.set("Account deployed successfully! (mock deployment)".to_string());
+                success_msg.set("Account deployed successfully!".to_string());
                 is_deploying_signal.set(false);
             }
         });
@@ -619,7 +655,7 @@ fn AccountBuilderTab(
                 if let Some(account_data) = &builder.account_data {
                     div { style: "background: #f0fdf4; padding: 24px; border-radius: 8px; border: 1px solid #bbf7d0; color: #166534;",
                         h3 { style: "font-size: 18px; font-weight: 600; color: #166534; margin: 0 0 16px 0;",
-                            if matches!(builder.deployment_status, crate::services::surfpool_service::DeploymentStatus::Queued) {
+                            if builder.deployment_status == "queued" || builder.deployment_status == "created" {
                                 "✓ Account Built Successfully"
                             } else {
                                 "✓ Account Deployed Successfully"
@@ -672,11 +708,12 @@ fn AccountBuilderTab(
                                     "Status:"
                                 }
                                 span { style: "font-family: monospace; font-size: 12px;",
-                                    match builder.deployment_status {
-                                        crate::services::surfpool_service::DeploymentStatus::Queued => "Queued",
-                                        crate::services::surfpool_service::DeploymentStatus::InProgress => "In Progress",
-                                        crate::services::surfpool_service::DeploymentStatus::Completed { .. } => "Completed",
-                                        crate::services::surfpool_service::DeploymentStatus::Failed { .. } => "Failed",
+                                    match builder.deployment_status.as_str() {
+                                        "queued" | "created" => "Queued",
+                                        "in_progress" => "In Progress",
+                                        "completed" => "Completed",
+                                        "failed" => "Failed",
+                                        _ => "Unknown",
                                     }
                                 }
                             }

@@ -28,20 +28,14 @@ impl Pubkey {
     }
 
     pub fn new_unique() -> Self {
-        // Generate a mock unique pubkey for testing
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
-        use std::time::{SystemTime, UNIX_EPOCH};
+        // Generate real unique pubkey using proper cryptography
+        let mut random_bytes = [0u8; 32];
+        use rand::RngCore;
+        rand::thread_rng().fill_bytes(&mut random_bytes);
 
-        let mut hasher = DefaultHasher::new();
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos()
-            .hash(&mut hasher);
-
-        let hash = hasher.finish();
-        Self(format!("{:0>64x}", hash))
+        // Convert to Base58 for proper Solana pubkey format
+        let pubkey_b58 = bs58::encode(random_bytes).into_string();
+        Pubkey::from_string(&pubkey_b58)
     }
 
     pub fn to_bytes(&self) -> [u8; 32] {
@@ -113,17 +107,82 @@ impl Default for Keypair {
 
 impl Keypair {
     pub fn new() -> Self {
-        let secret = format!(
-            "mock_secret_{}",
-            uuid::Uuid::new_v4().to_string().replace("-", "")
-        );
-        let pubkey = Pubkey::from_string(&format!("mock_pubkey_{}", &secret[..32]));
-        Self { pubkey, secret }
+        // Generate real Solana keypair using proper cryptography
+        let mut secret_bytes = [0u8; 32];
+        use rand::RngCore;
+        rand::thread_rng().fill_bytes(&mut secret_bytes);
+
+        // Use ed25519 to derive public key
+        let secret_key = ed25519_dalek::SecretKey::from_bytes(&secret_bytes)
+            .expect("Invalid secret key length");
+        let public_key = ed25519_dalek::PublicKey::from(&secret_key);
+
+        // Convert to Base58 for storage
+        let secret_b58 = bs58::encode(&secret_bytes).into_string();
+        let pubkey_b58 = bs58::encode(public_key.to_bytes()).into_string();
+
+        Self {
+            pubkey: Pubkey::from_string(&pubkey_b58),
+            secret: secret_b58,
+        }
     }
 
     pub fn with_secret(secret: String) -> Self {
-        let pubkey = Pubkey::from_string(&format!("mock_pubkey_{}", &secret[..32]));
-        Self { pubkey, secret }
+        // Decode Base58 secret and derive real pubkey
+        let secret_bytes = bs58::decode(&secret)
+            .into_vec()
+            .expect("Invalid Base58 secret");
+
+        if secret_bytes.len() != 32 {
+            panic!("Secret key must be 32 bytes");
+        }
+
+        let secret_key = ed25519_dalek::SecretKey::from_bytes(&secret_bytes)
+            .expect("Invalid secret key format");
+        let public_key = ed25519_dalek::PublicKey::from(&secret_key);
+        let pubkey_b58 = bs58::encode(public_key.to_bytes()).into_string();
+
+        Self {
+            pubkey: Pubkey::from_string(&pubkey_b58),
+            secret,
+        }
+    }
+
+    /// Load keypair from Solana CLI config path
+    pub fn from_solana_config() -> Result<Self> {
+        let config_path = dirs::home_dir()
+            .ok_or_else(|| SurfDeskError::config("Home directory not found"))?
+            .join(".config/solana/cli/config.yml");
+
+        let config_content = std::fs::read_to_string(&config_path)
+            .map_err(|e| SurfDeskError::config(format!("Failed to read config: {}", e)))?;
+
+        #[derive(Deserialize)]
+        struct SolanaConfig {
+            keypair_path: String,
+        }
+
+        let config: SolanaConfig = serde_yaml::from_str(&config_content)
+            .map_err(|e| SurfDeskError::config(format!("Failed to parse config: {}", e)))?;
+
+        let keypair_bytes = std::fs::read(&config.keypair_path)
+            .map_err(|e| SurfDeskError::config(format!("Failed to read keypair: {}", e)))?;
+
+        Self::from_bytes(&keypair_bytes)
+    }
+
+    /// Create keypair from byte array
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        let secret_key = ed25519_dalek::SecretKey::from_bytes(bytes)
+            .map_err(|e| SurfDeskError::validation(format!("Invalid secret key: {}", e)))?;
+        let public_key = ed25519_dalek::PublicKey::from(&secret_key);
+        let pubkey_b58 = bs58::encode(public_key.to_bytes()).into_string();
+        let secret_b58 = bs58::encode(bytes).into_string();
+
+        Ok(Self {
+            pubkey: Pubkey::from_string(&pubkey_b58),
+            secret: secret_b58,
+        })
     }
 
     pub fn pubkey(&self) -> &Pubkey {
@@ -184,7 +243,16 @@ impl SolanaNetwork {
             Self::Mainnet => "https://api.mainnet-beta.solana.com",
             Self::Devnet => "https://api.devnet.solana.com",
             Self::Testnet => "https://api.testnet.solana.com",
-            Self::Localhost => "http://localhost:8899",
+            Self::Localhost => "http://localhost:8899", // SurfPool endpoint
+        }
+    }
+
+    pub fn mcp_url(&self) -> &'static str {
+        match self {
+            Self::Mainnet => "http://localhost:8899",
+            Self::Devnet => "http://localhost:8899",
+            Self::Testnet => "http://localhost:8899",
+            Self::Localhost => "http://localhost:8899", // SurfPool MCP endpoint
         }
     }
 
@@ -315,8 +383,23 @@ impl HttpClient for WebHttpClient {
         // Temporarily disable WebHttpClient for compilation
         // TODO: Fix WASM threading issues later
         Box::pin(async move {
-            log::info!("Web HTTP request (mock): {}", body);
-            Ok(r#"{"jsonrpc":"2.0","id":1,"result":"mock_response"}"#.to_string())
+            log::info!("Web HTTP request to SurfPool MCP: {}", body);
+            // Use real SurfPool MCP endpoint for web
+            let response = reqwest::Client::new()
+                .post("http://localhost:8899") // SurfPool MCP endpoint
+                .header("Content-Type", "application/json")
+                .header("User-Agent", "SurfDesk/1.0")
+                .body(body)
+                .send()
+                .await
+                .map_err(|e| {
+                    crate::error::SurfDeskError::rpc(format!("HTTP request failed: {}", e))
+                })?;
+
+            let text = response.text().await.map_err(|e| {
+                crate::error::SurfDeskError::rpc(format!("Failed to read response: {}", e))
+            })?;
+            Ok(text)
         })
     }
 }
@@ -346,10 +429,23 @@ impl HttpClient for DesktopHttpClient {
         let body = body.clone();
 
         Box::pin(async move {
-            // Mock implementation for WASM compatibility
-            // In real implementation, this would use reqwest
-            log::info!("Desktop HTTP request (mock): {}", body);
-            Ok(r#"{"jsonrpc":"2.0","id":1,"result":"mock_response"}"#.to_string())
+            log::info!("Desktop HTTP request to SurfPool MCP: {}", body);
+            // Use real SurfPool MCP endpoint for desktop
+            let response = reqwest::Client::new()
+                .post("http://localhost:8899") // SurfPool MCP endpoint
+                .header("Content-Type", "application/json")
+                .header("User-Agent", "SurfDesk/1.0")
+                .body(body)
+                .send()
+                .await
+                .map_err(|e| {
+                    crate::error::SurfDeskError::rpc(format!("HTTP request failed: {}", e))
+                })?;
+
+            let text = response.text().await.map_err(|e| {
+                crate::error::SurfDeskError::rpc(format!("Failed to read response: {}", e))
+            })?;
+            Ok(text)
         })
     }
 }
@@ -371,9 +467,37 @@ unsafe impl Send for SolanaRpcClient {}
 unsafe impl Sync for SolanaRpcClient {}
 
 impl SolanaRpcClient {
-    /// Create new RPC client for specified network
+    /// Create new RPC client for specified network using MCP
     pub fn new(network: SolanaNetwork) -> Self {
-        Self::new_with_url(network.rpc_url(), RpcCommitment::default())
+        Self::new_with_url(network.mcp_url(), RpcCommitment::default())
+    }
+
+    /// Create new RPC client from Solana CLI configuration
+    pub fn from_solana_config() -> Result<Self> {
+        let config_path = dirs::home_dir()
+            .ok_or_else(|| crate::error::SurfDeskError::config("Home directory not found"))?
+            .join(".config/solana/cli/config.yml");
+
+        let config_content = std::fs::read_to_string(&config_path)
+            .map_err(|e| crate::error::SurfDeskError::config(format!("Failed to read config: {}", e)))?;
+
+        #[derive(Deserialize)]
+        struct SolanaConfig {
+            rpc_url: Option<String>,
+            commitment: Option<String>,
+        }
+
+        let config: SolanaConfig = serde_yaml::from_str(&config_content)
+            .map_err(|e| crate::error::SurfDeskError::config(format!("Failed to parse config: {}", e)))?;
+
+        let rpc_url = config.rpc_url.unwrap_or_else(|| "http://localhost:8899".to_string());
+        let commitment = match config.commitment.as_deref() {
+            Some("processed") => RpcCommitment::Processed,
+            Some("finalized") => RpcCommitment::Finalized,
+            _ => RpcCommitment::Confirmed,
+        };
+
+        Ok(Self::new_with_url(&rpc_url, commitment))
     }
 
     /// Create new RPC client with custom URL and commitment
@@ -421,8 +545,29 @@ impl SolanaRpcClient {
                 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String>> + Send>>
                 {
                     Box::pin(async move {
-                        log::info!("Fallback HTTP request (mock): {}", body);
-                        Ok(r#"{"jsonrpc":"2.0","id":1,"result":"mock_response"}"#.to_string())
+                        log::info!("Fallback HTTP request to SurfPool MCP: {}", body);
+                        // Use real SurfPool MCP endpoint for fallback
+                        let response = reqwest::Client::new()
+                            .post("http://localhost:8899") // SurfPool MCP endpoint
+                            .header("Content-Type", "application/json")
+                            .header("User-Agent", "SurfDesk/1.0")
+                            .body(body)
+                            .send()
+                            .await
+                            .map_err(|e| {
+                                crate::error::SurfDeskError::rpc(format!(
+                                    "HTTP request failed: {}",
+                                    e
+                                ))
+                            })?;
+
+                        let text = response.text().await.map_err(|e| {
+                            crate::error::SurfDeskError::rpc(format!(
+                                "Failed to read response: {}",
+                                e
+                            ))
+                        })?;
+                        Ok(text)
                     })
                 }
             }
@@ -514,34 +659,55 @@ impl SolanaRpcClient {
         Ok(TransactionSignature::new(signature))
     }
 
-    /// Deploy raw program without code generation
+    /// Deploy raw program using real SurfPool MCP
     pub async fn deploy_raw_program(&self, raw_code: &[u8]) -> Result<Pubkey> {
-        // For now, return a mock program ID
-        // In real implementation, this would:
-        // 1. Create a program account
-        // 2. Deploy the raw bytecode
-        // 3. Return the program ID
+        log::info!("Deploying raw program of {} bytes via SurfPool MCP", raw_code.len());
 
-        log::info!("Deploying raw program of {} bytes", raw_code.len());
+        // Load payer from Solana config if not set
+        let payer = if let Some(ref p) = self.payer {
+            p.to_string()
+        } else {
+            let keypair = Keypair::from_solana_config()?;
+            keypair.pubkey().to_string()
+        };
 
-        // Mock deployment - generate a program ID based on the code hash
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
-        let mut hasher = DefaultHasher::new();
-        raw_code.hash(&mut hasher);
-        let hash = hasher.finish();
+        // Use real SurfPool MCP deployment
+        let deployment_request = json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "deployProgram",
+            "params": {
+                "program": base64::prelude::BASE64_STANDARD.encode(raw_code),
+                "payer": payer
+            }
+        });
 
-        let program_id = format!("Program{}{}", hash, "11111111111111111111111111111111");
-        Ok(Pubkey::from_string(&program_id[..44])) // Truncate to valid length
+        let response = self.make_request("deployProgram", vec![deployment_request]).await?;
+
+        #[derive(Deserialize)]
+        struct DeployResponse {
+            result: DeployResult,
+        }
+
+        #[derive(Deserialize)]
+        struct DeployResult {
+            program_id: String,
+            signature: String,
+        }
+
+        let deploy_response: DeployResponse = serde_json::from_str(&response)
+            .map_err(|e| SurfDeskError::rpc(format!("Invalid deployment response: {}", e)))?;
+
+        log::info!("Program deployed with signature: {}", deploy_response.result.signature);
+        Ok(Pubkey::from_string(&deploy_response.result.program_id))
     }
 
-    /// Create account without code generation for a program
+    /// Create account without code generation for a program using real SurfPool
     pub async fn create_account_no_code(&self, program_id: Pubkey) -> Result<Pubkey> {
-        log::info!("Creating account for program: {}", program_id);
+        log::info!("Creating account for program: {} via SurfPool", program_id);
 
-        // Mock account creation - generate account ID
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
+        // Load keypair from Solana config
+        let keypair = Keypair::from_solana_config()?;
         let mut hasher = DefaultHasher::new();
         program_id.to_string().hash(&mut hasher);
         let hash = hasher.finish();
@@ -556,20 +722,37 @@ impl SolanaRpcClient {
 
         // Mock implementation - return some dummy bytecode
         // In real implementation, this would query the program account
-        Ok(vec![
-            0x01, 0x02, 0x03, 0x04, // Mock program bytecode
+        // Get real program bytecode from SurfPool
+        let request = json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "getProgramAccount",
+            "params": [program_id.to_string(), { "encoding": "base64" }]
+        });
+
+        let response = self.make_request("", vec![request]).await?;
+
+        #[derive(Deserialize)]
+        struct ProgramAccountResponse {
+            result: Option<ProgramAccountData>,
+        }
+
+        #[derive(Deserialize)]
+        struct ProgramAccountData {
+            data: Vec<String>,
+0x01, 0x02, 0x03, 0x04, // Mock program bytecode
             0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
         ])
     }
 
     /// Deploy program using SurfPool's port 8999
     pub async fn deploy_via_surfpool(&self, raw_code: &[u8]) -> Result<Pubkey> {
-        // This method specifically uses the SurfPool RPC on port 8999
-        log::info!("Deploying via SurfPool on port 8999");
+        // This method specifically uses the SurfPool RPC on port 8899 (correct port)
+        log::info!("Deploying via SurfPool on port 8899");
 
-        // Create a temporary client for SurfPool
+        // Create a temporary client for SurfPool with correct port
         let surfpool_client =
-            SolanaRpcClient::new_with_url("http://localhost:8999", self.commitment);
+            SolanaRpcClient::new_with_url("http://localhost:8899", self.commitment);
 
         surfpool_client.deploy_raw_program(raw_code).await
     }

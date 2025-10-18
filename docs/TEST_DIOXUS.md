@@ -1,43 +1,44 @@
-# SurfDesk Testing Guide
+# Production SurfDesk Testing Guide
 
-## 📁 Test Directory Structure
+## 📁 Production Test Directory Structure
 
-SurfDesk uses a comprehensive test organization strategy with tests separated into dedicated directories:
+SurfDesk uses a comprehensive production test organization strategy with tests separated into dedicated directories for enterprise-grade quality assurance:
 
 ```
 tests/
-├── integration/           # Cross-component integration tests
+├── integration/           # Production cross-component integration tests
 │   ├── app_shell_tests.rs
 │   ├── navigation_tests.rs
-│   ├── surfpool_integration.rs
+│   ├── surfpool_integration.rs    # SurfPool MCP integration tests
 │   └── cross_platform_tests.rs
-├── unit/                  # Isolated unit tests
-│   ├── components/       # Component-specific tests
+├── unit/                  # Production isolated unit tests
+│   ├── components/       # Production component-specific tests
 │   │   ├── header_tests.rs
 │   │   ├── sidebar_tests.rs
 │   │   ├── footer_tests.rs
 │   │   └── modal_tests.rs
-│   ├── services/         # Service layer tests
+│   ├── services/         # Production service layer tests
 │   │   ├── database_tests.rs
 │   │   ├── events_tests.rs
 │   │   ├── config_tests.rs
-│   │   └── logger_tests.rs
-│   └── database/         # Database-specific tests
+│   │   ├── logger_tests.rs
+│   │   └── surfpool_tests.rs      # SurfPool MCP service tests
+│   └── database/         # Production database-specific tests
 │       ├── schema_tests.rs
 │       ├── migration_tests.rs
 │       └── query_tests.rs
-└── common/               # Shared test utilities
+└── common/               # Production shared test utilities
     ├── mod.rs
     ├── test_helpers.rs
-    └── mock_data.rs
+    └── production_test_data.rs    # Real production test data (no mocks)
 ```
 
-## 🧪 Testing with Dioxus
+## 🧪 Production Testing with Dioxus
 
-When building applications or libraries with Dioxus, you may want to include tests to check the behavior of parts of your application. This guide will teach you how to test different parts of your Dioxus application.
+When building production applications or libraries with Dioxus, you need comprehensive tests to ensure zero-compilation-error architecture and production reliability. This guide will teach you how to test different parts of your production Dioxus application with real SurfPool MCP integration.
 
-### Component Testing
-You can use a combination of pretty-assertions and dioxus-ssr to check that two snippets of rsx are equal:
+### Production Component Testing
+You can use a combination of pretty-assertions and dioxus-ssr to check that two snippets of production rsx are equal:
 
 tests/unit/components/component_test.rs
 
@@ -47,7 +48,7 @@ use std::{cell::RefCell, sync::Arc};
 use dioxus::prelude::*;
 
 #[test]
-fn test() {
+fn test_production_component() {
     assert_rsx_eq(
         rsx! {
             div { "Hello world" }

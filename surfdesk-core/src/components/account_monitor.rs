@@ -114,11 +114,15 @@ pub fn AccountMonitor(props: AccountMonitorProps) -> Element {
     let websocket_messages = use_signal(Vec::<WebSocketMessage>::new);
     let mut error_message = use_signal(|| None::<String>);
 
-    // Mock connection effect for demo purposes
+    // Real connection status using SurfPool
     use_effect(move || {
         spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-            connection_status.set("Connected (mock)".to_string());
+            // Check actual SurfPool connection status
+            if let Ok(status) = service.get_connection_status().await {
+                connection_status.set(format!("Connected to {}", status));
+            } else {
+                connection_status.set("Disconnected".to_string());
+            }
         });
     });
 
@@ -299,9 +303,12 @@ fn AddAccountForm() -> Element {
         let pubkey_clone = pubkey.clone();
 
         spawn(async move {
-            // Mock account addition for demo
-            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-            log::info!("Mock: Added account to monitoring: {}", pubkey_clone);
+            // Real account addition using SurfPool
+            if let Ok(_) = service.add_account_to_monitoring(&pubkey_clone).await {
+                log::info!("Added account to monitoring: {}", pubkey_clone);
+            } else {
+                log::error!("Failed to add account to monitoring: {}", pubkey_clone);
+            }
             adding.set(false);
         });
     };

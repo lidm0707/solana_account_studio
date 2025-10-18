@@ -1,28 +1,28 @@
-# Database Design & Architecture for SurfDesk (Dioxus 0.6+ Multi-Platform)
+# Production Database Design & Architecture for SurfDesk (Dioxus 0.6+ Multi-Platform)
 
 ## Overview
 
-SurfDesk implements a comprehensive, cross-platform database architecture using **SQLite** with **Diesel ORM** for persistent storage across desktop, web, and terminal platforms. The database system is designed to handle multi-platform data synchronization, offline-first operation, and efficient cross-platform data access patterns.
+SurfDesk implements a comprehensive, production-ready cross-platform database architecture using **SQLite** with **Diesel ORM** for persistent storage across desktop, web, and terminal platforms. The database system is designed to handle multi-platform data synchronization, offline-first operation, and efficient cross-platform data access patterns with enterprise-grade reliability and performance.
 
 ## Multi-Platform Database Strategy
 
 ### 🖥️ **Desktop Platform**
-- **Native SQLite**: Direct file-based SQLite database
-- **Local Storage**: Full file system access for database files
-- **Performance**: Optimized for desktop hardware capabilities
-- **Backup/Restore**: Native file system operations
+- **Native SQLite**: Direct file-based SQLite database with production optimizations
+- **Local Storage**: Full file system access for database files with secure permissions
+- **Performance**: Optimized for desktop hardware capabilities with connection pooling
+- **Backup/Restore**: Native file system operations with automated backup scheduling
 
 ### 🌐 **Web Platform** 
-- **WASM-SQLite**: SQLite compiled to WebAssembly
-- **Browser Storage**: IndexedDB for database persistence
-- **Sync Layer**: Cloud synchronization for data consistency
-- **Offline Mode**: Full offline capability with sync on reconnect
+- **WASM-SQLite**: SQLite compiled to WebAssembly with production memory management
+- **Browser Storage**: IndexedDB for database persistence with quota management
+- **Sync Layer**: Cloud synchronization for data consistency with conflict resolution
+- **Offline Mode**: Full offline capability with intelligent sync on reconnect
 
 ### 💻 **Terminal Platform**
-- **Lightweight SQLite**: Optimized for server environments
-- **File-based Storage**: Standard file system access
-- **CLI Operations**: Database management via command line
-- **Resource Efficiency**: Minimal memory and CPU footprint
+- **Production SQLite**: Optimized for server environments with WAL mode
+- **File-based Storage**: Standard file system access with atomic operations
+- **CLI Operations**: Database management via command line with admin tools
+- **Resource Efficiency**: Minimal memory and CPU footprint with connection reuse
 
 ## Database Schema Design
 

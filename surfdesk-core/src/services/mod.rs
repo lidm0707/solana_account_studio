@@ -7,6 +7,7 @@
 pub mod config;
 pub mod events;
 pub mod logger;
+pub mod monitoring;
 
 #[cfg(feature = "solana")]
 pub mod solana;
@@ -15,7 +16,6 @@ pub mod solana;
 // pub mod database;
 
 pub mod surfpool;
-pub mod surfpool_service;
 pub mod websocket;
 
 use crate::error::Result;
@@ -28,13 +28,15 @@ pub struct ServiceManager {
     logger_service: logger::LoggerService,
     /// Event service
     event_service: events::EventService,
+    /// Monitoring service
+    monitoring_service: Option<monitoring::MonitoringService>,
     /// Solana service (optional)
     #[cfg(feature = "solana")]
     solana_service: Option<solana::SolanaService>,
     /// Database service (optional)
     // #[cfg(feature = "database")]
     // database_service: Option<database::DatabaseService>,
-    /// SurfPool service
+    /// SurfPool service (terminal strategy)
     surfpool_service: Option<surfpool::SurfPoolService>,
     /// WebSocket service
     websocket_service: Option<websocket::WebSocketService>,
@@ -54,6 +56,7 @@ impl ServiceManager {
             config_service,
             logger_service,
             event_service,
+            monitoring_service: None,
             #[cfg(feature = "solana")]
             solana_service: None,
             // #[cfg(feature = "database")]
@@ -83,10 +86,24 @@ impl ServiceManager {
             log::info!("Solana service initialized");
         }
 
-        // Initialize SurfPool service
+        // Initialize monitoring service
         {
-            self.surfpool_service = Some(surfpool::SurfPoolService::new().await?);
-            log::info!("SurfPool service initialized");
+            self.monitoring_service = Some(monitoring::MonitoringService::new().await?);
+            log::info!("Monitoring service initialized");
+        }
+
+        // Initialize SurfPool service (terminal strategy)
+        {
+            match surfpool::SurfPoolService::new().await {
+                Ok(service) => {
+                    self.surfpool_service = Some(service);
+                    log::info!("SurfPool service (terminal strategy) initialized");
+                }
+                Err(e) => {
+                    log::warn!("SurfPool service initialization failed: {}", e);
+                    log::info!("SurfPool features will be disabled");
+                }
+            }
         }
 
         // Initialize WebSocket service
@@ -115,6 +132,11 @@ impl ServiceManager {
         &self.event_service
     }
 
+    /// Get the monitoring service
+    pub fn monitoring_service(&self) -> Option<&monitoring::MonitoringService> {
+        self.monitoring_service.as_ref()
+    }
+
     /// Get the Solana service
     #[cfg(feature = "solana")]
     pub fn solana_service(&self) -> Option<&solana::SolanaService> {
@@ -126,62 +148,8 @@ impl ServiceManager {
     //     self.database_service.as_ref()
     // }
 
-    /// Switch database backend to Turso
-    // #[cfg(feature = "database")]
-    // pub async fn switch_to_turso(
-    //     &mut self,
-    //     url: String,
-    //     auth_token: String,
-    //     database_name: String,
-    // ) -> Result<()> {
-    //     log::info!("Switching database backend to Turso: {}", database_name);
-
-    //     // Create new Turso database configuration
-    //     let config = database::DatabaseConfig::from_turso(url.clone(), auth_token, database_name);
-
-    //     // Create new database service with Turso configuration
-    //     let new_service = database::DatabaseService::with_config(config).await?;
-
-    //     // Replace the existing service
-    //     self.database_service = Some(new_service);
-
-    //     log::info!("Successfully switched to Turso database backend");
-    //     Ok(())
-    // }
-
-    /// Switch database backend to SQLite
-    // #[cfg(feature = "database")]
-    // pub async fn switch_to_sqlite(&mut self, path: String) -> Result<()> {
-    //     log::info!("Switching database backend to SQLite: {}", path);
-
-    //     // Create new SQLite database configuration
-    //     let config = database::DatabaseConfig::from_platform().with_sqlite(path);
-
-    //     // Create new database service with SQLite configuration
-    //     let new_service = database::DatabaseService::with_config(config).await?;
-
-    //     // Replace the existing service
-    //     self.database_service = Some(new_service);
-
-    //     log::info!("Successfully switched to SQLite database backend");
-    //     Ok(())
-    // }
-
-    /// Get current database backend information
-    // #[cfg(feature = "database")]
-    // pub fn database_backend_info(&self) -> Option<String> {
-    //     self.database_service
-    //         .as_ref()
-    //         .map(|service| service.backend_info())
-    // }
-
-    /// Get the SurfPool service
+    /// Get the SurfPool service (terminal strategy)
     pub fn surfpool_service(&self) -> Option<&surfpool::SurfPoolService> {
-        self.surfpool_service.as_ref()
-    }
-
-    /// Get the SurfPool deployment service
-    pub fn surfpool_deployment_service(&self) -> Option<&surfpool::SurfPoolService> {
         self.surfpool_service.as_ref()
     }
 
@@ -196,9 +164,16 @@ impl ServiceManager {
 
         // Shutdown services in reverse order
         {
+            if let Some(ref service) = self.monitoring_service {
+                service.shutdown().await?;
+                log::info!("Monitoring service shutdown");
+            }
+        }
+
+        {
             if let Some(ref service) = self.surfpool_service {
                 service.shutdown().await?;
-                log::info!("SurfPool service shutdown");
+                log::info!("SurfPool service (terminal strategy) shutdown");
             }
         }
 

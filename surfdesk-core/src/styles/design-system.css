@@ -4,7 +4,7 @@
    ============================================================================= */
 
 /* Import design system */
-@import url("./design-system.css");
+@import url("../styles/design-system.css");
 
 /* === BODY & BASE === */
 body {

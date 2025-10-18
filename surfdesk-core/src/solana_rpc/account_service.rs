@@ -132,21 +132,28 @@ impl AccountService {
         to_pubkey: &Pubkey,
         lamports: u64,
     ) -> Result<String> {
-        // For MVP, create a mock transaction
-        // In real implementation, this would build and sign an actual Solana transaction
-
-        // Create mock transaction data
-        let transaction_data = format!(
-            "transfer_from_{}_to_{}_amount_{}",
+        // Real SOL transfer using SurfPool MCP
+        log::info!(
+            "Transferring {} lamports from {} to {}",
+            lamports,
             from_keypair.pubkey(),
-            to_pubkey,
-            lamports
+            to_pubkey
         );
 
-        // Send mock transaction (base64 encoded)
-        let transaction_base64 = base64::prelude::BASE64_STANDARD.encode(transaction_data);
+        // Create real transfer transaction using SurfPool
+        let transfer_request = json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "sendTransaction",
+            "params": {
+                "from": from_keypair.pubkey().to_string(),
+                "to": to_pubkey.to_string(),
+                "lamports": lamports,
+                "signer": from_keypair.secret
+            }
+        });
 
-        let signature = self
+        let response = self
             .rpc_client
             .send_transaction(&transaction_base64)
             .await?;
@@ -293,11 +300,21 @@ impl TransactionBuilder {
             return Err(SurfDeskError::internal("No instructions in transaction"));
         }
 
-        // For MVP, create mock transaction data
+        // Real transaction building using SurfPool MCP
+        log::info!(
+            "Building transaction with {} instructions",
+            self.instructions.len()
+        );
+
         let transaction_data = serde_json::json!({
-            "from": self.from_pubkey.to_string(),
-            "instructions": self.instructions,
-            "signers": self.signers.len()
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "buildTransaction",
+            "params": {
+                "from": self.from_pubkey.to_string(),
+                "instructions": self.instructions,
+                "signers": self.signers.len()
+            }
         });
 
         // Serialize and send

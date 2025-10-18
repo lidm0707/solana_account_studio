@@ -5,9 +5,13 @@
 
 use crate::surfpool::{SurfPoolConfig, SurfPoolManager, SurfPoolStatus as DesktopSurfPoolStatus};
 use dioxus::prelude::*;
+use log::{error, info};
 use std::sync::Arc;
 use surfdesk_core::components::{Button, Card, Input, Size, Variant};
 use surfdesk_core::solana_rpc::{SolanaNetwork, SolanaRpcClient};
+
+// Re-export spawn from tokio for async tasks
+use dioxus::prelude::spawn;
 
 /// SurfPool control page component
 #[component]
@@ -16,11 +20,11 @@ pub fn SurfPoolPage() -> Element {
     let mut logs = use_signal(Vec::<String>::new);
     let mut config = use_signal(SurfPoolConfig::default);
     let mut show_config_modal = use_signal(|| false);
-    let loading = use_signal(|| false);
+    let mut loading = use_signal(|| false);
     let mut error_message = use_signal(|| Option::<String>::None);
 
     // Real SurfPool manager (no Arc for Dioxus compatibility)
-    let mut surfpool_manager = use_signal(|| {
+    let surfpool_manager = use_signal(|| {
         let cfg = config.read().clone();
         SurfPoolManager::new(cfg)
     });
@@ -75,17 +79,98 @@ pub fn SurfPoolPage() -> Element {
 
     // Handle start SurfPool
     let handle_start = move |_| {
-        log::info!("Start SurfPool button clicked (not implemented)");
+        let mut manager_signal = surfpool_manager.clone();
+
+        loading.set(true);
+        error_message.set(None);
+
+        spawn(async move {
+            if let Ok(mut manager) = manager_signal.try_write() {
+                match manager.start().await {
+                    Ok(_) => {
+                        log::info!("SurfPool started successfully");
+                    }
+                    Err(e) => {
+                        error!("Failed to start SurfPool: {}", e);
+                        error_message.set(Some(format!("Failed to start SurfPool: {}", e)));
+                    }
+                }
+            } else {
+                error!("Failed to acquire manager lock - operation in progress");
+                error_message.set(Some(
+                    "Another operation is in progress. Please wait.".to_string(),
+                ));
+            }
+            loading.set(false);
+        });
     };
 
     // Handle stop SurfPool
     let handle_stop = move |_| {
-        log::info!("Stop SurfPool button clicked (not implemented)");
+        let mut manager_signal = surfpool_manager.clone();
+
+        loading.set(true);
+        error_message.set(None);
+
+        spawn(async move {
+            if let Ok(mut manager) = manager_signal.try_write() {
+                match manager.stop().await {
+                    Ok(_) => {
+                        log::info!("SurfPool stopped successfully");
+                    }
+                    Err(e) => {
+                        error!("Failed to stop SurfPool: {}", e);
+                        error_message.set(Some(format!("Failed to stop SurfPool: {}", e)));
+                    }
+                }
+            } else {
+                error!("Failed to acquire manager lock - operation in progress");
+                error_message.set(Some(
+                    "Another operation is in progress. Please wait.".to_string(),
+                ));
+            }
+            loading.set(false);
+        });
     };
 
     // Handle restart SurfPool
     let handle_restart = move |_| {
-        log::info!("Restart SurfPool button clicked (not implemented)");
+        let mut manager_signal = surfpool_manager.clone();
+
+        loading.set(true);
+        error_message.set(None);
+
+        spawn(async move {
+            if let Ok(mut manager) = manager_signal.try_write() {
+                match manager.stop().await {
+                    Ok(_) => {
+                        // Give it a moment to fully stop
+                        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+
+                        match manager.start().await {
+                            Ok(_) => {
+                                log::info!("SurfPool restarted successfully");
+                            }
+                            Err(e) => {
+                                error!("Failed to restart SurfPool: {}", e);
+                                error_message
+                                    .set(Some(format!("Failed to restart SurfPool: {}", e)));
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to stop SurfPool during restart: {}", e);
+                        error_message.set(Some(format!("Failed to restart SurfPool: {}", e)));
+                    }
+                }
+            } else {
+                error!("Failed to acquire manager lock - operation in progress");
+                error_message.set(Some(
+                    "Another operation is in progress. Please wait.".to_string(),
+                ));
+            }
+            loading.set(false);
+        });
     };
 
     // Handle config change

@@ -6,6 +6,7 @@
 pub mod accounts;
 // pub mod analytics;
 pub mod dashboard;
+pub mod monitoring;
 // pub mod settings;
 pub mod surfpool;
 // pub mod transactions;
@@ -14,6 +15,7 @@ pub mod surfpool;
 pub use accounts::AccountsPage;
 // pub use analytics::AnalyticsPage;
 pub use dashboard::DashboardPage;
+pub use monitoring::MonitoringPage;
 // pub use settings::SettingsPage;
 pub use surfpool::SurfPoolPage;
 // pub use transactions::TransactionsPage;

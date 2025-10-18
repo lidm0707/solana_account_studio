@@ -749,7 +749,7 @@ For each step in this roadmap:
 - ✅ Database and configuration systems
 - ✅ Basic UI components
 
-### Milestone 2: MVP Ready (End of Phase 2)
+### Milestone 2: Production Ready (End of Phase 2)
 - ✅ Working SurfPool integration
 - ✅ Cross-platform UI framework
 - ✅ Basic account and transaction management

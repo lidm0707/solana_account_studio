@@ -305,6 +305,8 @@ pub struct Account {
     pub rent_epoch: u64,
     /// Last updated timestamp
     pub updated_at: chrono::DateTime<chrono::Utc>,
+    /// Account monitoring configuration and data
+    pub monitoring: AccountMonitoring,
 }
 
 /// Account data with type information
@@ -318,6 +320,17 @@ pub struct AccountData {
     pub data_type: AccountDataType,
     /// Account schema if available
     pub schema: Option<AccountSchema>,
+}
+
+impl Default for AccountData {
+    fn default() -> Self {
+        Self {
+            raw_data: String::new(),
+            parsed_data: None,
+            data_type: AccountDataType::Unknown,
+            schema: None,
+        }
+    }
 }
 
 /// Account data type
@@ -697,6 +710,256 @@ pub enum NotificationType {
     Warning,
     /// Info notification
     Info,
+}
+
+// ===== Account Monitoring & Alerts =====
+
+/// Account monitoring configuration
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AccountMonitoring {
+    /// Whether monitoring is enabled for this account
+    pub enabled: bool,
+    /// Monitoring interval in seconds
+    pub interval_seconds: u64,
+    /// Alert configurations
+    pub alerts: Vec<AlertConfig>,
+    /// Monitoring history
+    pub history: Vec<MonitoringEvent>,
+    /// Last checked timestamp
+    pub last_checked: Option<chrono::DateTime<chrono::Utc>>,
+    /// Check count
+    pub check_count: u64,
+}
+
+impl Default for AccountMonitoring {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            interval_seconds: 60, // Default 1 minute
+            alerts: vec![],
+            history: vec![],
+            last_checked: None,
+            check_count: 0,
+        }
+    }
+}
+
+/// Alert configuration for monitoring
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AlertConfig {
+    /// Unique alert ID
+    pub id: Uuid,
+    /// Alert name
+    pub name: String,
+    /// Alert type
+    pub alert_type: AlertType,
+    /// Whether the alert is active
+    pub active: bool,
+    /// Alert conditions
+    pub conditions: AlertConditions,
+    /// Notification channels
+    pub notification_channels: Vec<NotificationChannel>,
+    /// Cooldown period in seconds (min time between same alert)
+    pub cooldown_seconds: u64,
+    /// Last triggered timestamp
+    pub last_triggered: Option<chrono::DateTime<chrono::Utc>>,
+    /// Trigger count
+    pub trigger_count: u64,
+}
+
+/// Types of alerts available
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum AlertType {
+    /// Balance change alerts
+    BalanceChange,
+    /// Large transaction alerts
+    LargeTransaction,
+    /// Account activity alerts
+    AccountActivity,
+    /// Token price change alerts
+    TokenPriceChange,
+    /// Custom threshold alerts
+    CustomThreshold,
+    /// Network connectivity alerts
+    NetworkStatus,
+}
+
+impl AlertType {
+    /// Get display name for the alert type
+    pub fn display_name(&self) -> String {
+        match self {
+            AlertType::BalanceChange => "Balance Change".to_string(),
+            AlertType::LargeTransaction => "Large Transaction".to_string(),
+            AlertType::AccountActivity => "Account Activity".to_string(),
+            AlertType::TokenPriceChange => "Token Price Change".to_string(),
+            AlertType::CustomThreshold => "Custom Threshold".to_string(),
+            AlertType::NetworkStatus => "Network Status".to_string(),
+        }
+    }
+}
+
+/// Alert conditions
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AlertConditions {
+    /// Minimum balance change to trigger (in lamports)
+    pub min_balance_change: Option<u64>,
+    /// Maximum transaction amount to trigger (in lamports)
+    pub max_transaction_amount: Option<u64>,
+    /// Percentage change threshold (for price changes)
+    pub percentage_change_threshold: Option<f64>,
+    /// Custom condition expression
+    pub custom_condition: Option<String>,
+    /// Time window for conditions (in seconds)
+    pub time_window_seconds: Option<u64>,
+}
+
+impl Default for AlertConditions {
+    fn default() -> Self {
+        Self {
+            min_balance_change: Some(1_000_000),          // 0.001 SOL default
+            max_transaction_amount: Some(10_000_000_000), // 10 SOL default
+            percentage_change_threshold: Some(5.0),       // 5% default
+            custom_condition: None,
+            time_window_seconds: Some(300), // 5 minutes default
+        }
+    }
+}
+
+/// Notification channels for alerts
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum NotificationChannel {
+    /// In-app notification
+    InApp,
+    /// Desktop notification
+    Desktop,
+    /// Email notification
+    Email(String),
+    /// Webhook notification
+    Webhook(String),
+    /// Discord notification
+    Discord(String),
+}
+
+/// Monitoring event记录
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MonitoringEvent {
+    /// Event ID
+    pub id: Uuid,
+    /// Event timestamp
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    /// Event type
+    pub event_type: MonitoringEventType,
+    /// Account public key
+    pub account_pubkey: SolanaPubkey,
+    /// Event data
+    pub data: serde_json::Value,
+    /// Previous state (for comparison)
+    pub previous_state: Option<serde_json::Value>,
+    /// New state
+    pub new_state: serde_json::Value,
+}
+
+/// Types of monitoring events
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum MonitoringEventType {
+    /// Balance changed
+    BalanceChanged {
+        old_balance: u64,
+        new_balance: u64,
+        change_amount: i64,
+    },
+    /// Transaction detected
+    TransactionDetected {
+        signature: String,
+        amount: u64,
+        success: bool,
+    },
+    /// Account data changed
+    DataChanged {
+        data_hash: String,
+        change_summary: String,
+    },
+    /// Account became active/inactive
+    ActivityChanged {
+        is_active: bool,
+        last_activity: chrono::DateTime<chrono::Utc>,
+    },
+    /// Monitoring started/stopped
+    MonitoringStatusChanged { is_monitoring: bool, reason: String },
+    /// Alert triggered
+    AlertTriggered {
+        alert_id: Uuid,
+        alert_name: String,
+        message: String,
+    },
+    /// Network connectivity issue
+    NetworkIssue { issue_type: String, details: String },
+}
+
+/// Monitoring statistics
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MonitoringStats {
+    /// Total accounts monitored
+    pub total_accounts: u64,
+    /// Active accounts
+    pub active_accounts: u64,
+    /// Total checks performed
+    pub total_checks: u64,
+    /// Total alerts triggered
+    pub total_alerts: u64,
+    /// Last check timestamp
+    pub last_check: Option<chrono::DateTime<chrono::Utc>>,
+    /// Average check duration in milliseconds
+    pub avg_check_duration_ms: f64,
+    /// Success rate (percentage)
+    pub success_rate: f64,
+}
+
+impl Default for MonitoringStats {
+    fn default() -> Self {
+        Self {
+            total_accounts: 0,
+            active_accounts: 0,
+            total_checks: 0,
+            total_alerts: 0,
+            last_check: None,
+            avg_check_duration_ms: 0.0,
+            success_rate: 100.0,
+        }
+    }
+}
+
+/// Monitoring service configuration
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MonitoringConfig {
+    /// Global monitoring enabled
+    pub enabled: bool,
+    /// Default check interval in seconds
+    pub default_interval_seconds: u64,
+    /// Maximum concurrent checks
+    pub max_concurrent_checks: usize,
+    /// RPC timeout in seconds
+    pub rpc_timeout_seconds: u64,
+    /// Retry attempts for failed checks
+    pub retry_attempts: u32,
+    /// Maximum events to keep per account
+    pub max_events_per_account: usize,
+    /// Global alert cooldown in seconds
+    pub global_cooldown_seconds: u64,
+}
+
+impl Default for MonitoringConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            default_interval_seconds: 60,
+            max_concurrent_checks: 10,
+            rpc_timeout_seconds: 30,
+            retry_attempts: 3,
+            max_events_per_account: 1000,
+            global_cooldown_seconds: 60,
+        }
+    }
 }
 
 #[cfg(test)]

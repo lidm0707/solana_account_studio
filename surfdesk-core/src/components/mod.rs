@@ -34,6 +34,7 @@ pub mod input;
 pub mod loading;
 pub mod main_content;
 pub mod modal;
+pub mod monitoring;
 pub mod notification;
 pub mod program_manager;
 pub mod sidebar;
@@ -53,6 +54,7 @@ pub use app_shell::AppShell;
 pub use button::Button;
 pub use card::Card;
 pub use dashboard::Dashboard;
+pub use monitoring::MonitoringDashboard;
 pub use wallet_import::WalletImport;
 // pub use footer::Footer;  // Temporarily commented out
 pub use footer::Footer;
@@ -72,9 +74,7 @@ pub use transaction_builder::TransactionBuilder;
 
 // Re-export services for integration
 pub use crate::services::{
-    surfpool_service::{
-        use_surfpool_service, DeploymentRequest, DeploymentResult, SurfPoolService,
-    },
+    surfpool::{ServiceStatus, SurfPoolConfig, SurfPoolService},
     ServiceManager,
 };
 

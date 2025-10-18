@@ -6,6 +6,9 @@ description = "Desktop application for SurfDesk - Multi-platform Solana Account 
 license = "MIT"
 repository = "https://github.com/your-org/surfdesk"
 
+[package.metadata.dioxus]
+assets = ["assets"]
+
 [[bin]]
 name = "surfdesk-desktop"
 path = "src/main.rs"
@@ -57,6 +60,12 @@ hex = "0.4"
 
 # Base58 encoding for Solana keys
 bs58 = "0.5"
+
+# Desktop notifications
+notify-rust = "4.10"
+
+# Async trait support
+async-trait = "0.1"
 
 # Web dependencies for enhanced modal functionality
 gloo-timers = "0.3"
