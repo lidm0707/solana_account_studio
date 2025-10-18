@@ -46,6 +46,18 @@ pub struct SurfPoolController {
 unsafe impl Send for SurfPoolController {}
 unsafe impl Sync for SurfPoolController {}
 
+impl std::fmt::Debug for SurfPoolController {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SurfPoolController")
+            .field("platform", &self.platform)
+            .field("process", &"<Arc<Mutex<Option<Child>>>")
+            .field("config", &"<Arc<RwLock<SurfPoolConfig>>")
+            .field("status", &"<Arc<RwLock<ControllerStatus>>")
+            .field("start_time", &"<Arc<RwLock<Option<Instant>>>")
+            .finish()
+    }
+}
+
 /// Configuration for SurfPool controller
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SurfPoolConfig {

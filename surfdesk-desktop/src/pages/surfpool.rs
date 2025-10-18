@@ -432,9 +432,8 @@ fn ConfigModal(
                         Input {
                             value: rpc_port.read().clone(),
                             on_input: move |e: Event<FormData>| {
-                                if let Some(value) = e.value() {
-                                    rpc_port.set(value);
-                                }
+                                let value = e.value();
+                                rpc_port.set(value);
                             },
                             placeholder: "8999",
                             input_type: surfdesk_core::components::InputType::Number,
@@ -446,9 +445,8 @@ fn ConfigModal(
                         Input {
                             value: ws_port.read().clone(),
                             on_input: move |e: Event<FormData>| {
-                                if let Some(value) = e.value() {
-                                    ws_port.set(value);
-                                }
+                                let value = e.value();
+                                ws_port.set(value);
                             },
                             placeholder: "8900",
                             input_type: surfdesk_core::components::InputType::Number,
@@ -460,9 +458,8 @@ fn ConfigModal(
                         Input {
                             value: ledger_path.read().clone(),
                             on_input: move |e: Event<FormData>| {
-                                if let Some(value) = e.value() {
-                                    ledger_path.set(value);
-                                }
+                                let value = e.value();
+                                ledger_path.set(value);
                             },
                             placeholder: "/tmp/surfpool-ledger",
                         }
@@ -473,9 +470,8 @@ fn ConfigModal(
                         Input {
                             value: accounts_path.read().clone(),
                             on_input: move |e: Event<FormData>| {
-                                if let Some(value) = e.value() {
-                                    accounts_path.set(value);
-                                }
+                                let value = e.value();
+                                accounts_path.set(value);
                             },
                             placeholder: "/tmp/surfpool-accounts",
                         }
@@ -486,10 +482,8 @@ fn ConfigModal(
                             r#type: "checkbox",
                             id: "auto-start",
                             checked: auto_start(),
-                            oninput: move |e| {
-                                if let Some(checked) = e.value().as_bool() {
-                                    auto_start.set(checked);
-                                }
+                            onchange: move |e| {
+                                auto_start.set(e.checked());
                             }
                         }
                         label { r#for: "auto-start", "Auto Start" }
@@ -500,10 +494,8 @@ fn ConfigModal(
                             r#type: "checkbox",
                             id: "enable-mcp",
                             checked: enable_mcp(),
-                            oninput: move |e| {
-                                if let Some(checked) = e.value().as_bool() {
-                                    enable_mcp.set(checked);
-                                }
+                            onchange: move |e| {
+                                enable_mcp.set(e.checked());
                             }
                         }
                         label { r#for: "enable-mcp", "Enable MCP" }
@@ -514,9 +506,8 @@ fn ConfigModal(
                         Input {
                             value: fork_url.read().clone(),
                             on_input: move |e: Event<FormData>| {
-                                if let Some(value) = e.value() {
-                                    fork_url.set(value);
-                                }
+                                let value = e.value();
+                                fork_url.set(value);
                             },
                             placeholder: "https://api.mainnet-beta.solana.com",
                         }
@@ -527,9 +518,8 @@ fn ConfigModal(
                         Input {
                             value: fork_slot.read().clone(),
                             on_input: move |e: Event<FormData>| {
-                                if let Some(value) = e.value() {
-                                    fork_slot.set(value);
-                                }
+                                let value = e.value();
+                                fork_slot.set(value);
                             },
                             placeholder: "0",
                             input_type: surfdesk_core::components::InputType::Number,
@@ -553,7 +543,7 @@ fn ConfigModal(
                                 auto_start: auto_start(),
                                 resource_limits: surfdesk_core::surfpool::ResourceLimits {
                                     max_memory_mb: 4096,
-                                    max_cpu_cores: 4,
+                                    max_cpu_percent: 80,
                                     max_disk_gb: 100,
                                 },
                                 fork_url: if fork_url.read().is_empty() { None } else { Some(fork_url.read().clone()) },
@@ -563,7 +553,7 @@ fn ConfigModal(
                                 preset_accounts: vec![],
                             };
                             on_save.call(new_config);
-                            on_close.call(().into());
+                            // Modal will close via the close button
                         },
                         "Save Configuration"
                     }

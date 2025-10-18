@@ -17,17 +17,17 @@ use surfdesk_core::solana_rpc::{Keypair, Pubkey, SolanaRpcClient};
 /// Accounts page component
 #[component]
 pub fn AccountsPage() -> Element {
-    let accounts = use_signal(Vec::<Account>::new);
-    let show_create_modal = use_signal(|| false);
-    let show_import_modal = use_signal(|| false);
-    let loading = use_signal(|| false);
-    let error_message = use_signal(|| Option::<String>::None);
+    let mut accounts = use_signal(Vec::<Account>::new);
+    let mut show_create_modal = use_signal(|| false);
+    let mut show_import_modal = use_signal(|| false);
+    let mut loading = use_signal(|| false);
+    let mut error_message = use_signal(|| Option::<String>::None);
 
     // Account manager for real wallet operations
-    let account_manager = use_signal(|| AccountManager::new());
+    let mut account_manager = use_signal(|| AccountManager::new());
 
     // Solana RPC client for real transactions
-    let rpc_client = use_signal(|| {
+    let mut rpc_client = use_signal(|| {
         SolanaRpcClient::new_with_url(
             "http://localhost:8999", // SurfPool default port
             surfdesk_core::solana_rpc::RpcCommitment::Confirmed,
@@ -51,13 +51,12 @@ pub fn AccountsPage() -> Element {
                 .get_all_accounts()
                 .into_iter()
                 .cloned()
-                .collect();
+                .collect::<Vec<_>>();
             let mut accounts_with_balances = existing_accounts;
 
             // Fetch real balances from SurfPool RPC
             for account in &mut accounts_with_balances {
-                if let Ok(balance) = rpc.read().get_balance(&account.pubkey.to_string()).await {
-                    let balance: u64 = balance;
+                if let Ok(balance) = rpc.read().get_balance(&account.pubkey).await {
                     account.lamports = balance;
                 }
             }
@@ -131,8 +130,11 @@ pub fn AccountsPage() -> Element {
         let mut show_modal = show_create_modal;
 
         spawn(async move {
-            match Account::new(label.clone()) {
-                Ok(account) => {
+            match Account::new(
+                label.clone(),
+                surfdesk_core::solana_rpc::SolanaNetwork::Devnet,
+            ) {
+                Ok((account, _keypair)) => {
                     if let Err(e) = account_mgr.add_account(account.clone()) {
                         error_signal.set(Some(format!("Failed to save account: {}", e)));
                     } else {
@@ -258,7 +260,11 @@ fn AccountCard(account: Account, index: usize, on_airdrop: EventHandler<MouseEve
         )
     });
 
-    let account_label = account.label.as_str();
+    let account_label = account
+        .metadata
+        .label
+        .as_deref()
+        .unwrap_or("Unnamed Account");
 
     rsx! {
         div {
@@ -271,7 +277,7 @@ fn AccountCard(account: Account, index: usize, on_airdrop: EventHandler<MouseEve
                 }
                 div { class: "account-balance",
                     span { class: "balance-amount",
-                        {format!("{:.3} SOL", account.balance as f64 / 1_000_000_000.0)}
+                        {format!("{:.3} SOL", account.lamports as f64 / 1_000_000_000.0)}
                     }
                 }
             }
@@ -446,9 +452,11 @@ async fn import_wallet_file(
                             .collect::<Vec<String>>()
                             .join(""),
                         format!("Imported-{}", file_path),
-                    );
-                    account_manager.add_account(account.clone())?;
-                    accounts.push(account);
+                        surfdesk_core::solana_rpc::SolanaNetwork::Devnet,
+                    )?;
+                    if account_manager.add_account(account.clone()).is_ok() {
+                        accounts.push(account);
+                    }
                 }
             }
         }

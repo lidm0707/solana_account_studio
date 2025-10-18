@@ -12,6 +12,7 @@ pub mod surfpool;
 // pub mod transactions;
 
 // Re-export page components
+pub use accounts::AccountsPage;
 // pub use analytics::AnalyticsPage;
 pub use dashboard::DashboardPage;
 // pub use settings::SettingsPage;
