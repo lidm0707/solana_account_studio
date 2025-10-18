@@ -27,6 +27,7 @@ pub mod state;
 pub mod styles;
 pub mod surfpool;
 pub mod types;
+pub mod wallet;
 
 // Re-export commonly used items
 pub use app::SurfDeskApp;

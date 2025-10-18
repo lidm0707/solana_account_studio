@@ -43,6 +43,7 @@ pub mod surfpool_control;
 pub mod status_bar;
 pub mod table;
 pub mod transaction_builder;
+pub mod wallet_import;
 
 use dioxus::prelude::*;
 
@@ -52,6 +53,7 @@ pub use app_shell::AppShell;
 pub use button::Button;
 pub use card::Card;
 pub use dashboard::Dashboard;
+pub use wallet_import::WalletImport;
 // pub use footer::Footer;  // Temporarily commented out
 pub use footer::Footer;
 // pub use form::Form; // Temporarily commented out

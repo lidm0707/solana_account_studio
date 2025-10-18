@@ -239,7 +239,7 @@ impl Account {
 }
 
 /// Manager for handling multiple accounts
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AccountManager {
     /// Map of accounts by public key
     accounts: HashMap<String, Account>,
