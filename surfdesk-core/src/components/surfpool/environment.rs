@@ -3,9 +3,9 @@
 //! This module provides cross-platform environment switching and configuration
 //! for different Solana development environments (local devnet, mainnet fork, custom).
 
+use crate::components::surfpool::surfpool_controller::{PresetAccount, SurfPoolConfig};
 use crate::error::SurfDeskError;
 use crate::platform::Platform;
-use crate::surfpool::{PresetAccount, SurfPoolConfig};
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

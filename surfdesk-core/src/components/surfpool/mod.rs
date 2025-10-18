@@ -5,9 +5,7 @@
 
 pub mod control_panel;
 pub mod deployment_wizard;
+pub mod environment;
 pub mod process_monitor;
-
-// Re-export commonly used components
-pub use control_panel::SurfPoolControlPanel;
-pub use deployment_wizard::ProgramDeploymentWizard;
-pub use process_monitor::ProcessStatusMonitor;
+pub mod surfpool_control;
+pub mod surfpool_controller;

@@ -11,7 +11,7 @@
 
 use crate::error::{Result, SurfDeskError};
 use crate::solana_rpc::accounts::{Account, AccountMetadata, AccountType};
-use crate::solana_rpc::SolanaNetwork;
+use crate::solana_rpc::pubkey_key::SolanaNetwork;
 use bs58;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -284,7 +284,7 @@ impl WalletImportService {
                 .map_err(|_| SurfDeskError::Validation("Invalid secret key length".to_string()))?;
 
             // Use internal pubkey generation
-            let internal_pubkey = crate::solana_rpc::Pubkey::from_bytes(&key_bytes);
+            let internal_pubkey = crate::solana_rpc::pubkey_key::Pubkey::from_bytes(&key_bytes);
             internal_pubkey.to_string()
         } else {
             return Err(SurfDeskError::Validation(

@@ -16,10 +16,16 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::str::FromStr;
 
 // Re-export types from parent solana_rpc module
 pub use crate::error::{Result, SurfDeskError};
-pub use crate::solana_rpc::{Keypair, Pubkey, Signature, Signer, SolanaNetwork};
+
+// Import types from pubkey_key module
+use super::pubkey_key::SolanaNetwork;
+
+// Import local Solana-compatible types
+use super::pubkey_key::{AccountInfo, Keypair, Pubkey};
 
 /// Represents a Solana account with comprehensive information
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -187,7 +193,8 @@ impl Account {
 
     /// Get the public key as a Pubkey object
     pub fn get_pubkey(&self) -> Result<Pubkey> {
-        Ok(Pubkey::from_string(&self.pubkey))
+        Pubkey::from_str(&self.pubkey)
+            .map_err(|e| SurfDeskError::validation(format!("Invalid pubkey: {}", e)))
     }
 
     /// Update account balance
@@ -197,9 +204,9 @@ impl Account {
     }
 
     /// Update account information from RPC response
-    pub fn update_from_rpc(&mut self, account_info: &crate::solana_rpc::AccountInfo) {
+    pub fn update_from_rpc(&mut self, account_info: &AccountInfo) {
         self.lamports = account_info.lamports;
-        self.data = account_info.data.clone().into();
+        self.data = account_info.data.as_bytes().to_vec();
         self.owner = account_info.owner.clone();
         self.executable = account_info.executable;
         self.rent_epoch = account_info.rent_epoch;

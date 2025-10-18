@@ -1,7 +1,7 @@
 //! Transaction Builder Module
 //! Provides transaction creation and signing for MVP
 
-use crate::solana_rpc::{Keypair, Pubkey};
+use crate::solana_rpc::pubkey_key::{Keypair, Pubkey};
 use serde::{Deserialize, Serialize};
 
 /// Transaction instruction for Solana operations

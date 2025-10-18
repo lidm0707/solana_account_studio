@@ -2,7 +2,8 @@
 //!
 //! This module provides comprehensive state management for the SurfDesk application.
 //! It uses Dioxus signals for reactive state management across all platforms and
-//! provides a centralized store for application data.
+//! provides a centralized store for application data without Arc/RwLock for
+//! single-threaded Dioxus compatibility.
 
 use crate::{
     error::Result,
@@ -10,7 +11,6 @@ use crate::{
     types::*,
 };
 use dioxus::prelude::*;
-use std::sync::Arc;
 
 /// UI state for components
 #[derive(Debug, Clone)]
@@ -25,79 +25,376 @@ pub struct UIState {
 /// Main application state structure
 ///
 /// This structure holds all the application state that needs to be shared
-/// across components and platforms. It uses Dioxus signals for reactive updates.
-#[derive(Debug, Clone)]
+/// across components and platforms. It uses Dioxus signals for reactive updates
+/// without Arc/RwLock for single-threaded compatibility.
+#[derive(Debug)]
 pub struct AppState {
     /// Current projects
-    pub projects: Signal<Vec<Project>>,
+    pub projects: Vec<Project>,
     /// Active project ID
-    pub active_project_id: Signal<Option<ProjectId>>,
+    pub active_project_id: Option<ProjectId>,
     /// Environments for the active project
-    pub environments: Signal<Vec<Environment>>,
+    pub environments: Vec<Environment>,
     /// Active environment ID
-    pub active_environment_id: Signal<Option<EnvironmentId>>,
+    pub active_environment_id: Option<EnvironmentId>,
     /// Accounts in the active environment
-    pub accounts: Signal<Vec<Account>>,
+    pub accounts: Vec<Account>,
     /// Transactions in the active environment
-    pub transactions: Signal<Vec<Transaction>>,
-    /// Monitoring service instance
-    pub monitoring_service: Signal<Option<Arc<MonitoringService>>>,
+    pub transactions: Vec<Transaction>,
+    /// Monitoring service instance (stored directly, not in Arc)
+    pub monitoring_service: Option<MonitoringService>,
     /// Monitoring statistics
-    pub monitoring_stats: Signal<MonitoringStats>,
-    /// SurfPool service instance
-    pub surfpool_service: Signal<Option<Arc<SurfPoolService>>>,
+    pub monitoring_stats: MonitoringStats,
+    /// SurfPool service instance (stored directly, not in Arc)
+    pub surfpool_service: Option<SurfPoolService>,
     /// Connection status
-    pub connection_status: Signal<ConnectionStatus>,
+    pub connection_status: ConnectionStatus,
     /// Current network
-    pub current_network: Signal<SolanaNetwork>,
+    pub current_network: SolanaNetwork,
     /// Loading states
-    pub loading: Signal<LoadingState>,
+    pub loading: LoadingState,
     /// Error state
-    pub error: Signal<Option<crate::error::SurfDeskError>>,
+    pub error: Option<crate::error::SurfDeskError>,
 }
 
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            projects: Signal::new(Vec::new()),
-            active_project_id: Signal::new(None),
-            environments: Signal::new(Vec::new()),
-            active_environment_id: Signal::new(None),
-            accounts: Signal::new(Vec::new()),
-            transactions: Signal::new(Vec::new()),
-            monitoring_service: Signal::new(None),
-            monitoring_stats: Signal::new(MonitoringStats::default()),
-            surfpool_service: Signal::new(None),
-            connection_status: Signal::new(ConnectionStatus::Disconnected),
-            current_network: Signal::new(SolanaNetwork::Devnet),
-            loading: Signal::new(LoadingState::default()),
-            error: Signal::new(None),
+            projects: Vec::new(),
+            active_project_id: None,
+            environments: Vec::new(),
+            active_environment_id: None,
+            accounts: Vec::new(),
+            transactions: Vec::new(),
+            monitoring_service: None,
+            monitoring_stats: MonitoringStats::default(),
+            surfpool_service: None,
+            connection_status: ConnectionStatus::Disconnected,
+            current_network: SolanaNetwork::Mainnet,
+            loading: LoadingState::default(),
+            error: None,
         }
     }
 }
 
+impl AppState {
+    /// Create a new application state
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Initialize the application state with services
+    pub async fn initialize(&mut self) -> Result<()> {
+        log::info!("Initializing application state");
+
+        // Initialize monitoring service
+        let monitoring_service = MonitoringService::new().await?;
+        self.monitoring_service = Some(monitoring_service);
+
+        // Initialize SurfPool service
+        match SurfPoolService::new().await {
+            Ok(surfpool_service) => {
+                self.surfpool_service = Some(surfpool_service);
+                log::info!("SurfPool service initialized");
+            }
+            Err(e) => {
+                log::warn!("Failed to initialize SurfPool service: {}", e);
+                // Create fallback service
+                let fallback = SurfPoolService::new_fallback();
+                self.surfpool_service = Some(fallback);
+                log::info!("Using fallback SurfPool service");
+            }
+        }
+
+        // Set initial connection status
+        self.connection_status = ConnectionStatus::Disconnected;
+
+        log::info!("Application state initialized");
+        Ok(())
+    }
+
+    /// Get the monitoring service
+    pub fn monitoring_service(&self) -> Option<&MonitoringService> {
+        self.monitoring_service.as_ref()
+    }
+
+    /// Get mutable reference to monitoring service
+    pub fn monitoring_service_mut(&mut self) -> Option<&mut MonitoringService> {
+        self.monitoring_service.as_mut()
+    }
+
+    /// Get the SurfPool service
+    pub fn surfpool_service(&self) -> Option<&SurfPoolService> {
+        self.surfpool_service.as_ref()
+    }
+
+    /// Get mutable reference to SurfPool service
+    pub fn surfpool_service_mut(&mut self) -> Option<&mut SurfPoolService> {
+        self.surfpool_service.as_mut()
+    }
+
+    /// Update monitoring statistics
+    pub fn update_monitoring_stats(&mut self, stats: MonitoringStats) {
+        self.monitoring_stats = stats;
+    }
+
+    /// Update connection status
+    pub fn update_connection_status(&mut self, status: ConnectionStatus) {
+        self.connection_status = status;
+    }
+
+    /// Set the current network
+    pub fn set_network(&mut self, network: SolanaNetwork) {
+        self.current_network = network;
+    }
+
+    /// Add a project
+    pub fn add_project(&mut self, project: Project) {
+        self.projects.push(project);
+    }
+
+    /// Remove a project
+    pub fn remove_project(&mut self, project_id: &ProjectId) {
+        self.projects.retain(|p| p.id != *project_id);
+    }
+
+    /// Set the active project
+    pub fn set_active_project(&mut self, project_id: Option<ProjectId>) {
+        self.active_project_id = project_id;
+    }
+
+    /// Add an environment
+    pub fn add_environment(&mut self, environment: Environment) {
+        self.environments.push(environment);
+    }
+
+    /// Remove an environment
+    pub fn remove_environment(&mut self, environment_id: &EnvironmentId) {
+        self.environments.retain(|e| e.id != *environment_id);
+    }
+
+    /// Set the active environment
+    pub fn set_active_environment(&mut self, environment_id: Option<EnvironmentId>) {
+        self.active_environment_id = environment_id;
+    }
+
+    /// Add an account
+    pub fn add_account(&mut self, account: Account) {
+        self.accounts.push(account);
+    }
+
+    /// Remove an account
+    pub fn remove_account(&mut self, account_id: &AccountId) {
+        self.accounts.retain(|a| a.id != *account_id);
+    }
+
+    /// Update an account
+    pub fn update_account(&mut self, account_id: &AccountId, account: Account) {
+        if let Some(pos) = self.accounts.iter().position(|a| a.id == *account_id) {
+            self.accounts[pos] = account;
+        }
+    }
+
+    /// Add a transaction
+    pub fn add_transaction(&mut self, transaction: Transaction) {
+        self.transactions.push(transaction);
+    }
+
+    /// Set loading state
+    pub fn set_loading(&mut self, loading: LoadingState) {
+        self.loading = loading;
+    }
+
+    /// Set error state
+    pub fn set_error(&mut self, error: Option<crate::error::SurfDeskError>) {
+        self.error = error;
+    }
+
+    /// Clear error state
+    pub fn clear_error(&mut self) {
+        self.error = None;
+    }
+
+    /// Check if loading
+    pub fn is_loading(&self) -> bool {
+        self.loading.is_loading()
+    }
+
+    /// Get current error
+    pub fn get_error(&self) -> Option<&crate::error::SurfDeskError> {
+        self.error.as_ref()
+    }
+
+    /// Get active project
+    pub fn get_active_project(&self) -> Option<Project> {
+        self.active_project_id
+            .and_then(|id| self.projects.iter().find(|p| p.id == id))
+            .cloned()
+    }
+
+    /// Get active environment
+    pub fn get_active_environment(&self) -> Option<Environment> {
+        self.active_environment_id
+            .and_then(|id| self.environments.iter().find(|e| e.id == id))
+            .cloned()
+    }
+
+    /// Get accounts for active environment
+    pub fn get_active_accounts(&self) -> Vec<Account> {
+        let active_env_id = self.active_environment_id;
+        self.accounts
+            .iter()
+            .filter(|a| a.environment_id == active_env_id.unwrap_or_default())
+            .cloned()
+            .collect()
+    }
+
+    /// Get transactions for active environment
+    pub fn get_active_transactions(&self) -> Vec<Transaction> {
+        let active_env_id = self.active_environment_id;
+        self.transactions
+            .iter()
+            .filter(|t| t.environment_id == active_env_id.unwrap_or_default())
+            .cloned()
+            .collect()
+    }
+
+    /// Refresh data for active environment
+    pub async fn refresh_active_environment(&mut self) -> Result<()> {
+        self.set_loading(LoadingState::loading("Refreshing data..."));
+
+        // Clear any existing errors
+        self.clear_error();
+
+        // In a real implementation, this would fetch data from the backend
+        // For now, we'll just simulate a delay
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
+        self.set_loading(LoadingState::idle());
+        Ok(())
+    }
+
+    /// Search accounts by label or pubkey
+    pub fn search_accounts(&self, query: &str) -> Vec<Account> {
+        let query_lower = query.to_lowercase();
+
+        self.accounts
+            .iter()
+            .filter(|account| {
+                // Note: Account structure may need to be updated based on actual fields
+                // This is a placeholder that will need adjustment
+                account
+                    .pubkey
+                    .to_string()
+                    .to_lowercase()
+                    .contains(&query_lower)
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// Search transactions by signature or memo
+    pub fn search_transactions(&self, query: &str) -> Vec<Transaction> {
+        let query_lower = query.to_lowercase();
+
+        self.transactions
+            .iter()
+            .filter(|transaction| transaction.signature.to_lowercase().contains(&query_lower))
+            .cloned()
+            .collect()
+    }
+
+    /// Get statistics for the active environment
+    pub fn get_environment_stats(&self) -> EnvironmentStats {
+        let accounts = self.get_active_accounts();
+        let transactions = self.get_active_transactions();
+
+        let total_balance: f64 = accounts.iter().map(|a| a.balance as f64).sum();
+        let active_accounts = accounts.len();
+        let total_transactions = transactions.len();
+
+        EnvironmentStats {
+            total_balance,
+            active_accounts,
+            total_transactions,
+            last_updated: chrono::Utc::now(),
+        }
+    }
+
+    /// Backup current state
+    /// Backup state
+    pub fn backup_state(&self) -> StateBackup {
+        StateBackup {
+            projects: self.projects.clone(),
+            active_project_id: self.active_project_id,
+            environments: self.environments.clone(),
+            active_environment_id: self.active_environment_id,
+            accounts: self.accounts.clone(),
+            transactions: self.transactions.clone(),
+            current_network: self.current_network,
+            timestamp: chrono::Utc::now(),
+        }
+    }
+
+    /// Restore state
+    pub fn restore_state(&mut self, backup: StateBackup) {
+        self.projects = backup.projects;
+        self.active_project_id = backup.active_project_id;
+        self.environments = backup.environments;
+        self.active_environment_id = backup.active_environment_id;
+        self.accounts = backup.accounts;
+        self.transactions = backup.transactions;
+        self.current_network = backup.current_network;
+    }
+
+    /// Reset state
+    pub fn reset(&mut self) {
+        self.projects = Vec::new();
+        self.active_project_id = None;
+        self.environments = Vec::new();
+        self.active_environment_id = None;
+        self.accounts = Vec::new();
+        self.transactions = Vec::new();
+        self.monitoring_service = None;
+        self.monitoring_stats = MonitoringStats::default();
+        self.surfpool_service = None;
+        self.connection_status = ConnectionStatus::Disconnected;
+        self.current_network = SolanaNetwork::Mainnet;
+        self.loading = LoadingState::idle();
+        self.error = None;
+    }
+}
+
 /// Connection status enum
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum ConnectionStatus {
-    /// Disconnected
     #[default]
     Disconnected,
-    /// Connecting
     Connecting,
-    /// Connected
     Connected,
-    /// Error
-    Error,
+    Reconnecting,
+    Failed,
 }
 
 impl ConnectionStatus {
-    /// Get display name for the connection status
-    pub fn display_name(&self) -> &'static str {
+    /// Check if connected
+    pub fn is_connected(&self) -> bool {
+        matches!(self, Self::Connected)
+    }
+
+    /// Check if connecting
+    pub fn is_connecting(&self) -> bool {
+        matches!(self, Self::Connecting | Self::Reconnecting)
+    }
+
+    /// Get display text
+    pub fn display_text(&self) -> &'static str {
         match self {
             Self::Disconnected => "Disconnected",
             Self::Connecting => "Connecting...",
             Self::Connected => "Connected",
-            Self::Error => "Error",
+            Self::Reconnecting => "Reconnecting...",
+            Self::Failed => "Connection Failed",
         }
     }
 
@@ -107,661 +404,92 @@ impl ConnectionStatus {
             Self::Disconnected => "status-disconnected",
             Self::Connecting => "status-connecting",
             Self::Connected => "status-connected",
-            Self::Error => "status-error",
+            Self::Reconnecting => "status-reconnecting",
+            Self::Failed => "status-failed",
         }
     }
 }
 
-/// Loading state tracking
+/// Loading state for async operations
 #[derive(Debug, Clone, Default)]
 pub struct LoadingState {
-    /// Whether projects are loading
-    pub projects: bool,
-    /// Whether environments are loading
-    pub environments: bool,
-    /// Whether accounts are loading
-    pub accounts: bool,
-    /// Whether transactions are loading
-    pub transactions: bool,
-    /// Whether a transaction is being sent
-    pub sending_transaction: bool,
-    /// Whether simulation is running
-    pub simulating: bool,
+    pub is_loading: bool,
+    pub message: Option<String>,
+    pub progress: Option<f32>,
 }
 
 impl LoadingState {
-    /// Check if anything is currently loading
-    pub fn is_loading(&self) -> bool {
-        self.projects
-            || self.environments
-            || self.accounts
-            || self.transactions
-            || self.sending_transaction
-            || self.simulating
-    }
-
-    /// Get the current loading message
-    pub fn loading_message(&self) -> Option<&'static str> {
-        if self.projects {
-            Some("Loading projects...")
-        } else if self.environments {
-            Some("Loading environments...")
-        } else if self.accounts {
-            Some("Loading accounts...")
-        } else if self.transactions {
-            Some("Loading transactions...")
-        } else if self.sending_transaction {
-            Some("Sending transaction...")
-        } else if self.simulating {
-            Some("Simulating transaction...")
-        } else {
-            None
-        }
-    }
-}
-
-/// Loading operation types
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LoadingOperation {
-    Projects,
-    Environments,
-    Accounts,
-    Transactions,
-    SendingTransaction,
-    Simulating,
-}
-
-impl AppState {
-    /// Create a new application state instance
-    pub fn new() -> Self {
+    /// Create idle state
+    pub fn idle() -> Self {
         Self {
-            projects: Signal::new(Vec::new()),
-            active_project_id: Signal::new(None),
-            environments: Signal::new(Vec::new()),
-            active_environment_id: Signal::new(None),
-            accounts: Signal::new(Vec::new()),
-            transactions: Signal::new(Vec::new()),
-            monitoring_service: Signal::new(None),
-            monitoring_stats: Signal::new(MonitoringStats::default()),
-            surfpool_service: Signal::new(None),
-            connection_status: Signal::new(ConnectionStatus::Disconnected),
-            current_network: Signal::new(SolanaNetwork::Devnet),
-            loading: Signal::new(LoadingState::default()),
-            error: Signal::new(None),
+            is_loading: false,
+            message: None,
+            progress: None,
         }
     }
 
-    /// Initialize the application state
-    pub async fn initialize(&mut self) -> Result<()> {
-        // Initialize default state
-        self.initialize_defaults().await?;
-        Ok(())
-    }
-
-    /// Initialize default application state
-    async fn initialize_defaults(&mut self) -> Result<()> {
-        // Set initial connection status
-        self.connection_status.set(ConnectionStatus::Disconnected);
-
-        // Set default network
-        self.current_network.set(SolanaNetwork::Devnet);
-
-        log::info!("Application state initialized with defaults");
-        Ok(())
-    }
-
-    /// Get the current connection status display name
-    pub fn connection_status(&self) -> String {
-        self.connection_status.read().display_name().to_string()
-    }
-
-    /// Get the current network display name
-    pub fn current_network(&self) -> String {
-        self.current_network.read().display_name().to_string()
-    }
-
-    /// Get the active project
-    pub fn active_project(&self) -> Option<Project> {
-        let active_id = self.active_project_id.read();
-        let projects = self.projects.read();
-        active_id.and_then(|id| projects.iter().find(|p| p.id == id).cloned())
-    }
-
-    /// Get the active environment
-    pub fn active_environment(&self) -> Option<Environment> {
-        let active_id = self.active_environment_id.read();
-        let environments = self.environments.read();
-        active_id.and_then(|id| environments.iter().find(|e| e.id == id).cloned())
-    }
-
-    /// Set the active project
-    pub fn set_active_project(&mut self, project_id: Option<ProjectId>) {
-        self.active_project_id.set(project_id);
-        log::debug!("Active project changed to: {:?}", project_id);
-
-        // Clear active environment when changing projects
-        self.active_environment_id.set(None);
-    }
-
-    /// Set the active environment
-    pub fn set_active_environment(&mut self, environment_id: Option<EnvironmentId>) {
-        self.active_environment_id.set(environment_id);
-        log::debug!("Active environment changed to: {:?}", environment_id);
-    }
-
-    /// Add a project
-    pub fn add_project(&mut self, project: Project) {
-        let mut projects = self.projects.read().clone();
-        projects.push(project);
-        self.projects.set(projects);
-        log::info!("Added new project");
-    }
-
-    /// Update an existing project
-    pub fn update_project(&mut self, project_id: ProjectId, updated_project: Project) {
-        let mut projects = self.projects.read().clone();
-        if let Some(project) = projects.iter_mut().find(|p| p.id == project_id) {
-            *project = updated_project;
-            self.projects.set(projects);
-            log::info!("Updated project: {:?}", project_id);
-        }
-    }
-
-    /// Remove a project
-    pub fn remove_project(&mut self, project_id: ProjectId) {
-        let mut projects = self.projects.read().clone();
-        projects.retain(|p| p.id != project_id);
-        self.projects.set(projects);
-
-        // Clear active project if it was removed
-        if *self.active_project_id.read() == Some(project_id) {
-            self.active_project_id.set(None);
-        }
-
-        log::info!("Removed project: {:?}", project_id);
-    }
-
-    /// Add an environment
-    pub fn add_environment(&mut self, environment: Environment) {
-        let mut environments = self.environments.read().clone();
-        environments.push(environment);
-        self.environments.set(environments);
-        log::info!("Added new environment");
-    }
-
-    /// Update an existing environment
-    pub fn update_environment(
-        &mut self,
-        environment_id: EnvironmentId,
-        updated_environment: Environment,
-    ) {
-        let mut environments = self.environments.read().clone();
-        if let Some(environment) = environments.iter_mut().find(|e| e.id == environment_id) {
-            *environment = updated_environment;
-            self.environments.set(environments);
-            log::info!("Updated environment: {:?}", environment_id);
-        }
-    }
-
-    /// Remove an environment
-    pub fn remove_environment(&mut self, environment_id: EnvironmentId) {
-        let mut environments = self.environments.read().clone();
-        environments.retain(|e| e.id != environment_id);
-        self.environments.set(environments);
-
-        // Clear active environment if it was removed
-        if *self.active_environment_id.read() == Some(environment_id) {
-            self.active_environment_id.set(None);
-        }
-
-        log::info!("Removed environment: {:?}", environment_id);
-    }
-
-    /// Add an account
-    pub fn add_account(&mut self, account: Account) {
-        let mut accounts = self.accounts.read().clone();
-        accounts.push(account);
-        self.accounts.set(accounts);
-        log::info!("Added new account");
-    }
-
-    /// Update an existing account
-    pub fn update_account(&mut self, account_id: AccountId, updated_account: Account) {
-        let mut accounts = self.accounts.read().clone();
-        if let Some(account) = accounts.iter_mut().find(|a| a.id == account_id) {
-            *account = updated_account;
-            self.accounts.set(accounts);
-            log::info!("Updated account: {:?}", account_id);
-        }
-    }
-
-    /// Remove an account
-    pub fn remove_account(&mut self, account_id: AccountId) {
-        let mut accounts = self.accounts.read().clone();
-        accounts.retain(|a| a.id != account_id);
-        self.accounts.set(accounts);
-        log::info!("Removed account: {:?}", account_id);
-    }
-
-    /// Add a transaction
-    pub fn add_transaction(&mut self, transaction: Transaction) {
-        let mut transactions = self.transactions.read().clone();
-        transactions.push(transaction);
-        self.transactions.set(transactions);
-        log::info!("Added new transaction");
-    }
-
-    /// Update an existing transaction
-    pub fn update_transaction(
-        &mut self,
-        transaction_id: TransactionId,
-        updated_transaction: Transaction,
-    ) {
-        let mut transactions = self.transactions.read().clone();
-        if let Some(transaction) = transactions.iter_mut().find(|t| t.id == transaction_id) {
-            *transaction = updated_transaction;
-            self.transactions.set(transactions);
-            log::info!("Updated transaction: {:?}", transaction_id);
-        }
-    }
-
-    /// Set loading state for a specific operation
-    pub fn set_loading(&mut self, operation: LoadingOperation, loading: bool) {
-        let mut loading_state = self.loading.read().clone();
-        match operation {
-            LoadingOperation::Projects => loading_state.projects = loading,
-            LoadingOperation::Environments => loading_state.environments = loading,
-            LoadingOperation::Accounts => loading_state.accounts = loading,
-            LoadingOperation::Transactions => loading_state.transactions = loading,
-            LoadingOperation::SendingTransaction => loading_state.sending_transaction = loading,
-            LoadingOperation::Simulating => loading_state.simulating = loading,
-        }
-        self.loading.set(loading_state);
-
-        if loading {
-            log::debug!("Started loading: {:?}", operation);
-        } else {
-            log::debug!("Finished loading: {:?}", operation);
-        }
-    }
-
-    /// Check if anything is loading
-    pub fn is_loading(&self) -> bool {
-        self.loading.read().is_loading()
-    }
-
-    /// Get the current loading message
-    pub fn loading_message(&self) -> Option<String> {
-        self.loading.read().loading_message().map(|s| s.to_string())
-    }
-
-    /// Set error state
-    pub fn set_error(&mut self, error: Option<crate::error::SurfDeskError>) {
-        self.error.set(error.clone());
-        if let Some(ref err) = error {
-            log::error!("Application error: {}", err);
-        }
-    }
-
-    /// Clear error state
-    pub fn clear_error(&mut self) {
-        self.error.set(None);
-    }
-
-    /// Set connection status
-    pub fn set_connection_status(&mut self, status: ConnectionStatus) {
-        self.connection_status.set(status);
-        log::info!("Connection status changed to: {}", status.display_name());
-    }
-
-    /// Set current network
-    pub fn set_current_network(&mut self, network: SolanaNetwork) {
-        self.current_network.set(network);
-        log::info!("Current network changed to: {}", network.display_name());
-    }
-
-    /// Initialize Solana service
-    pub async fn initialize_solana_service(&mut self, _rpc_url: String) -> Result<()> {
-        #[cfg(feature = "solana")]
-        {
-            use crate::services::surfpool_service::SurfPoolService;
-
-            match SurfPoolService::new().await {
-                Ok(service) => {
-                    self.surfpool_service.set(Some(Arc::new(service)));
-                    self.set_connection_status(ConnectionStatus::Connected);
-                    log::info!("SurfPool service initialized successfully");
-                    Ok(())
-                }
-                Err(e) => {
-                    self.set_connection_status(ConnectionStatus::Error);
-                    self.set_error(Some(e.clone()));
-                    Err(e)
-                }
-            }
-        }
-
-        #[cfg(not(feature = "solana"))]
-        {
-            let error = crate::error::SurfDeskError::unsupported("Solana support not enabled");
-            self.set_error(Some(error.clone()));
-            Err(error)
-        }
-    }
-
-    /// Get the SurfPool service
-    pub fn surfpool_service(&self) -> Option<Arc<crate::services::surfpool::SurfPoolService>> {
-        self.surfpool_service.read().clone()
-    }
-
-    /// Refresh the active environment
-    pub async fn refresh_active_environment(&mut self) -> Result<()> {
-        let _active_environment = match self.active_environment() {
-            Some(env) => env,
-            None => return Ok(()),
-        };
-
-        // Set loading state
-        self.set_loading(LoadingOperation::Accounts, true);
-
-        // TODO: Fix get_accounts integration
-        // Fetch accounts for the active environment
-        // if let Some(ref service) = *self.surfpool_service.read() {
-        //     match service.get_accounts(&active_environment).await {
-        //         Ok(accounts) => {
-        //             // Clear existing accounts and add new ones
-        //             // This is a simplified approach - in reality you'd want to merge/update
-        //             self.accounts.set(accounts);
-        //             log::info!("Refreshed {} accounts", self.accounts.read().len());
-        //         }
-        //         Err(e) => {
-        //             log::error!("Failed to refresh accounts: {}", e);
-        //             self.error.set(Some(crate::error::SurfDeskError::Network(
-        //                 format!("Failed to refresh accounts: {}", e),
-        //             )));
-        //         }
-        //     }
-        // }
-
-        // Mock accounts for now
-        self.accounts.set(vec![]);
-        log::info!("Mock: Refreshed accounts (empty list)");
-        // }
-
-        // Clear loading state
-        self.set_loading(LoadingOperation::Accounts, false);
-        Ok(())
-    }
-
-    /// Initialize monitoring service
-    pub async fn initialize_monitoring_service(&mut self) -> Result<()> {
-        match MonitoringService::new().await {
-            Ok(service) => {
-                self.monitoring_service.set(Some(Arc::new(service)));
-                log::info!("Monitoring service initialized successfully");
-                Ok(())
-            }
-            Err(e) => {
-                log::error!("Failed to initialize monitoring service: {}", e);
-                self.set_error(Some(e.clone()));
-                Err(e)
-            }
-        }
-    }
-
-    /// Get the monitoring service
-    pub fn monitoring_service(&self) -> Option<Arc<MonitoringService>> {
-        self.monitoring_service.read().clone()
-    }
-
-    /// Update monitoring statistics
-    pub fn update_monitoring_stats(&mut self, stats: MonitoringStats) {
-        self.monitoring_stats.set(stats);
-    }
-
-    /// Get current monitoring statistics
-    pub fn monitoring_stats(&self) -> MonitoringStats {
-        self.monitoring_stats.read().clone()
-    }
-
-    /// Start monitoring for an account
-    pub async fn start_account_monitoring(&mut self, account: &Account) -> Result<()> {
-        if let Some(ref service) = self.monitoring_service() {
-            service.add_account_monitoring(account).await?;
-            log::info!("Started monitoring for account {}", account.pubkey);
-            Ok(())
-        } else {
-            Err(crate::error::SurfDeskError::service(
-                "Monitoring service not initialized",
-            ))
-        }
-    }
-
-    /// Stop monitoring for an account
-    pub async fn stop_account_monitoring(&mut self, pubkey: &SolanaPubkey) -> Result<()> {
-        if let Some(ref service) = self.monitoring_service() {
-            service.remove_account_monitoring(pubkey).await?;
-            log::info!("Stopped monitoring for account {}", pubkey);
-            Ok(())
-        } else {
-            Err(crate::error::SurfDeskError::service(
-                "Monitoring service not initialized",
-            ))
-        }
-    }
-
-    /// Add alert to account monitoring
-    pub async fn add_account_alert(
-        &mut self,
-        pubkey: &SolanaPubkey,
-        alert: AlertConfig,
-    ) -> Result<()> {
-        if let Some(ref service) = self.monitoring_service() {
-            service.add_alert(pubkey, alert).await?;
-            log::info!("Added alert for account {}", pubkey);
-            Ok(())
-        } else {
-            Err(crate::error::SurfDeskError::service(
-                "Monitoring service not initialized",
-            ))
-        }
-    }
-
-    /// Refresh monitoring statistics
-    pub async fn refresh_monitoring_stats(&mut self) -> Result<()> {
-        if let Some(ref service) = self.monitoring_service() {
-            let stats = service.get_stats().await;
-            self.update_monitoring_stats(stats);
-            Ok(())
-        } else {
-            Err(crate::error::SurfDeskError::service(
-                "Monitoring service not initialized",
-            ))
-        }
-    }
-
-    /// Update monitoring configuration for an account
-    pub async fn update_account_monitoring(
-        &mut self,
-        pubkey: &SolanaPubkey,
-        monitoring: AccountMonitoring,
-    ) -> Result<()> {
-        if let Some(ref service) = self.monitoring_service() {
-            service
-                .update_account_monitoring(pubkey, monitoring)
-                .await?;
-            log::info!("Updated monitoring configuration for account {}", pubkey);
-            Ok(())
-        } else {
-            Err(crate::error::SurfDeskError::service(
-                "Monitoring service not initialized",
-            ))
-        }
-    }
-}
-
-impl Default for UIState {
-    fn default() -> Self {
+    /// Create loading state with message
+    pub fn loading(message: impl Into<String>) -> Self {
         Self {
-            theme: Theme::Auto,
-            sidebar: SidebarState {
-                expanded: true,
-                active_section: SidebarSection::Dashboard,
-                collapsed_sections: Vec::new(),
-            },
-            main_content: MainContentState {
-                current_view: ContentView::Dashboard,
-                view_state: serde_json::Value::Object(serde_json::Map::new()),
-            },
-            modal: None,
-            notifications: Vec::new(),
+            is_loading: true,
+            message: Some(message.into()),
+            progress: None,
         }
+    }
+
+    /// Create loading state with progress
+    pub fn loading_with_progress(message: impl Into<String>, progress: f32) -> Self {
+        Self {
+            is_loading: true,
+            message: Some(message.into()),
+            progress: Some(progress),
+        }
+    }
+
+    /// Check if loading
+    pub fn is_loading(&self) -> bool {
+        self.is_loading
+    }
+
+    /// Get loading message
+    pub fn message(&self) -> Option<&String> {
+        self.message.as_ref()
+    }
+
+    /// Get progress
+    pub fn progress(&self) -> Option<f32> {
+        self.progress
     }
 }
 
-impl UIState {
-    /// Add a notification
-    pub fn add_notification(&mut self, notification: Notification) {
-        self.notifications.push(notification);
-        // Keep only the last 100 notifications
-        if self.notifications.len() > 100 {
-            self.notifications.remove(0);
-        }
-    }
-
-    /// Remove a notification by ID
-    pub fn remove_notification(&mut self, notification_id: String) {
-        self.notifications.retain(|n| n.id != notification_id);
-    }
-
-    /// Clear all notifications
-    pub fn clear_notifications(&mut self) {
-        self.notifications.clear();
-    }
-
-    /// Set the current view
-    pub fn set_current_view(&mut self, view: ContentView) {
-        self.main_content.current_view = view;
-    }
-
-    /// Show a modal
-    pub fn show_modal(&mut self, modal: ModalState) {
-        self.modal = Some(modal);
-    }
-
-    /// Hide the modal
-    pub fn hide_modal(&mut self) {
-        self.modal = None;
-    }
-
-    /// Toggle sidebar visibility
-    pub fn toggle_sidebar(&mut self) {
-        self.sidebar.expanded = !self.sidebar.expanded;
-    }
-
-    /// Set the active sidebar section
-    pub fn set_active_section(&mut self, section: SidebarSection) {
-        self.sidebar.active_section = section;
-    }
-
-    /// Toggle a sidebar section
-    pub fn toggle_section(&mut self, section: SidebarSection) {
-        if self.sidebar.collapsed_sections.contains(&section) {
-            self.sidebar.collapsed_sections.retain(|s| s != &section);
-        } else {
-            self.sidebar.collapsed_sections.push(section);
-        }
-    }
+/// Environment statistics
+#[derive(Debug, Clone)]
+pub struct EnvironmentStats {
+    pub total_balance: f64,
+    pub active_accounts: usize,
+    pub total_transactions: usize,
+    pub last_updated: chrono::DateTime<chrono::Utc>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+/// State backup for persistence
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct StateBackup {
+    pub projects: Vec<Project>,
+    pub active_project_id: Option<ProjectId>,
+    pub environments: Vec<Environment>,
+    pub active_environment_id: Option<EnvironmentId>,
+    pub accounts: Vec<Account>,
+    pub transactions: Vec<Transaction>,
+    pub current_network: SolanaNetwork,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
 
-    #[tokio::test]
-    async fn test_app_state_creation() {
-        let state = AppState::new();
-        assert!(state.projects.read().is_empty());
-        assert!(state.active_project_id.read().is_none());
-        assert!(state.environments.read().is_empty());
-        assert!(state.active_environment_id.read().is_none());
-    }
+/// Hook to use application state in components
+pub fn use_app_state() -> Signal<AppState> {
+    use_context::<Signal<AppState>>()
+}
 
-    fn test_loading_state() {
-        let mut state = LoadingState::default();
-        assert!(!state.is_loading());
-
-        state.projects = true;
-        assert!(state.is_loading());
-        assert_eq!(state.loading_message(), Some("Loading projects..."));
-
-        state.projects = false;
-        assert!(!state.is_loading());
-        assert!(state.loading_message().is_none());
-    }
-
-    fn test_ui_state_default() {
-        let state = UIState::default();
-        assert_eq!(state.theme, Theme::Auto);
-        assert!(state.sidebar.expanded);
-        assert_eq!(state.sidebar.active_section, SidebarSection::Dashboard);
-        assert!(state.notifications.is_empty());
-        assert!(state.modal.is_none());
-    }
-
-    fn test_ui_state_notifications() {
-        let mut state = UIState::default();
-        let notification = Notification {
-            id: uuid::Uuid::new_v4().to_string(),
-            notification_type: NotificationType::Info,
-            title: "Test".to_string(),
-            message: "Test message".to_string(),
-            persistent: false,
-            created_at: chrono::Utc::now(),
-        };
-
-        state.add_notification(notification.clone());
-        assert_eq!(state.notifications.len(), 1);
-
-        state.remove_notification(notification.id);
-        assert!(state.notifications.is_empty());
-
-        state.clear_notifications();
-        assert!(state.notifications.is_empty());
-    }
-
-    fn test_ui_state_sidebar() {
-        let mut state = UIState::default();
-        assert!(state.sidebar.expanded);
-
-        state.toggle_sidebar();
-        assert!(!state.sidebar.expanded);
-
-        state.set_active_section(SidebarSection::Accounts);
-        assert_eq!(state.sidebar.active_section, SidebarSection::Accounts);
-
-        state.toggle_section(SidebarSection::Accounts);
-        assert!(state
-            .sidebar
-            .collapsed_sections
-            .contains(&SidebarSection::Accounts));
-    }
-
-    fn test_connection_status() {
-        let status = ConnectionStatus::Connected;
-        assert_eq!(status.display_name(), "Connected");
-        assert_eq!(status.css_class(), "status-connected");
-
-        let status = ConnectionStatus::Error;
-        assert_eq!(status.display_name(), "Error");
-        assert_eq!(status.css_class(), "status-error");
-    }
-
-    fn test_solana_network() {
-        let network = SolanaNetwork::Mainnet;
-        assert_eq!(network.display_name(), "Mainnet");
-
-        let network = SolanaNetwork::Devnet;
-        assert_eq!(network.display_name(), "Devnet");
-    }
+/// Hook to get mutable access to app state
+pub fn use_app_state_mut() -> Signal<AppState> {
+    use_context::<Signal<AppState>>()
 }

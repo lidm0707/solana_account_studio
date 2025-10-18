@@ -4,10 +4,9 @@
 //! SurfPool is a separate third-party tool that users must install independently.
 //! These components handle the integration and provide clear feedback about availability.
 
-use super::combine_classes;
+use crate::components::surfpool::surfpool_controller::{use_surfpool_controller, ControllerStatus};
 use crate::platform::Platform;
 use crate::state::AppState;
-use crate::surfpool::{use_surfpool_controller, use_surfpool_status, ControllerStatus};
 use dioxus::prelude::*;
 
 /// Props for the SurfPool control component
@@ -33,7 +32,7 @@ pub fn SurfPoolControl(props: SurfPoolControlProps) -> Element {
         let controller = controller.read().clone();
 
         spawn(async move {
-            let new_status = controller.get_status().await;
+            let new_status = controller.get_status().await; // await ทีเดียว
             status.set(new_status.clone());
 
             if let Some(handler) = &props.on_status_change {
@@ -50,7 +49,7 @@ pub fn SurfPoolControl(props: SurfPoolControlProps) -> Element {
             }
 
             div { class: "surfpool-status",
-                p { class: "status-text", "Status: {status}" }
+                p { class: "status-text", "Status: {status:?}" }
                 if let Some(error) = error_message.read().as_ref() {
                     p { class: "error-text", "{error}" }
                 }
@@ -70,7 +69,7 @@ pub fn SurfPoolControl(props: SurfPoolControlProps) -> Element {
 /// Component to show SurfPool availability status
 #[component]
 pub fn SurfPoolStatus() -> Element {
-    let is_available = use_surfpool_status();
+    let is_available = use_signal(|| false);
 
     rsx! {
         div { class: "surfpool-status-indicator",

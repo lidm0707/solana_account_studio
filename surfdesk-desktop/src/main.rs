@@ -14,7 +14,6 @@ use clap::Parser;
 use dioxus::prelude::*;
 use dioxus_desktop::launch;
 use log::{error, info, LevelFilter};
-use std::sync::Arc;
 
 mod keyboard;
 mod pages;
@@ -67,7 +66,7 @@ pub struct AppState {
     /// Current page/view
     pub current_view: Signal<DesktopView>,
     /// SurfPool manager
-    pub surfpool_manager: Arc<SurfPoolManager>,
+    pub surfpool_manager: SurfPoolManager,
     /// Application settings
     pub settings: Signal<AppSettings>,
     /// Notification system
@@ -218,13 +217,13 @@ fn Sidebar(
 fn SurfDeskDesktopApp() -> Element {
     // Args are not needed in the component for now
     let surfpool_config = SurfPoolConfig::default();
-    let surfpool_manager = Arc::new(SurfPoolManager::new(surfpool_config));
+    let surfpool_manager = SurfPoolManager::new(surfpool_config);
 
     // Initialize application state
     let mut app_state = AppState {
         theme: use_signal(|| Theme::Auto),
         current_view: use_signal(|| DesktopView::Dashboard),
-        surfpool_manager: surfpool_manager.clone(),
+        surfpool_manager,
         settings: use_signal(AppSettings::default),
         notifications: use_signal(Vec::<Notification>::new),
         core_state: use_signal(surfdesk_core::state::AppState::new),

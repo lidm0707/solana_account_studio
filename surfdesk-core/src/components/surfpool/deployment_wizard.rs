@@ -2,7 +2,7 @@
 //!
 //! Provides UI for deploying raw programs to SurfPool without code generation
 
-use crate::solana_rpc::Pubkey;
+use crate::solana_rpc::pubkey_key::Pubkey;
 use dioxus::prelude::*;
 
 // Hook for accessing SurfPool service (terminal strategy)

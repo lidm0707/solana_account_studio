@@ -4,7 +4,7 @@
 //! the entire SurfDesk application with navigation, layout, and platform
 //! specific adaptations.
 
-use crate::components::surfpool::SurfPoolControlPanel;
+use crate::components::surfpool::control_panel::SurfPoolControlPanel;
 use crate::components::{Dashboard, Footer, Header, Sidebar};
 use crate::platform::Platform;
 use crate::state::AppState;

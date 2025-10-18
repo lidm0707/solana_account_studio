@@ -7,11 +7,9 @@
 //! - Drag and drop support (future)
 
 use crate::error::{Result, SurfDeskError};
-use crate::solana_rpc::{
-    accounts::{Account, AccountManager},
-    SolanaNetwork,
-};
-use crate::wallet::{WalletFormat, WalletImportService};
+use crate::solana_rpc::accounts::{Account, AccountManager};
+use crate::solana_rpc::pubkey_key::SolanaNetwork;
+use crate::solana_rpc::wallet::WalletImportService;
 use dioxus::prelude::*;
 use std::path::PathBuf;
 

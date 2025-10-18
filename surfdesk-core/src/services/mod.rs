@@ -137,6 +137,11 @@ impl ServiceManager {
         self.monitoring_service.as_ref()
     }
 
+    /// Get mutable reference to monitoring service
+    pub fn monitoring_service_mut(&mut self) -> Option<&mut monitoring::MonitoringService> {
+        self.monitoring_service.as_mut()
+    }
+
     /// Get the Solana service
     #[cfg(feature = "solana")]
     pub fn solana_service(&self) -> Option<&solana::SolanaService> {
@@ -153,35 +158,39 @@ impl ServiceManager {
         self.surfpool_service.as_ref()
     }
 
+    /// Get mutable reference to SurfPool service
+    pub fn surfpool_service_mut(&mut self) -> Option<&mut surfpool::SurfPoolService> {
+        self.surfpool_service.as_mut()
+    }
+
     /// Get the WebSocket service
     pub fn websocket_service(&self) -> Option<&websocket::WebSocketService> {
         self.websocket_service.as_ref()
     }
 
+    /// Get mutable reference to WebSocket service
+    pub fn websocket_service_mut(&mut self) -> Option<&mut websocket::WebSocketService> {
+        self.websocket_service.as_mut()
+    }
+
     /// Shutdown all services
-    pub async fn shutdown(&self) -> Result<()> {
+    pub async fn shutdown(&mut self) -> Result<()> {
         log::info!("Shutting down services");
 
         // Shutdown services in reverse order
-        {
-            if let Some(ref service) = self.monitoring_service {
-                service.shutdown().await?;
-                log::info!("Monitoring service shutdown");
-            }
+        if let Some(ref mut service) = self.monitoring_service {
+            service.shutdown().await?;
+            log::info!("Monitoring service shutdown");
         }
 
-        {
-            if let Some(ref service) = self.surfpool_service {
-                service.shutdown().await?;
-                log::info!("SurfPool service (terminal strategy) shutdown");
-            }
+        if let Some(ref mut service) = self.surfpool_service {
+            service.shutdown().await?;
+            log::info!("SurfPool service (terminal strategy) shutdown");
         }
 
-        {
-            if let Some(ref service) = self.websocket_service {
-                service.shutdown().await?;
-                log::info!("WebSocket service shutdown");
-            }
+        if let Some(ref mut service) = self.websocket_service {
+            service.shutdown().await?;
+            log::info!("WebSocket service shutdown");
         }
 
         #[cfg(feature = "solana")]
@@ -194,7 +203,7 @@ impl ServiceManager {
 
         // #[cfg(feature = "database")]
         // {
-        //     if let Some(ref service) = self.database_service {
+        //     if let Some(ref mut service) = self.database_service {
         //         service.shutdown().await?;
         //         log::info!("Database service shutdown");
         //     }

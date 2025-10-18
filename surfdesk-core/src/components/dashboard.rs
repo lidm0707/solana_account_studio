@@ -57,7 +57,7 @@ pub fn Dashboard(props: DashboardProps) -> Element {
                     class: "stats-card",
                     div { class: "stats-content",
                         div { class: "stats-title", "Projects" }
-                        div { class: "stats-value", "{props.state.read().projects.read().len()}" }
+                        div { class: "stats-value", "{props.state.read().projects.len()}" }
                     }
                 }
 
@@ -69,7 +69,7 @@ pub fn Dashboard(props: DashboardProps) -> Element {
                     class: "stats-card",
                     div { class: "stats-content",
                         div { class: "stats-title", "Environments" }
-                        div { class: "stats-value", "{props.state.read().environments.read().len()}" }
+                        div { class: "stats-value", "{props.state.read().environments.len()}" }
                     }
                 }
 
@@ -81,7 +81,7 @@ pub fn Dashboard(props: DashboardProps) -> Element {
                     class: "stats-card",
                     div { class: "stats-content",
                         div { class: "stats-title", "Accounts" }
-                        div { class: "stats-value", "{props.state.read().accounts.read().len()}" }
+                        div { class: "stats-value", "{props.state.read().accounts.len()}" }
                     }
                 }
 
@@ -93,7 +93,7 @@ pub fn Dashboard(props: DashboardProps) -> Element {
                     class: "stats-card",
                     div { class: "stats-content",
                         div { class: "stats-title", "Transactions" }
-                        div { class: "stats-value", "{props.state.read().transactions.read().len()}" }
+                        div { class: "stats-value", "{props.state.read().transactions.len()}" }
                     }
                 }
             }

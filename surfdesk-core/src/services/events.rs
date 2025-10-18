@@ -2,21 +2,23 @@
 //!
 //! This module provides an event system for the SurfDesk application.
 //! It handles inter-component communication, event dispatching, and
-//! subscription management across all platforms.
+//! subscription management across all platforms using Dioxus signals
+//! for single-threaded compatibility.
 
 use crate::error::{Result, SurfDeskError};
 use serde_json::json;
 use std::collections::HashMap;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::broadcast;
 
 /// Event service for managing application-wide events
+#[derive(Debug, Clone)]
 pub struct EventService {
     /// Event channels for different event types
-    channels: RwLock<HashMap<String, broadcast::Sender<Event>>>,
+    channels: HashMap<String, broadcast::Sender<Event>>,
     /// Event subscriptions
-    subscriptions: RwLock<HashMap<String, Vec<SubscriptionInfo>>>,
+    subscriptions: HashMap<String, Vec<SubscriptionInfo>>,
     /// Event history
-    history: RwLock<Vec<EventHistoryEntry>>,
+    history: Vec<EventHistoryEntry>,
     /// Maximum history size
     max_history_size: usize,
 }
@@ -24,27 +26,14 @@ pub struct EventService {
 impl EventService {
     /// Create a new event service
     pub fn new() -> Result<Self> {
-        let service = Self {
-            channels: RwLock::new(HashMap::new()),
-            subscriptions: RwLock::new(HashMap::new()),
-            history: RwLock::new(Vec::new()),
+        let mut service = Self {
+            channels: HashMap::new(),
+            subscriptions: HashMap::new(),
+            history: Vec::new(),
             max_history_size: 1000,
         };
 
         // Initialize default channels
-        tokio::spawn({
-            let service = service.clone();
-            async move {
-                let _ = service.init_default_channels().await;
-            }
-        });
-
-        log::info!("Event service initialized");
-        Ok(service)
-    }
-
-    /// Initialize default event channels
-    async fn init_default_channels(&self) -> Result<()> {
         let default_channels = vec![
             "app.startup",
             "app.shutdown",
@@ -66,56 +55,53 @@ impl EventService {
         ];
 
         for channel_name in default_channels {
-            self.create_channel(channel_name).await?;
+            if let Err(e) = service.create_channel_sync(channel_name) {
+                log::warn!("Failed to create channel {}: {}", channel_name, e);
+            }
         }
 
-        log::debug!("Default event channels initialized");
+        log::info!("Event service initialized");
+        Ok(service)
+    }
+
+    /// Create a new event channel (synchronous)
+    fn create_channel_sync(&mut self, name: &str) -> Result<()> {
+        if !self.channels.contains_key(name) {
+            let (sender, _) = broadcast::channel(1000);
+            self.channels.insert(name.to_string(), sender);
+            log::debug!("Created event channel: {}", name);
+        }
         Ok(())
     }
 
     /// Create a new event channel
-    pub async fn create_channel(&self, name: &str) -> Result<()> {
-        let mut channels = self.channels.write().await;
-
-        if !channels.contains_key(name) {
-            let (sender, _) = broadcast::channel(1000);
-            channels.insert(name.to_string(), sender);
-            log::debug!("Created event channel: {}", name);
-        }
-
-        Ok(())
+    pub async fn create_channel(&mut self, name: &str) -> Result<()> {
+        self.create_channel_sync(name)
     }
 
     /// Emit an event
-    pub async fn emit(&self, event: Event) -> Result<()> {
+    pub async fn emit(&mut self, event: Event) -> Result<()> {
         let channel_name = &event.event_type;
 
         // Get or create channel
-        {
-            let mut channels = self.channels.write().await;
-            if !channels.contains_key(channel_name) {
-                let (sender, _) = broadcast::channel(1000);
-                channels.insert(channel_name.to_string(), sender);
-            }
+        if !self.channels.contains_key(channel_name) {
+            self.create_channel_sync(channel_name)?;
         }
 
         // Send event
-        {
-            let channels = self.channels.read().await;
-            if let Some(sender) = channels.get(channel_name) {
-                match sender.send(event.clone()) {
-                    Ok(count) => {
-                        log::debug!("Event {} sent to {} subscribers", channel_name, count);
-                    }
-                    Err(_) => {
-                        log::warn!("No active subscribers for event: {}", channel_name);
-                    }
+        if let Some(sender) = self.channels.get(channel_name) {
+            match sender.send(event.clone()) {
+                Ok(count) => {
+                    log::debug!("Event {} sent to {} subscribers", channel_name, count);
+                }
+                Err(_) => {
+                    log::warn!("No active subscribers for event: {}", channel_name);
                 }
             }
         }
 
         // Add to history
-        self.add_to_history(event.clone()).await;
+        self.add_to_history_sync(event.clone());
 
         // Log event
         log::debug!("Event emitted: {} - {}", channel_name, event.summary());
@@ -124,26 +110,21 @@ impl EventService {
     }
 
     /// Subscribe to an event type
-    pub async fn subscribe(&self, event_type: &str) -> Result<broadcast::Receiver<Event>> {
-        let channels = self.channels.read().await;
-
-        if let Some(sender) = channels.get(event_type) {
+    pub async fn subscribe(&mut self, event_type: &str) -> Result<broadcast::Receiver<Event>> {
+        if let Some(sender) = self.channels.get(event_type) {
             let receiver = sender.subscribe();
 
             // Track subscription
-            {
-                let mut subscriptions = self.subscriptions.write().await;
-                let subscription_info = SubscriptionInfo {
-                    id: uuid::Uuid::new_v4().to_string(),
-                    event_type: event_type.to_string(),
-                    created_at: chrono::Utc::now(),
-                };
+            let subscription_info = SubscriptionInfo {
+                id: uuid::Uuid::new_v4().to_string(),
+                event_type: event_type.to_string(),
+                created_at: chrono::Utc::now(),
+            };
 
-                subscriptions
-                    .entry(event_type.to_string())
-                    .or_insert_with(Vec::new)
-                    .push(subscription_info);
-            }
+            self.subscriptions
+                .entry(event_type.to_string())
+                .or_insert_with(Vec::new)
+                .push(subscription_info);
 
             log::debug!("New subscription to event type: {}", event_type);
             Ok(receiver)
@@ -157,7 +138,7 @@ impl EventService {
 
     /// Subscribe to multiple event types
     pub async fn subscribe_multiple(
-        &self,
+        &mut self,
         event_types: Vec<String>,
     ) -> Result<Vec<broadcast::Receiver<Event>>> {
         let mut receivers = Vec::new();
@@ -170,10 +151,8 @@ impl EventService {
     }
 
     /// Unsubscribe from an event type
-    pub async fn unsubscribe(&self, subscription_id: &str) -> Result<()> {
-        let mut subscriptions = self.subscriptions.write().await;
-
-        for (_event_type, subs) in subscriptions.iter_mut() {
+    pub async fn unsubscribe(&mut self, subscription_id: &str) -> Result<()> {
+        for (_event_type, subs) in self.subscriptions.iter_mut() {
             subs.retain(|sub| sub.id != subscription_id);
         }
 
@@ -181,35 +160,31 @@ impl EventService {
         Ok(())
     }
 
-    /// Add event to history
-    async fn add_to_history(&self, event: Event) {
-        let mut history = self.history.write().await;
-
-        history.push(EventHistoryEntry {
+    /// Add event to history (synchronous)
+    fn add_to_history_sync(&mut self, event: Event) {
+        self.history.push(EventHistoryEntry {
             id: uuid::Uuid::new_v4().to_string(),
             event,
             timestamp: chrono::Utc::now(),
         });
 
         // Trim history if needed
-        if history.len() > self.max_history_size {
-            history.remove(0);
+        if self.history.len() > self.max_history_size {
+            self.history.remove(0);
         }
     }
 
     /// Get event history
     pub async fn get_history(&self, limit: Option<usize>) -> Vec<EventHistoryEntry> {
-        let history = self.history.read().await;
-
         if let Some(limit) = limit {
-            let start = if history.len() > limit {
-                history.len() - limit
+            let start = if self.history.len() > limit {
+                self.history.len() - limit
             } else {
                 0
             };
-            history[start..].to_vec()
+            self.history[start..].to_vec()
         } else {
-            history.clone()
+            self.history.clone()
         }
     }
 
@@ -228,48 +203,29 @@ impl EventService {
 
     /// Get subscription information
     pub async fn get_subscriptions(&self) -> HashMap<String, Vec<SubscriptionInfo>> {
-        self.subscriptions.read().await.clone()
+        self.subscriptions.clone()
     }
 
     /// Get channel information
     pub async fn get_channels(&self) -> Vec<String> {
-        self.channels.read().await.keys().cloned().collect()
+        self.channels.keys().cloned().collect()
     }
 
     /// Clear event history
-    pub async fn clear_history(&self) -> Result<()> {
-        let mut history = self.history.write().await;
-        history.clear();
+    pub async fn clear_history(&mut self) -> Result<()> {
+        self.history.clear();
         log::info!("Event history cleared");
         Ok(())
     }
 
     /// Shutdown the event service
-    pub async fn shutdown(&self) -> Result<()> {
-        let mut channels = self.channels.write().await;
-        channels.clear();
-
-        let mut subscriptions = self.subscriptions.write().await;
-        subscriptions.clear();
-
-        let mut history = self.history.write().await;
-        history.clear();
+    pub async fn shutdown(&mut self) -> Result<()> {
+        self.channels.clear();
+        self.subscriptions.clear();
+        self.history.clear();
 
         log::info!("Event service shutdown");
         Ok(())
-    }
-}
-
-impl Clone for EventService {
-    fn clone(&self) -> Self {
-        // Note: This is a simplified clone
-        // In production, you'd want to share the underlying data
-        Self {
-            channels: RwLock::new(HashMap::new()),
-            subscriptions: RwLock::new(HashMap::new()),
-            history: RwLock::new(Vec::new()),
-            max_history_size: self.max_history_size,
-        }
     }
 }
 

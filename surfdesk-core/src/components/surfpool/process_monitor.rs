@@ -1,7 +1,8 @@
 //! Process Status Monitor Component
 
-use crate::surfpool::ProcessStatus;
 use dioxus::prelude::*;
+
+use crate::components::surfpool::surfpool_controller::ProcessStatus;
 
 /// Process Status Monitor Component
 #[component]

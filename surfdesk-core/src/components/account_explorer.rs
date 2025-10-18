@@ -3,8 +3,8 @@
 //! Simple account management for SurfDesk with clean architecture.
 
 use crate::services::surfpool::{ServiceStatus, SurfPoolService};
+use crate::solana_rpc::pubkey_key::{Keypair, Pubkey, Signature};
 use crate::solana_rpc::transactions::Transaction;
-use crate::solana_rpc::{Keypair, Pubkey, Signature};
 use chrono;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -29,7 +29,7 @@ impl DeploymentRequest {
         account_pubkey: Pubkey,
         owner: Pubkey,
         lamports: u64,
-        space: u64,
+        _space: u64,
         executable: bool,
         data: Vec<u8>,
         _keypair: Keypair,
@@ -125,9 +125,8 @@ fn use_validator_status() -> ServiceStatus {
         let svc = service.clone();
         async move {
             loop {
-                if let Ok(current_status) = svc.get_status().await {
-                    status_signal.set(current_status);
-                }
+                let current_status = svc.get_status().await;
+                status_signal.set(current_status);
                 tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
             }
         }
@@ -177,7 +176,7 @@ fn use_balance_monitor(pubkey: Pubkey) -> f64 {
         async move {
             loop {
                 // Real balance update using SurfPool RPC
-                if let Ok(balance) = svc.get_account_balance(&pubkey_clone).await {
+                if let Ok(balance) = svc.get_balance(&pubkey_clone.to_string()).await {
                     balance_signal.set(balance);
                 }
                 tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
@@ -259,10 +258,10 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
             let mut error = error_msg;
-            let service_clone = svc.clone();
+            let mut service_clone = svc.clone();
             async move {
                 // Real validator startup using SurfPool
-                if let Ok(()) = service_clone.start_validator().await {
+                if let Ok(()) = service_clone.start().await {
                     success.set("SurfPool validator started successfully".to_string());
                 } else {
                     error.set("Failed to start SurfPool validator".to_string());
@@ -279,10 +278,10 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
             let mut error = error_msg;
-            let service_clone = svc.clone();
+            let mut service_clone = svc.clone();
             async move {
                 // Real validator shutdown using SurfPool
-                if let Ok(()) = service_clone.stop_validator().await {
+                if let Ok(()) = service_clone.stop().await {
                     success.set("SurfPool validator stopped successfully".to_string());
                 } else {
                     error.set("Failed to stop SurfPool validator".to_string());
@@ -293,7 +292,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
 
     // Generate new keypair (simplified)
     let generate_keypair = move |_| {
-        let mut new_builder = builder();
+        let _new_builder = builder();
         let service = use_surfpool_service();
         let mut success_msg = success_message.clone();
         let mut error_msg = error_message.clone();
@@ -303,8 +302,8 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
             let svc = service.clone();
             async move {
                 // Real keypair generation using SurfPool
-                match svc.create_account("generated_keypair").await {
-                    Ok(account_info) => {
+                match svc.generate_keypair().await {
+                    Ok(_account_info) => {
                         let mut current = builder_signal();
                         // Create a Keypair from the account info string
                         current.keypair = Some(Keypair::new());
@@ -441,7 +440,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut builder_state = builder;
             let mut is_deploying_signal = is_deploying;
-            let deployment_request_clone = deployment_request.clone();
+            let _deployment_request_clone = deployment_request.clone();
             let account_data_clone = current_builder.account_data.clone();
             let on_deploy = props.on_deploy;
             let on_deployment_result = props.on_deployment_result;

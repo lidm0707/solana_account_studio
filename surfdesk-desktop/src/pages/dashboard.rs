@@ -5,21 +5,18 @@
 
 use crate::surfpool::{SurfPoolManager, SurfPoolStatus as DesktopSurfPoolStatus};
 use dioxus::prelude::*;
-use log::{debug, error, info, warn};
-use std::sync::Arc;
-use surfdesk_core::components::{Button, Card, Loading, Size, Variant};
-use surfdesk_core::services::surfpool_service::SurfPoolStatus;
+use log::info;
+use surfdesk_core::components::{Button, Card, ServiceStatus, Size, SurfPoolConfig, Variant};
 use surfdesk_core::solana_rpc::accounts::AccountManager;
-use surfdesk_core::solana_rpc::{Keypair, Pubkey, SolanaNetwork, SolanaRpcClient};
-use surfdesk_core::state::AppState;
-use surfdesk_core::surfpool::SurfPoolConfig;
+use surfdesk_core::solana_rpc::pubkey_key::{RpcCommitment, SolanaRpcClient};
 
 /// Dashboard page component
 #[component]
 pub fn DashboardPage() -> Element {
     let total_balance = use_signal(|| 0u64);
     let account_count = use_signal(|| 0);
-    let surfpool_status = use_signal(|| DesktopSurfPoolStatus::Stopped);
+
+    let surfpool_status = use_signal(|| ServiceStatus::default());
     let network_status = use_signal(|| "Disconnected".to_string());
     let block_height = use_signal(|| 0u64);
     let slot = use_signal(|| 0u64);
@@ -33,12 +30,12 @@ pub fn DashboardPage() -> Element {
     let rpc_client = use_signal(|| {
         SolanaRpcClient::new_with_url(
             "http://localhost:8999", // SurfPool default port
-            surfdesk_core::solana_rpc::RpcCommitment::Confirmed,
+            RpcCommitment::Confirmed,
         )
     });
 
     // Create SurfPool manager for actions
-    let surfpool_manager = Arc::new(SurfPoolManager::new(SurfPoolConfig::default()));
+    let surfpool_manager = SurfPoolManager::new(SurfPoolConfig::default());
 
     // Real data fetching effect
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
@@ -242,8 +239,8 @@ pub fn DashboardPage() -> Element {
                         size: Size::Large,
 
                         div { class: "surfpool-dashboard",
-                            match surfpool_status() {
-                                DesktopSurfPoolStatus::Running => rsx! {
+                            {match surfpool_status.cloned() {
+                                ServiceStatus::Running => rsx! {
                                     div { class: "surfpool-running",
                                         div { class: "status-indicator running" }
                                         h3 { "SurfPool Running" }
@@ -260,7 +257,7 @@ pub fn DashboardPage() -> Element {
                                         }
                                     }
                                 },
-                                DesktopSurfPoolStatus::Stopped => rsx! {
+                                ServiceStatus::Stopped => rsx! {
                                     div { class: "surfpool-stopped",
                                         div { class: "status-indicator stopped" }
                                         h3 { "SurfPool Stopped" }
@@ -281,7 +278,7 @@ pub fn DashboardPage() -> Element {
                                         }
                                     }
                                 },
-                                DesktopSurfPoolStatus::Starting | DesktopSurfPoolStatus::Stopping => rsx! {
+                                ServiceStatus::Starting | ServiceStatus::Stopping => rsx! {
                                     div { class: "surfpool-starting",
                                         div { class: "status-indicator starting" }
                                         h3 { "SurfPool Starting..." }
@@ -295,7 +292,7 @@ pub fn DashboardPage() -> Element {
                                         }
                                     }
                                 },
-                                DesktopSurfPoolStatus::Error(message) => rsx! {
+                                ServiceStatus::Error(message) => rsx! {
                                     div { class: "surfpool-error",
                                         div { class: "status-indicator error" }
                                         h3 { "SurfPool Error" }
@@ -311,8 +308,14 @@ pub fn DashboardPage() -> Element {
                                             }
                                         }
                                     }
-                                }
-                            }
+                                    },
+                                    _ => rsx! {
+                                        div { class: "surfpool-unknown",
+                                            h3 { "Unknown Status" }
+                                            p { "Service status not recognized." }
+                                        }
+                                    }
+                            }}
                         }
                     }
 

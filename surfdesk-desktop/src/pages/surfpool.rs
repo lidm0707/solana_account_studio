@@ -3,12 +3,16 @@
 //! Enhanced SurfPool integration with real-time controls, status monitoring,
 //! live metrics, log viewing, and configuration management for local Solana validator.
 
-use crate::surfpool::{SurfPoolConfig, SurfPoolManager, SurfPoolMetrics, SurfPoolStatus};
+use crate::surfpool::{SurfPoolManager, SurfPoolMetrics, SurfPoolStatus};
 use dioxus::prelude::*;
 use log::{error, info, warn};
 use std::time::Duration;
-use surfdesk_core::components::{Button, Card, Input, Size, Variant};
-use surfdesk_core::solana_rpc::SolanaRpcClient;
+use surfdesk_core::{
+    components::{
+        surfpool::surfpool_controller::SurfPoolConfig, Button, Card, Input, Size, Variant,
+    },
+    solana_rpc::pubkey_key::{RpcCommitment, SolanaRpcClient},
+};
 
 // Re-export spawn from tokio for async tasks
 use dioxus::prelude::spawn;
@@ -33,7 +37,7 @@ pub fn SurfPoolPage() -> Element {
     let rpc_client = use_signal(|| {
         SolanaRpcClient::new_with_url(
             "http://localhost:8899", // Default SurfPool port from testing
-            surfdesk_core::solana_rpc::RpcCommitment::Confirmed,
+            RpcCommitment::Confirmed,
         )
     });
 

@@ -2,17 +2,17 @@
 //!
 //! Enhanced SurfPool integration using the actual running SurfPool service.
 //! Provides full RPC/WebSocket connectivity, real-time monitoring, and control.
+//! Uses simple state management for single-threaded Dioxus compatibility.
 
 use anyhow::{Context, Result};
-use dioxus::prelude::UnboundedReceiver;
 use dioxus::prelude::*;
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
-use surfdesk_core::services::surfpool::SurfPoolService;
+use surfdesk_core::services::surfpool::{ServiceStatus, SurfPoolConfig, SurfPoolService};
 
 /// Enhanced SurfPool manager using real service integration
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct SurfPoolManager {
     /// Current status
     status: ServiceStatus,
@@ -26,13 +26,11 @@ pub struct SurfPoolManager {
     metrics: Option<SurfPoolMetrics>,
 }
 
-// Re-export types from core
-pub use surfdesk_core::services::surfpool::{ServiceStatus, SurfPoolConfig};
-
 /// Enhanced status for desktop with real-time data
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SurfPoolStatus {
     /// Service status
+    // #[serde(with = "service_status_serde")]
     pub service_status: ServiceStatus,
     /// Current slot
     pub current_slot: Option<u64>,
@@ -105,21 +103,6 @@ pub struct LogEntry {
     pub details: Option<String>,
     /// Source module
     pub source: Option<String>,
-}
-
-impl Default for SurfPoolStatus {
-    fn default() -> Self {
-        Self {
-            service_status: ServiceStatus::Stopped,
-            current_slot: None,
-            block_height: None,
-            connected_peers: None,
-            network: None,
-            version: None,
-            uptime_seconds: None,
-            last_updated: chrono::Utc::now(),
-        }
-    }
 }
 
 impl Default for SurfPoolMetrics {
@@ -439,24 +422,14 @@ pub fn SurfPoolControls(manager: SurfPoolManager) -> Element {
     let mut logs = use_signal(Vec::<LogEntry>::new);
     let mut metrics = use_signal(|| Option::<SurfPoolMetrics>::None);
     let mut is_loading = use_signal(|| false);
-    let manager_signal = use_signal(|| Arc::clone(&manager));
+    let manager_signal = use_signal(|| manager.clone());
 
-    // Initialize status using coroutine for async operations
-    use_coroutine(move |_: UnboundedReceiver<()>| {
-        let mut status_signal = status;
-        let manager = Arc::clone(&manager_signal);
-
-        async move {
-            if let Ok(current_manager) = manager.try_read() {
-                match current_manager.get_status().await {
-                    Ok(initial_status) => {
-                        status_signal.set(initial_status);
-                    }
-                    Err(e) => {
-                        log::error!("Failed to get initial status: {}", e);
-                    }
-                }
-            }
+    // Initialize status using a simpler approach
+    spawn(async move {
+        if let Ok(initial_status) = manager.get_status().await {
+            status.set(initial_status);
+        } else {
+            log::error!("Failed to get initial status");
         }
     });
 
@@ -619,29 +592,26 @@ pub fn SurfPoolControls(manager: SurfPoolManager) -> Element {
                         span { "Processing..." }
                     }
                 } else {
-                    match current_status.service_status {
-                        ServiceStatus::Stopped | ServiceStatus::Error(_) => rsx! {
-                            button {
-                                class: "btn btn-primary px-4 py-2 bg-primary text-white rounded-lg hover:scale-105 transition-all",
-                                onclick: handle_start,
-                                disabled: is_loading(),
-                                "🚀 Start SurfPool"
-                            }
+                    let status_display = match current_status.service_status {
+                        ServiceStatus::Stopped => rsx! {
+                            span { class: "status-offline w-3 h-3 rounded-full bg-gray-500" }
+                            span { class: "text-lg font-semibold text-gray-500", "🔴 Stopped" }
+                        },
+                        ServiceStatus::Starting => rsx! {
+                            span { class: "status-starting w-3 h-3 rounded-full bg-warning animate-pulse" }
+                            span { class: "text-lg font-semibold text-warning", "🟡 Starting..." }
                         },
                         ServiceStatus::Running => rsx! {
-                            button {
-                                class: "btn btn-secondary px-4 py-2 bg-secondary text-white rounded-lg hover:scale-105 transition-all",
-                                onclick: handle_stop,
-                                disabled: is_loading(),
-                                "⏹️ Stop SurfPool"
-                            }
+                            span { class: "status-online w-3 h-3 rounded-full bg-success glow-cyan" }
+                            span { class: "text-lg font-semibold text-success", "🟢 Running" }
                         },
-                        ServiceStatus::Starting | ServiceStatus::Stopping => rsx! {
-                            button {
-                                class: "btn btn-secondary px-4 py-2 bg-muted text-muted rounded-lg cursor-not-allowed",
-                                disabled: true,
-                                "⏳ Please wait..."
-                            }
+                        ServiceStatus::Stopping => rsx! {
+                            span { class: "status-stopping w-3 h-3 rounded-full bg-warning animate-pulse" }
+                            span { class: "text-lg font-semibold text-warning", "🟠 Stopping..." }
+                        },
+                        ServiceStatus::Error(_) => rsx! {
+                            span { class: "status-error w-3 h-3 rounded-full bg-error glow-blue" }
+                            span { class: "text-lg font-semibold text-error", "🔴 Error" }
                         },
                     }
                 }

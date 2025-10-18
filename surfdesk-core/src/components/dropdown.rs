@@ -198,7 +198,7 @@ pub struct MultiSelectDropdownProps {
 #[component]
 pub fn MultiSelectDropdown(props: MultiSelectDropdownProps) -> Element {
     let mut is_open = use_signal(|| false);
-    let mut selected_values = use_signal(|| props.values.clone());
+    let selected_values = use_signal(|| props.values.clone());
 
     rsx! {
         div { class: format!("multi-select-dropdown-container {}", props.class.as_deref().unwrap_or("")),

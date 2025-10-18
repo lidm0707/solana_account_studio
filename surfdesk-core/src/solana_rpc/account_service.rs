@@ -4,7 +4,7 @@
 use crate::error::{Result, SurfDeskError};
 use crate::solana_rpc::{
     accounts::{Account, AccountManager},
-    Keypair, Pubkey, RpcCommitment, SolanaNetwork, SolanaRpcClient,
+    pubkey_key::{AccountInfo, Keypair, Pubkey, RpcCommitment, SolanaNetwork, SolanaRpcClient},
 };
 use base64::Engine;
 use serde_json::json;
@@ -164,9 +164,10 @@ impl AccountService {
         let signature = parsed_response
             .get("result")
             .and_then(|r| r.as_str())
-            .ok_or_else(|| SurfDeskError::network("Invalid transaction response"))?;
+            .ok_or_else(|| SurfDeskError::network("Invalid transaction response"))?
+            .to_string();
 
-        Ok(signature.to_string())
+        Ok(signature)
     }
 
     /// Confirm transaction
@@ -175,10 +176,7 @@ impl AccountService {
     }
 
     /// Get account info
-    pub async fn get_account_info(
-        &self,
-        pubkey: &Pubkey,
-    ) -> Result<Option<crate::solana_rpc::AccountInfo>> {
+    pub async fn get_account_info(&self, pubkey: &Pubkey) -> Result<Option<AccountInfo>> {
         self.rpc_client.get_account_info(&pubkey.to_string()).await
     }
 

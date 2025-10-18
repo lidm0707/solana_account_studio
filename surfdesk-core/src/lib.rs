@@ -19,22 +19,18 @@
 pub mod app;
 pub mod components;
 // pub mod database;  // Temporarily disabled due to dependency conflicts
+pub mod database;
 pub mod error;
 pub mod platform;
 pub mod services;
 pub mod solana_rpc;
 pub mod state;
-pub mod styles;
-pub mod surfpool;
 pub mod types;
-pub mod wallet;
-
 // Re-export commonly used items
 pub use app::SurfDeskApp;
 pub use error::{Result, SurfDeskError};
 pub use platform::Platform;
 pub use state::AppState;
-pub use styles::include_all_styles;
 pub use types::*;
 
 /// Version information

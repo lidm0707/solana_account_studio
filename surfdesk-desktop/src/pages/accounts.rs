@@ -6,12 +6,14 @@
 use dioxus::prelude::spawn;
 use dioxus::prelude::*;
 use log::{error, info};
+use surfdesk_core::solana_rpc::pubkey_key::{
+    Keypair, Pubkey, RpcCommitment, SolanaNetwork, SolanaRpcClient, TransactionSignature,
+};
 
 use std::fs;
 
 use surfdesk_core::components::{Button, Size, Variant, WalletImport};
 use surfdesk_core::solana_rpc::accounts::{Account, AccountManager};
-use surfdesk_core::solana_rpc::{Keypair, Pubkey, SolanaRpcClient};
 
 /// Accounts page component
 #[component]
@@ -29,7 +31,7 @@ pub fn AccountsPage() -> Element {
     let mut rpc_client = use_signal(|| {
         SolanaRpcClient::new_with_url(
             "http://localhost:8999", // SurfPool default port
-            surfdesk_core::solana_rpc::RpcCommitment::Confirmed,
+            RpcCommitment::Confirmed,
         )
     });
 
@@ -174,7 +176,7 @@ pub fn AccountsPage() -> Element {
             if show_import_modal() {
                 WalletImport {
                     account_manager: account_manager.read().clone(),
-                    network: surfdesk_core::solana_rpc::SolanaNetwork::Devnet,
+                    network:SolanaNetwork::Devnet,
                     on_import_success: move |imported_accounts: Vec<Account>| {
                         let mut accounts_signal = accounts.clone();
                         let mut account_mgr = account_manager.clone();
@@ -215,10 +217,7 @@ pub fn AccountsPage() -> Element {
 #[component]
 fn AccountCard(account: Account, index: usize, on_airdrop: EventHandler<MouseEvent>) -> Element {
     let rpc = use_signal(|| {
-        SolanaRpcClient::new_with_url(
-            "http://localhost:8999",
-            surfdesk_core::solana_rpc::RpcCommitment::Confirmed,
-        )
+        SolanaRpcClient::new_with_url("http://localhost:8999", RpcCommitment::Confirmed)
     });
 
     let account_label = account
@@ -413,7 +412,7 @@ async fn import_wallet_file(
                             .collect::<Vec<String>>()
                             .join(""),
                         format!("Imported-{}", file_path),
-                        surfdesk_core::solana_rpc::SolanaNetwork::Devnet,
+                        SolanaNetwork::Devnet,
                     )?;
                     if account_manager.add_account(account.clone()).is_ok() {
                         accounts.push(account);
@@ -452,7 +451,7 @@ async fn request_real_airdrop(
     rpc: &SolanaRpcClient,
     pubkey: &Pubkey,
     amount: u64,
-) -> Result<surfdesk_core::solana_rpc::TransactionSignature, Box<dyn std::error::Error>> {
+) -> Result<TransactionSignature, Box<dyn std::error::Error>> {
     info!("Requesting airdrop of {} lamports to {}", amount, pubkey);
 
     match rpc.request_airdrop(&pubkey.to_string(), amount).await {

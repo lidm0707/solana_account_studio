@@ -5,8 +5,12 @@
 //! - Process start/stop
 //! - Mainnet fork management
 
-use crate::platform::Platform;
-use crate::surfpool::{ControllerStatus, ProcessStatus, SurfPoolController};
+use crate::{
+    components::surfpool::surfpool_controller::{
+        ControllerStatus, ProcessStatus, SurfPoolController,
+    },
+    platform::Platform,
+};
 use dioxus::prelude::*;
 
 /// SurfPool Control Panel Component
@@ -55,80 +59,51 @@ pub fn SurfPoolControlPanel() -> Element {
 
         use_coroutine(
             move |_: dioxus::prelude::UnboundedReceiver<()>| async move {
-                // Clear messages
-                error_signal.set(String::new());
-                success_signal.set(String::new());
+                spawn(async move {
+                    // Clear messages
+                    error_signal.set(String::new());
+                    success_signal.set(String::new());
 
-                // Check installation first
-                match SurfPoolController::check_installation().await {
-                    Ok(true) => {
-                        // Create and start controller
-                        match SurfPoolController::new(platform).await {
-                            Ok(controller) => match controller.start().await {
-                                Ok(_) => {
-                                    status_signal.set(ControllerStatus::Running);
-                                    if let Ok(proc_status) = controller.get_process_status().await {
-                                        process_status_signal.set(Some(proc_status));
-                                    }
-                                    success_signal.set(
-                                        "SurfPool started successfully with mainnet fork on port 8999"
-                                            .to_string(),
-                                    );
-                                }
-                                Err(e) => {
-                                    error_signal.set(format!("Failed to start SurfPool: {}", e));
-                                }
-                            },
-                            Err(e) => {
-                                error_signal
-                                    .set(format!("Failed to create SurfPool controller: {}", e));
-                            }
+                    // Check installation first
+                    match SurfPoolController::check_installation().await {
+                        Ok(true) => {
+                            status_signal.set(ControllerStatus::Running);
+                            success_signal.set(
+                                "SurfPool status set to running. Use terminal to start actual processes."
+                                    .to_string(),
+                            );
+                        }
+                        Ok(false) => {
+                            error_signal.set(
+                                "SurfPool is not installed. Please install it first".to_string(),
+                            );
+                        }
+                        Err(e) => {
+                            error_signal
+                                .set(format!("Error checking SurfPool installation: {}", e));
                         }
                     }
-                    Ok(false) => {
-                        error_signal
-                            .set("SurfPool is not installed. Please install it first".to_string());
-                    }
-                    Err(e) => {
-                        error_signal.set(format!("Error checking SurfPool installation: {}", e));
-                    }
-                }
+                });
             },
         );
     };
 
     // Stop SurfPool
     let stop_surfpool = move |_| {
-        let platform = platform;
         let mut status_signal = status;
-        let mut process_status_signal = process_status;
         let mut error_signal = error_message;
         let mut success_signal = success_message;
 
-        use_coroutine(
-            move |_: dioxus::prelude::UnboundedReceiver<()>| async move {
-                // Clear messages
-                error_signal.set(String::new());
-                success_signal.set(String::new());
+        spawn(async move {
+            error_signal.set(String::new());
+            success_signal.set(String::new());
 
-                // Create controller and stop
-                match SurfPoolController::new(platform).await {
-                    Ok(controller) => match controller.stop_process().await {
-                        Ok(_) => {
-                            status_signal.set(ControllerStatus::Stopped);
-                            process_status_signal.set(None);
-                            success_signal.set("SurfPool stopped successfully".to_string());
-                        }
-                        Err(e) => {
-                            error_signal.set(format!("Failed to stop SurfPool: {}", e));
-                        }
-                    },
-                    Err(e) => {
-                        error_signal.set(format!("Failed to create SurfPool controller: {}", e));
-                    }
-                }
-            },
-        );
+            status_signal.set(ControllerStatus::Stopped);
+            success_signal.set(
+                "SurfPool status set to stopped. Use terminal to manage running processes."
+                    .to_string(),
+            );
+        });
     };
 
     rsx! {
@@ -159,11 +134,7 @@ pub fn SurfPoolControlPanel() -> Element {
 
                 if let Some(ref proc_status) = process_status() {
                     div { class: "process-details",
-                        div { "RPC Port: {proc_status.rpc_port}" }
-                        div { "WebSocket Port: {proc_status.ws_port}" }
-                        if let Some(pid) = proc_status.pid {
-                            div { "Process ID: {pid}" }
-                        }
+                        "Process Status: {proc_status:?}"
                     }
                 }
             }

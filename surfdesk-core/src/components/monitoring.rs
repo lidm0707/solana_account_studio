@@ -11,8 +11,8 @@ use dioxus::prelude::*;
 /// Account monitoring dashboard component
 #[component]
 pub fn MonitoringDashboard() -> Element {
-    let app_state = use_context::<AppState>();
-    let monitoring_stats = app_state.monitoring_stats();
+    let app_state = use_context::<Signal<AppState>>();
+    let monitoring_stats = app_state.read().monitoring_stats.clone();
 
     rsx! {
         div { class: "monitoring-dashboard",

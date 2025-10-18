@@ -10,31 +10,30 @@
 //! - Manages external SurfPool processes
 //! - Shows clear installation instructions to users
 
-pub mod environment;
-
 use crate::error::SurfDeskError;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
 // Re-export Platform for public API
 pub use crate::platform::Platform;
-use std::process::{Child, Command};
-use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock};
+use std::{
+    process::{Child, Command},
+    time::Instant,
+};
 
 /// Cross-platform SurfPool controller for managing Solana validators
-#[derive(Clone)]
+#[derive(Clone, Props, PartialEq)]
 pub struct SurfPoolController {
     /// Platform-specific implementation
     platform: Platform,
     /// Running validator process
-    process: Arc<Mutex<Option<Child>>>,
+    process: Signal<Option<Child>>,
     /// Current configuration
-    config: Arc<RwLock<SurfPoolConfig>>,
+    config: Signal<SurfPoolConfig>,
     /// Current status
-    status: Arc<RwLock<ControllerStatus>>,
+    status: Signal<ControllerStatus>,
     /// Process start time for uptime tracking
-    start_time: Arc<RwLock<Option<std::time::Instant>>>,
+    start_time: Signal<Option<Instant>>,
 }
 
 // SAFETY: SurfPoolController is Send + Sync because all its fields are Send + Sync
@@ -207,14 +206,14 @@ impl Default for SurfPoolConfig {
 impl SurfPoolController {
     /// Create a new SurfPool controller
     pub async fn new(platform: Platform) -> Result<Self, SurfDeskError> {
-        let config = SurfPoolConfig::default();
+        let config = Signal::new(SurfPoolConfig::default());
 
         Ok(Self {
             platform,
-            process: Arc::new(Mutex::new(None)),
-            config: Arc::new(RwLock::new(config)),
-            status: Arc::new(RwLock::new(ControllerStatus::Stopped)),
-            start_time: Arc::new(RwLock::new(None)),
+            process: Signal::new(None),
+            config,
+            status: Signal::new(ControllerStatus::Stopped),
+            start_time: Signal::new(None),
         })
     }
 
@@ -225,16 +224,16 @@ impl SurfPoolController {
     ) -> Result<Self, SurfDeskError> {
         Ok(Self {
             platform,
-            process: Arc::new(Mutex::new(None)),
-            config: Arc::new(RwLock::new(config)),
-            status: Arc::new(RwLock::new(ControllerStatus::Stopped)),
-            start_time: Arc::new(RwLock::new(None)),
+            process: Signal::new(None),
+            config: Signal::new(config),
+            status: Signal::new(ControllerStatus::Stopped),
+            start_time: Signal::new(None),
         })
     }
 
     /// Start the Solana validator
-    pub async fn start(&self) -> Result<(), SurfDeskError> {
-        let mut status = self.status.write().await;
+    pub async fn start(&mut self) -> Result<(), SurfDeskError> {
+        let mut status = self.status.write();
         if *status != ControllerStatus::Stopped {
             return Err(SurfDeskError::platform("Controller is already running"));
         }
@@ -242,7 +241,7 @@ impl SurfPoolController {
         *status = ControllerStatus::Starting;
         drop(status);
 
-        let config = self.config.read().await.clone();
+        let config = self.config.read().clone();
 
         // Ensure directories exist
         std::fs::create_dir_all(&config.ledger_path).map_err(|e| {
@@ -253,11 +252,11 @@ impl SurfPoolController {
         let result = self.start_mainnet_fork().await;
         match result {
             Ok(_) => {
-                *self.status.write().await = ControllerStatus::Running;
+                *self.status.write() = ControllerStatus::Running;
                 Ok(())
             }
             Err(e) => {
-                *self.status.write().await = ControllerStatus::Error(e.to_string());
+                *self.status.write() = ControllerStatus::Error(e.to_string());
                 Err(e)
             }
         }
@@ -324,7 +323,7 @@ For more information: https://github.com/surfpool/surfpool"#
     }
 
     /// Start surfpool with mainnet fork on port 8999
-    pub async fn start_mainnet_fork(&self) -> Result<(), SurfDeskError> {
+    pub async fn start_mainnet_fork(&mut self) -> Result<(), SurfDeskError> {
         // Check if SurfPool is available
         if !Self::check_installation().await? {
             return Err(SurfDeskError::platform(format!(
@@ -333,7 +332,7 @@ For more information: https://github.com/surfpool/surfpool"#
             )));
         }
 
-        let config = self.config.read().await;
+        let config = self.config.read();
 
         // Start surfpool with mainnet fork
         let mut cmd = Command::new("surfpool");
@@ -367,18 +366,18 @@ For more information: https://github.com/surfpool/surfpool"#
             .map_err(|e| SurfDeskError::platform(format!("Failed to start surfpool: {}", e)))?;
 
         // Store the process handle
-        *self.process.lock().await = Some(child);
+        self.process.set(Some(child));
 
         // Record start time for uptime tracking
-        *self.start_time.write().await = Some(std::time::Instant::now());
+        self.start_time.set(Some(std::time::Instant::now()));
 
         log::info!("SurfPool started with mainnet fork on port 8999");
         Ok(())
     }
 
     /// Stop the surfpool process
-    pub async fn stop_process(&self) -> Result<(), SurfDeskError> {
-        let mut process_guard = self.process.lock().await;
+    pub async fn stop_process(&mut self) -> Result<(), SurfDeskError> {
+        let mut process_guard = self.process;
 
         if let Some(mut child) = process_guard.take() {
             // Try to stop gracefully first
@@ -393,7 +392,7 @@ For more information: https://github.com/surfpool/surfpool"#
                 }
             }
 
-            *self.status.write().await = ControllerStatus::Stopped;
+            self.status.set(ControllerStatus::Stopped);
             Ok(())
         } else {
             Err(SurfDeskError::platform("No SurfPool process is running"))
@@ -402,18 +401,18 @@ For more information: https://github.com/surfpool/surfpool"#
 
     /// Get current process status
     pub async fn get_process_status(&self) -> Result<ProcessStatus, SurfDeskError> {
-        let status = self.status.read().await;
+        let status = self.status.read();
         let is_running = matches!(*status, ControllerStatus::Running);
 
         let pid = {
-            let process_guard = self.process.lock().await;
+            let process_guard = self.process;
             process_guard.as_ref().map(|p| p.id())
         };
 
-        let uptime_seconds = {
-            let start_time_guard = self.start_time.read().await;
-            start_time_guard.map(|start| start.elapsed().as_secs())
-        };
+        let uptime_seconds = self
+            .start_time
+            .cloned()
+            .map(|start| start.elapsed().as_secs());
 
         Ok(ProcessStatus {
             is_running,
@@ -425,16 +424,16 @@ For more information: https://github.com/surfpool/surfpool"#
     }
 
     /// Stop the Solana validator
-    pub async fn stop(&self) -> Result<(), SurfDeskError> {
-        let mut status = self.status.write().await;
-        if *status == ControllerStatus::Stopped {
+    pub async fn stop(&mut self) -> Result<(), SurfDeskError> {
+        let mut status = self.status;
+        if status() == ControllerStatus::Stopped {
             return Ok(());
         }
 
-        *status = ControllerStatus::Stopping;
+        status.set(ControllerStatus::Stopping);
         drop(status);
 
-        let mut process_guard = self.process.lock().await;
+        let mut process_guard = self.process;
         if let Some(mut child) = process_guard.take() {
             if let Err(e) = child.kill() {
                 log::warn!("Failed to kill surfpool process: {}", e);
@@ -444,34 +443,34 @@ For more information: https://github.com/surfpool/surfpool"#
             }
         }
 
-        *self.status.write().await = ControllerStatus::Stopped;
+        self.status.set(ControllerStatus::Stopped);
 
         // Clear start time when process stops
-        *self.start_time.write().await = None;
+        self.start_time.set(None);
 
         Ok(())
     }
 
     /// Get the current status
     pub async fn get_status(&self) -> ControllerStatus {
-        self.status.read().await.clone()
+        self.status.cloned()
     }
 
     /// Get the current configuration
     pub async fn get_config(&self) -> SurfPoolConfig {
-        self.config.read().await.clone()
+        self.config.cloned()
     }
 
     /// Update the configuration
     pub async fn update_config(&self, new_config: SurfPoolConfig) -> Result<(), SurfDeskError> {
-        let mut config = self.config.write().await;
-        *config = new_config;
+        let mut config = self.config;
+        config.set(new_config);
         Ok(())
     }
 
     /// Check if the validator is healthy
-    pub async fn health_check(&self) -> Result<bool, SurfDeskError> {
-        let status = self.status.read().await;
+    pub async fn health_check(&mut self) -> Result<bool, SurfDeskError> {
+        let status = self.status.read();
         if *status != ControllerStatus::Running {
             return Ok(false);
         }
@@ -479,12 +478,13 @@ For more information: https://github.com/surfpool/surfpool"#
 
         match self.platform {
             Platform::Desktop | Platform::Terminal => {
-                // Check if process is still running
-                let mut process_guard = self.process.lock().await;
+                // อ่านค่า child ด้วย write() เพื่อ get &mut Child
+                let mut process_guard = self.process.write();
+
                 if let Some(child) = process_guard.as_mut() {
                     match child.try_wait() {
                         Ok(Some(_)) => Ok(false), // Process has exited
-                        Ok(None) => Ok(true),     // Process is still running
+                        Ok(None) => Ok(true),     // Still running
                         Err(_) => Ok(false),      // Error checking status
                     }
                 } else {
@@ -500,7 +500,7 @@ For more information: https://github.com/surfpool/surfpool"#
 
     /// Get validator metrics
     pub async fn get_metrics(&self) -> Result<ValidatorMetrics, SurfDeskError> {
-        let status = self.status.read().await;
+        let status = self.status.read();
         if *status != ControllerStatus::Running {
             return Err(SurfDeskError::platform("SurfPool is not running"));
         }
@@ -509,16 +509,16 @@ For more information: https://github.com/surfpool/surfpool"#
         match self.platform {
             Platform::Desktop | Platform::Terminal => {
                 // Collect actual metrics from the system
-                let uptime_seconds = {
-                    let start_time_guard = self.start_time.read().await;
-                    start_time_guard
-                        .map(|start| start.elapsed().as_secs())
-                        .unwrap_or(0)
-                };
+
+                let uptime_seconds = self
+                    .start_time
+                    .cloned()
+                    .map(|start| start.elapsed().as_secs())
+                    .unwrap_or(0);
 
                 // Get process status for PID-based metrics
                 let pid = {
-                    let process_guard = self.process.lock().await;
+                    let process_guard = self.process;
                     process_guard.as_ref().map(|p| p.id())
                 };
 
@@ -553,7 +553,7 @@ For more information: https://github.com/surfpool/surfpool"#
                     512
                 };
 
-                let config = self.config.read().await;
+                let config = self.config.read();
                 Ok(ValidatorMetrics {
                     uptime_seconds,
                     memory_usage_mb,
@@ -673,10 +673,10 @@ pub fn use_surfpool_controller(platform: Platform) -> Signal<SurfPoolController>
         let config = SurfPoolConfig::default();
         SurfPoolController {
             platform,
-            process: Arc::new(Mutex::new(None)),
-            config: Arc::new(RwLock::new(config)),
-            status: Arc::new(RwLock::new(ControllerStatus::Stopped)),
-            start_time: Arc::new(RwLock::new(None)),
+            process: Signal::new(None),
+            config: Signal::new(config),
+            status: Signal::new(ControllerStatus::Stopped),
+            start_time: Signal::new(None),
         }
     })
 }
@@ -703,7 +703,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_status_transitions() {
-        let controller = SurfPoolController::new(Platform::Web).await.unwrap();
+        let mut controller = SurfPoolController::new(Platform::Web).await.unwrap();
 
         // Initial status should be stopped
         assert_eq!(controller.get_status().await, ControllerStatus::Stopped);
