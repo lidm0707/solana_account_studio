@@ -76,109 +76,18 @@ pub fn SurfPoolPage() -> Element {
     });
 
     // Handle start SurfPool
-    let handle_start = {
-        let manager = surfpool_manager.read().clone();
-        let mut loading_signal = loading;
-        let mut error_signal = error_message;
-        let current_config = config.read().clone();
-
-        move |_| {
-            let manager = manager.clone();
-            let mut loading = loading_signal.clone();
-            let mut error = error_signal.clone();
-            let config = current_config.clone();
-
-            spawn(async move {
-                loading.set(true);
-                error.set(None);
-
-                // Update manager config
-                let mut new_manager = SurfPoolManager::new(config);
-
-                match new_manager.start().await {
-                    Ok(_) => {
-                        log::info!("SurfPool started successfully");
-                        *surfpool_manager.write() = new_manager;
-                    }
-                    Err(e) => {
-                        log::error!("Failed to start SurfPool: {}", e);
-                        error.set(Some(format!("Failed to start SurfPool: {}", e)));
-                    }
-                }
-
-                loading.set(false);
-            });
-        }
+    let handle_start = move |_| {
+        log::info!("Start SurfPool button clicked (not implemented)");
     };
 
     // Handle stop SurfPool
-    let handle_stop = {
-        let manager = surfpool_manager.read().clone();
-        let mut loading_signal = loading;
-        let mut error_signal = error_message;
-
-        move |_| {
-            let manager = manager.clone();
-            let mut loading = loading_signal.clone();
-            let mut error = error_signal.clone();
-
-            spawn(async move {
-                loading.set(true);
-                error.set(None);
-
-                match manager.stop().await {
-                    Ok(_) => {
-                        log::info!("SurfPool stopped successfully");
-                    }
-                    Err(e) => {
-                        log::error!("Failed to stop SurfPool: {}", e);
-                        error.set(Some(format!("Failed to stop SurfPool: {}", e)));
-                    }
-                }
-
-                loading.set(false);
-            });
-        }
+    let handle_stop = move |_| {
+        log::info!("Stop SurfPool button clicked (not implemented)");
     };
 
     // Handle restart SurfPool
-    let handle_restart = {
-        let manager = surfpool_manager.read().clone();
-        let mut loading_signal = loading;
-        let mut error_signal = error_message;
-
-        move |_| {
-            let manager = manager.clone();
-            let mut loading = loading_signal.clone();
-            let mut error = error_signal.clone();
-
-            spawn(async move {
-                loading.set(true);
-                error.set(None);
-
-                // Stop first
-                if let Err(e) = manager.stop().await {
-                    error.set(Some(format!("Failed to stop SurfPool: {}", e)));
-                    loading.set(false);
-                    return;
-                }
-
-                // Wait a moment
-                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-
-                // Start again
-                match manager.start().await {
-                    Ok(_) => {
-                        log::info!("SurfPool restarted successfully");
-                    }
-                    Err(e) => {
-                        error.set(Some(format!("Failed to restart SurfPool: {}", e)));
-                    }
-                }
-
-                loading.set(false);
-            });
-        }
+    let handle_restart = move |_| {
+        log::info!("Restart SurfPool button clicked (not implemented)");
     };
 
     // Handle config change

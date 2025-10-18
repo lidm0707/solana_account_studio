@@ -67,88 +67,13 @@ pub fn AccountsPage() -> Element {
         }
     });
 
-    // Handle wallet import
-    let handle_import_wallet = move |file_path: String| {
-        let mut account_mgr = account_manager.clone();
-        let mut accounts_signal = accounts.clone();
-        let mut error_signal = error_message.clone();
-        let mut show_modal = show_import_modal.clone();
-
-        spawn(async move {
-            match import_wallet_file(&mut account_mgr.write(), &file_path).await {
-                Ok(imported_accounts) => {
-                    let mut current_accounts = accounts_signal.read().clone();
-                    current_accounts.extend(imported_accounts);
-                    accounts_signal.set(current_accounts);
-                    error_signal.set(None);
-                    show_modal.set(false);
-                }
-                Err(e) => {
-                    error_signal.set(Some(format!("Failed to import wallet: {}", e)));
-                }
-            }
-        });
+    // Simple modal handlers
+    let handle_show_create = move |_| {
+        show_create_modal.set(true);
     };
 
-    // Handle airdrop request
-    let handle_airdrop = move |account: Account| {
-        let rpc = rpc_client.read();
-        let mut accounts_signal = accounts;
-        let mut error_signal = error_message;
-
-        spawn(async move {
-            let pubkey = surfdesk_core::solana_rpc::Pubkey::from_string(&account.pubkey);
-            match request_real_airdrop(&rpc, &pubkey, 1_000_000_000u64).await {
-                Ok(signature) => {
-                    info!("Airdrop successful: {:?}", signature);
-                    error_signal.set(None);
-                    // Refresh balance
-                    if let Ok(updated_balance) = rpc.get_balance(&account.pubkey.to_string()).await
-                    {
-                        let mut current_accounts = accounts_signal.read().clone();
-                        if let Some(acc) = current_accounts
-                            .iter_mut()
-                            .find(|a| a.pubkey == account.pubkey)
-                        {
-                            acc.lamports = updated_balance;
-                        }
-                        accounts_signal.set(current_accounts);
-                    }
-                }
-                Err(e) => {
-                    error_signal.set(Some(format!("Airdrop failed: {}", e)));
-                }
-            }
-        });
-    };
-
-    // Handle account creation
-    let handle_create_account = move |label: String| {
-        let mut account_mgr = account_manager.clone();
-        let mut accounts_signal = accounts.clone();
-        let mut error_signal = error_message.clone();
-        let mut show_modal = show_create_modal.clone();
-
-        spawn(async move {
-            match Account::new(
-                label.clone(),
-                surfdesk_core::solana_rpc::SolanaNetwork::Devnet,
-            ) {
-                Ok((account, _keypair)) => {
-                    if let Err(e) = account_mgr.write().add_account(account.clone()) {
-                        error_signal.set(Some(format!("Failed to save account: {}", e)));
-                    } else {
-                        let mut current_accounts = accounts_signal.read().clone();
-                        current_accounts.push(account);
-                        accounts_signal.set(current_accounts);
-                    }
-                    show_modal.set(false);
-                }
-                Err(e) => {
-                    error_signal.set(Some(format!("Failed to create account: {}", e)));
-                }
-            }
-        });
+    let handle_show_import = move |_| {
+        show_import_modal.set(true);
     };
 
     rsx! {
@@ -176,11 +101,11 @@ pub fn AccountsPage() -> Element {
             // Actions bar
             div { class: "actions-bar",
                 Button {
-                    onclick: move |_| show_create_modal.set(true),
+                    onclick: handle_show_create,
                     "Create Account"
                 }
                 Button {
-                    onclick: move |_| show_import_modal.set(true),
+                    onclick: handle_show_import,
                     "Import Wallet"
                 }
                 Button {
@@ -201,15 +126,15 @@ pub fn AccountsPage() -> Element {
                 }
             }
 
-            // Accounts list
+            // Accounts list (simplified)
             div { class: "accounts-list",
                 for (index, account) in accounts.read().iter().enumerate() {
                     AccountCard {
                         account: account.clone(),
                         index,
                         key: "{account.pubkey}",
-                        on_airdrop: move |_| {
-                            info!("Airdrop requested for account: {}", account.pubkey);
+                        on_airdrop: |_| {
+                            info!("Airdrop requested (not implemented)");
                         },
                     }
                 }
@@ -234,19 +159,30 @@ pub fn AccountsPage() -> Element {
                 }
             }
 
-            // Create Account Modal
+            // Modals (simplified)
             if show_create_modal() {
-                CreateAccountModal {
-                    on_close: move |_| show_create_modal.set(false),
-                    on_create: handle_create_account,
+                div { class: "modal-backdrop",
+                    div { class: "modal",
+                        h3 { "Create Account" }
+                        p { "Account creation not implemented yet" }
+                        button {
+                            onclick: move |_| show_create_modal.set(false),
+                            "Close"
+                        }
+                    }
                 }
             }
 
-            // Import Wallet Modal
             if show_import_modal() {
-                ImportWalletModal {
-                    on_close: move |_| show_import_modal.set(false),
-                    on_import: handle_import_wallet,
+                div { class: "modal-backdrop",
+                    div { class: "modal",
+                        h3 { "Import Wallet" }
+                        p { "Wallet import not implemented yet" }
+                        button {
+                            onclick: move |_| show_import_modal.set(false),
+                            "Close"
+                        }
+                    }
                 }
             }
         }

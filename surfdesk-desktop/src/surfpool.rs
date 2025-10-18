@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 use surfdesk_core::surfpool::{ControllerStatus, Platform, ProcessStatus, SurfPoolController};
 
 /// Real SurfPool manager using core module
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SurfPoolManager {
     /// Current status
     status: ControllerStatus,
