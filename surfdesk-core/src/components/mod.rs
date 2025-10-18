@@ -58,7 +58,7 @@ pub use dashboard::Dashboard;
 pub use footer::Footer;
 // pub use form::Form; // Temporarily commented out
 pub use header::Header;
-pub use input::Input;
+pub use input::{Input, InputType};
 pub use loading::Loading;
 pub use main_content::MainContent;
 pub use modal::Modal;

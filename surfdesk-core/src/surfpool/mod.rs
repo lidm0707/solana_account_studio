@@ -47,7 +47,7 @@ unsafe impl Send for SurfPoolController {}
 unsafe impl Sync for SurfPoolController {}
 
 /// Configuration for SurfPool controller
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SurfPoolConfig {
     /// RPC port for the validator
     pub rpc_port: u16,
@@ -74,7 +74,7 @@ pub struct SurfPoolConfig {
 }
 
 /// Resource limits for the validator
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ResourceLimits {
     /// Maximum memory in MB
     pub max_memory_mb: u32,
@@ -85,7 +85,7 @@ pub struct ResourceLimits {
 }
 
 /// Preset account configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PresetAccount {
     /// Public key
     pub pubkey: String,
@@ -96,7 +96,7 @@ pub struct PresetAccount {
 }
 
 /// Token account data for preset accounts
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TokenAccount {
     /// Token mint address
     pub mint: String,

@@ -40,32 +40,31 @@ pub fn SurfPoolPage() -> Element {
         let mut status_signal = surfpool_status;
         let mut logs_signal = logs;
         let mut error_signal = error_message;
-        let manager = surfpool_manager.read().clone();
-        let rpc = rpc_client.read().clone();
+        let manager = surfpool_manager.clone();
+        let rpc = rpc_client.clone();
 
         async move {
             loop {
                 // Update status from manager
-                let current_status = manager.get_status();
+                let manager_ref = manager.read();
+                let current_status = manager_ref.get_status();
                 status_signal.set(current_status.clone());
 
                 // Collect logs from process
-                let recent_logs = manager.get_recent_logs(50);
-                let log_strings: Vec<String> = recent_logs
-                    .into_iter()
-                    .map(|log| format!("[{}] {}: {}", log.timestamp, log.level, log.message))
-                    .collect();
-                logs_signal.set(log_strings);
+                let recent_logs = manager_ref.get_recent_logs(50).await;
+                logs_signal.set(recent_logs);
 
                 // Perform health check if running
                 if let DesktopSurfPoolStatus::Running { .. } = &current_status {
-                    match manager.health_check().await {
+                    match manager_ref.health_check().await {
                         Ok(health) => {
-                            log::info!("Health check passed: slot {}", health.slot);
+                            log::info!(
+                                "Health check passed: uptime {}s",
+                                health.uptime_seconds.unwrap_or(0)
+                            );
                             error_signal.set(None);
                         }
                         Err(e) => {
-                            log::warn!("Health check failed: {}", e);
                             error_signal.set(Some(format!("Health check failed: {}", e)));
                         }
                     }
@@ -94,7 +93,7 @@ pub fn SurfPoolPage() -> Element {
                 error.set(None);
 
                 // Update manager config
-                let new_manager = SurfPoolManager::new(config.read().clone());
+                let new_manager = SurfPoolManager::new(config);
 
                 match new_manager.start().await {
                     Ok(_) => {
@@ -241,27 +240,23 @@ pub fn SurfPoolPage() -> Element {
                     children: rsx! {
                         div { class: "status-display",
                             match surfpool_status() {
-                                DesktopSurfPoolStatus::Running { pid, uptime, port, rpc_url, .. } => rsx! {
+                                DesktopSurfPoolStatus::Running => rsx! {
                                     div { class: "status-running",
                                         div { class: "status-indicator running" }
                                         div { class: "status-details",
                                             h3 { "SurfPool Running" }
                                             div { class: "status-info",
                                                 div { class: "info-item",
-                                                    span { class: "info-label", "Process ID:" }
-                                                    span { class: "info-value", "{pid}" }
+                                                    span { class: "info-label", "Status:" }
+                                                    span { class: "info-value", "Active" }
                                                 }
                                                 div { class: "info-item",
-                                                    span { class: "info-label", "Port:" }
-                                                    span { class: "info-value", "{port}" }
+                                                    span { class: "info-label", "RPC Port:" }
+                                                    span { class: "info-value", "8999" }
                                                 }
                                                 div { class: "info-item",
-                                                    span { class: "info-label", "RPC URL:" }
-                                                    span { class: "info-value", "{rpc_url}" }
-                                                }
-                                                div { class: "info-item",
-                                                    span { class: "info-label", "Uptime:" }
-                                                    span { class: "info-value", "{uptime}s" }
+                                                    span { class: "info-label", "WS Port:" }
+                                                    span { class: "info-value", "8900" }
                                                 }
                                             }
                                         }
@@ -410,13 +405,14 @@ fn ConfigModal(
     on_close: EventHandler<MouseEvent>,
     on_save: EventHandler<SurfPoolConfig>,
 ) -> Element {
-    let mut port = use_signal(config.port.to_string());
-    let mut fork_mainnet = use_signal(config.fork_mainnet);
-    let mut rpc_url = use_signal(config.rpc_url.clone());
-    let mut ledger_path = use_signal(config.ledger_path.clone());
-    let mut account_path = use_signal(config.account_path.clone());
-    let mut enable_logging = use_signal(config.enable_logging);
-    let mut log_level = use_signal(config.log_level.clone());
+    let mut rpc_port = use_signal(|| config.rpc_port.to_string());
+    let mut ws_port = use_signal(|| config.ws_port.to_string());
+    let mut ledger_path = use_signal(|| config.ledger_path.clone());
+    let mut accounts_path = use_signal(|| config.accounts_path.clone());
+    let mut auto_start = use_signal(|| config.auto_start);
+    let mut fork_url = use_signal(|| config.fork_url.clone().unwrap_or_default());
+    let mut fork_slot = use_signal(|| config.fork_slot.unwrap_or(0).to_string());
+    let mut enable_mcp = use_signal(|| config.enable_mcp);
 
     rsx! {
         div { class: "modal-overlay",
@@ -432,37 +428,30 @@ fn ConfigModal(
 
                 div { class: "modal-body",
                     div { class: "form-group",
-                        label { "Port" }
+                        label { "RPC Port" }
                         Input {
-                            value: port.read().clone(),
-                            on_input: move |s| port.set(s),
+                            value: rpc_port.read().clone(),
+                            on_input: move |e: Event<FormData>| {
+                                if let Some(value) = e.value() {
+                                    rpc_port.set(value);
+                                }
+                            },
                             placeholder: "8999",
-                            r#type: "number",
+                            input_type: surfdesk_core::components::InputType::Number,
                         }
                     }
 
                     div { class: "form-group",
-                        input {
-                            r#type: "checkbox",
-                            id: "fork-mainnet",
-                            checked: fork_mainnet(),
-                            oninput: move |e| {
-                                if let Some(checked) = e.value().as_bool() {
-                                    fork_mainnet.set(checked);
+                        label { "WebSocket Port" }
+                        Input {
+                            value: ws_port.read().clone(),
+                            on_input: move |e: Event<FormData>| {
+                                if let Some(value) = e.value() {
+                                    ws_port.set(value);
                                 }
-                            }
-                        }
-                        label { r#for: "fork-mainnet", "Fork Mainnet" }
-                    }
-
-                    if fork_mainnet() {
-                        div { class: "form-group",
-                            label { "RPC URL" }
-                            Input {
-                                value: rpc_url.read().clone(),
-                                on_input: move |s| rpc_url.set(s),
-                                placeholder: "https://api.mainnet-beta.solana.com",
-                            }
+                            },
+                            placeholder: "8900",
+                            input_type: surfdesk_core::components::InputType::Number,
                         }
                     }
 
@@ -470,44 +459,80 @@ fn ConfigModal(
                         label { "Ledger Path" }
                         Input {
                             value: ledger_path.read().clone(),
-                            on_input: move |s| ledger_path.set(s),
-                            placeholder: "./surfpool-ledger",
+                            on_input: move |e: Event<FormData>| {
+                                if let Some(value) = e.value() {
+                                    ledger_path.set(value);
+                                }
+                            },
+                            placeholder: "/tmp/surfpool-ledger",
                         }
                     }
 
                     div { class: "form-group",
-                        label { "Account Path" }
+                        label { "Accounts Path" }
                         Input {
-                            value: account_path.read().clone(),
-                            on_input: move |s| account_path.set(s),
-                            placeholder: "./surfpool-accounts",
+                            value: accounts_path.read().clone(),
+                            on_input: move |e: Event<FormData>| {
+                                if let Some(value) = e.value() {
+                                    accounts_path.set(value);
+                                }
+                            },
+                            placeholder: "/tmp/surfpool-accounts",
                         }
                     }
 
                     div { class: "form-group",
                         input {
                             r#type: "checkbox",
-                            id: "enable-logging",
-                            checked: enable_logging(),
+                            id: "auto-start",
+                            checked: auto_start(),
                             oninput: move |e| {
                                 if let Some(checked) = e.value().as_bool() {
-                                    enable_logging.set(checked);
+                                    auto_start.set(checked);
                                 }
                             }
                         }
-                        label { r#for: "enable-logging", "Enable Logging" }
+                        label { r#for: "auto-start", "Auto Start" }
                     }
 
-                    if enable_logging() {
-                        div { class: "form-group",
-                            label { "Log Level" }
-                            select {
-                                onchange: move |e| log_level.set(e.value()),
-                                option { value: "debug", "Debug" }
-                                option { value: "info", "Info" }
-                                option { value: "warn", "Warn" }
-                                option { value: "error", "Error" }
+                    div { class: "form-group",
+                        input {
+                            r#type: "checkbox",
+                            id: "enable-mcp",
+                            checked: enable_mcp(),
+                            oninput: move |e| {
+                                if let Some(checked) = e.value().as_bool() {
+                                    enable_mcp.set(checked);
+                                }
                             }
+                        }
+                        label { r#for: "enable-mcp", "Enable MCP" }
+                    }
+
+                    div { class: "form-group",
+                        label { "Fork URL (Optional)" }
+                        Input {
+                            value: fork_url.read().clone(),
+                            on_input: move |e: Event<FormData>| {
+                                if let Some(value) = e.value() {
+                                    fork_url.set(value);
+                                }
+                            },
+                            placeholder: "https://api.mainnet-beta.solana.com",
+                        }
+                    }
+
+                    div { class: "form-group",
+                        label { "Fork Slot (Optional)" }
+                        Input {
+                            value: fork_slot.read().clone(),
+                            on_input: move |e: Event<FormData>| {
+                                if let Some(value) = e.value() {
+                                    fork_slot.set(value);
+                                }
+                            },
+                            placeholder: "0",
+                            input_type: surfdesk_core::components::InputType::Number,
                         }
                     }
                 }
@@ -521,13 +546,21 @@ fn ConfigModal(
                     Button {
                         onclick: move |_| {
                             let new_config = SurfPoolConfig {
-                                port: port.read().parse().unwrap_or(8999),
-                                fork_mainnet: fork_mainnet(),
-                                rpc_url: rpc_url.read().clone(),
+                                rpc_port: rpc_port.read().parse().unwrap_or(8999),
+                                ws_port: ws_port.read().parse().unwrap_or(8900),
                                 ledger_path: ledger_path.read().clone(),
-                                account_path: account_path.read().clone(),
-                                enable_logging: enable_logging(),
-                                log_level: log_level.read().clone(),
+                                accounts_path: accounts_path.read().clone(),
+                                auto_start: auto_start(),
+                                resource_limits: surfdesk_core::surfpool::ResourceLimits {
+                                    max_memory_mb: 4096,
+                                    max_cpu_cores: 4,
+                                    max_disk_gb: 100,
+                                },
+                                fork_url: if fork_url.read().is_empty() { None } else { Some(fork_url.read().clone()) },
+                                fork_slot: if fork_slot.read().parse().unwrap_or(0) == 0 { None } else { Some(fork_slot.read().parse().unwrap_or(0)) },
+                                enable_mcp: enable_mcp(),
+                                anchor_project: false,
+                                preset_accounts: vec![],
                             };
                             on_save.call(new_config);
                             on_close.call(().into());
