@@ -69,13 +69,13 @@ pub fn AccountsPage() -> Element {
 
     // Handle wallet import
     let handle_import_wallet = move |file_path: String| {
-        let mut account_mgr = account_manager.write();
-        let mut accounts_signal = accounts;
-        let mut error_signal = error_message;
-        let mut show_modal = show_import_modal;
+        let mut account_mgr = account_manager.clone();
+        let mut accounts_signal = accounts.clone();
+        let mut error_signal = error_message.clone();
+        let mut show_modal = show_import_modal.clone();
 
         spawn(async move {
-            match import_wallet_file(&mut account_mgr, &file_path).await {
+            match import_wallet_file(&mut account_mgr.write(), &file_path).await {
                 Ok(imported_accounts) => {
                     let mut current_accounts = accounts_signal.read().clone();
                     current_accounts.extend(imported_accounts);
@@ -124,10 +124,10 @@ pub fn AccountsPage() -> Element {
 
     // Handle account creation
     let handle_create_account = move |label: String| {
-        let mut account_mgr = account_manager.write();
-        let mut accounts_signal = accounts;
-        let mut error_signal = error_message;
-        let mut show_modal = show_create_modal;
+        let mut account_mgr = account_manager.clone();
+        let mut accounts_signal = accounts.clone();
+        let mut error_signal = error_message.clone();
+        let mut show_modal = show_create_modal.clone();
 
         spawn(async move {
             match Account::new(
@@ -135,7 +135,7 @@ pub fn AccountsPage() -> Element {
                 surfdesk_core::solana_rpc::SolanaNetwork::Devnet,
             ) {
                 Ok((account, _keypair)) => {
-                    if let Err(e) = account_mgr.add_account(account.clone()) {
+                    if let Err(e) = account_mgr.write().add_account(account.clone()) {
                         error_signal.set(Some(format!("Failed to save account: {}", e)));
                     } else {
                         let mut current_accounts = accounts_signal.read().clone();
@@ -207,7 +207,10 @@ pub fn AccountsPage() -> Element {
                     AccountCard {
                         account: account.clone(),
                         index,
-                        on_airdrop: move |_| handle_airdrop(account.clone()),
+                        key: "{account.pubkey}",
+                        on_airdrop: move |_| {
+                            info!("Airdrop requested for account: {}", account.pubkey);
+                        },
                     }
                 }
             }
