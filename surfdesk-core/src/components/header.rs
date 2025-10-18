@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Header Component Module
 //!
 //! This module provides a header component for the SurfDesk application.

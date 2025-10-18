@@ -4,8 +4,6 @@
 //! Provides production-ready validator management, deployment workflows, and status monitoring
 //! for the SurfDesk desktop application with actual Solana RPC integration.
 
-#![allow(dead_code)]
-
 use crate::error::{Result, SurfDeskError};
 use crate::solana_rpc::transactions::Transaction;
 use crate::solana_rpc::{

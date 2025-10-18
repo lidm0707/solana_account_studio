@@ -2,8 +2,6 @@
 //!
 //! Simple account management for SurfDesk with clean architecture.
 
-#![allow(dead_code)]
-
 use crate::services::surfpool_service::{
     system_program, DeploymentRequest, DeploymentResult, DeploymentStatistics, SurfPoolService,
     SurfPoolStatus,
@@ -359,7 +357,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
             let on_deploy = props.on_deploy;
             let on_deployment_result = props.on_deployment_result;
             let mut success_msg = success_message;
-            let error_msg = error_message;
+            let _error_msg = error_message;
 
             async move {
                 // Simulate deployment process

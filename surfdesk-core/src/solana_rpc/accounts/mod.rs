@@ -541,7 +541,7 @@ mod tests {
 
         manager.add_account(account).unwrap();
         manager
-            .set_selected_account("9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM")
+            .set_selected_account("9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM".to_string())
             .unwrap();
 
         let selected = manager.get_selected_account().unwrap();

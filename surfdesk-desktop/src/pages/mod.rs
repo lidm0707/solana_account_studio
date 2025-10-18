@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # SurfDesk Desktop Pages Module
 //!
 //! Contains all page components for the desktop application.

@@ -3,8 +3,6 @@
 //! Real SurfPool integration with start/stop controls, status monitoring,
 //! log viewing, and configuration management for local Solana validator.
 
-#![allow(dead_code)]
-
 use crate::surfpool::{SurfPoolConfig, SurfPoolManager, SurfPoolStatus as DesktopSurfPoolStatus};
 use dioxus::prelude::*;
 use std::sync::Arc;

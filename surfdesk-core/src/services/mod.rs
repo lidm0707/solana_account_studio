@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Services Module
 //!
 //! This module contains all the service layer components for SurfDesk.
@@ -122,7 +121,6 @@ impl ServiceManager {
         self.solana_service.as_ref()
     }
 
-    /// Get the database service
     // #[cfg(feature = "database")]
     // pub fn database_service(&self) -> Option<&database::DatabaseService> {
     //     self.database_service.as_ref()

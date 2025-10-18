@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Dashboard Component Module
 //!
 //! This module provides a dashboard component for the SurfDesk application.

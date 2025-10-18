@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Input Component (MVP Version)
 //!
 //! Simplified input component for MVP approach.

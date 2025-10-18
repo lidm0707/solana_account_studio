@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Status Bar Component Module
 //!
 //! This module provides a status bar component for displaying application

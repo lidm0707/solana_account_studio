@@ -4,8 +4,6 @@
 //! Components are built with Dioxus 0.6+ and designed to be reusable across
 //! all platforms (desktop, web, and terminal).
 
-#![allow(dead_code)]
-
 /// CSS class helper function for components
 pub fn css_class(class: &str) -> &str {
     class

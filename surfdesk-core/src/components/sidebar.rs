@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Sidebar Component Module
 //!
 //! This module provides a sidebar component for the SurfDesk application.

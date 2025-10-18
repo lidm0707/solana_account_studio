@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Settings Component
 //!
 //! Settings component for managing application preferences,

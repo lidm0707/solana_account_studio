@@ -1,62 +1,21 @@
-#![allow(dead_code)]
-//! # Dropdown Components
+//! Dropdown components for SurfDesk
 //!
-//! Professional dropdown system with search, multi-select, and accessibility features
-//! for the SurfDesk desktop application.
+//! Provides various dropdown implementations including single-select,
+//! multi-select, and searchable dropdowns with proper Dioxus 0.6+ compatibility.
 
-// use super::css_class; // Temporarily disabled to fix compilation
 use dioxus::prelude::*;
 use std::collections::HashSet;
-// #[cfg(feature = "web")]
-// use wasm_bindgen::prelude::Closure;
 
-/// Dropdown option value type
-/// Dropdown value
-#[derive(Debug, Clone)]
+/// Represents a dropdown value
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DropdownValue {
-    /// String value
     String(String),
-    /// Number value
-    Number(f64),
-    /// Boolean value
+    Number(i64),
     Boolean(bool),
 }
 
-impl PartialEq for DropdownValue {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (DropdownValue::String(a), DropdownValue::String(b)) => a == b,
-            (DropdownValue::Number(a), DropdownValue::Number(b)) => (a - b).abs() < f64::EPSILON,
-            (DropdownValue::Boolean(a), DropdownValue::Boolean(b)) => a == b,
-            _ => false,
-        }
-    }
-}
-
-impl Eq for DropdownValue {}
-
-impl std::hash::Hash for DropdownValue {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        match self {
-            DropdownValue::String(s) => {
-                0u8.hash(state);
-                s.hash(state);
-            }
-            DropdownValue::Number(n) => {
-                1u8.hash(state);
-                // Convert f64 to bits for hashing
-                n.to_bits().hash(state);
-            }
-            DropdownValue::Boolean(b) => {
-                2u8.hash(state);
-                b.hash(state);
-            }
-        }
-    }
-}
-
 impl DropdownValue {
-    /// Get string representation
+    /// Convert to string representation
     pub fn as_string(&self) -> String {
         match self {
             DropdownValue::String(s) => s.clone(),
@@ -65,15 +24,13 @@ impl DropdownValue {
         }
     }
 
-    /// Check if value matches search query
-    pub fn matches(&self, query: &str) -> bool {
-        let text = self.as_string().to_lowercase();
-        let query = query.to_lowercase();
-        text.contains(&query)
+    /// Check if this value matches another
+    pub fn matches(&self, other: &DropdownValue) -> bool {
+        self == other
     }
 }
 
-/// Dropdown option
+/// Represents a dropdown option
 #[derive(Debug, Clone, PartialEq)]
 pub struct DropdownOption {
     /// Option value
@@ -86,241 +43,123 @@ pub struct DropdownOption {
     pub disabled: bool,
     /// Optional icon
     pub icon: Option<String>,
-    /// Optional group name
+    /// Optional grouping
     pub group: Option<String>,
 }
 
-/// Dropdown props
-#[derive(Debug, Clone, PartialEq, Props)]
+/// Single-select dropdown props
+#[derive(Debug, PartialEq, Clone, Props)]
 pub struct DropdownProps {
     /// Dropdown options
     pub options: Vec<DropdownOption>,
-
     /// Currently selected value
     pub value: Option<DropdownValue>,
-
     /// Placeholder text
     #[props(default = "Select an option".to_string())]
     pub placeholder: String,
-
     /// Whether dropdown is disabled
     #[props(default = false)]
     pub disabled: bool,
-
-    /// Whether dropdown is required
+    /// Whether field is required
     #[props(default = false)]
     pub required: bool,
-
     /// Custom CSS classes
     pub class: Option<String>,
-
     /// Change handler
     pub onchange: EventHandler<DropdownValue>,
-
     /// Focus handler
     pub onfocus: EventHandler<FocusEvent>,
-
     /// Blur handler
     pub onblur: EventHandler<FocusEvent>,
 }
 
-/// Dropdown component
+/// Single-select dropdown component
 #[component]
 pub fn Dropdown(props: DropdownProps) -> Element {
     let mut is_open = use_signal(|| false);
-    let mut focused_index = use_signal(|| 0);
-    let mut search_query = use_signal(String::new);
-
-    // Close dropdown when clicking outside
-    // TODO: Fix web-specific click listener for desktop compatibility
-    // use_effect(move || {
-    //     if is_open() {
-    //         let close_dropdown = move |_: MouseEvent| {
-    //             is_open.set(false);
-    //         };
-    //
-    //         // Add global click listener
-    //         let _listener = Closure::wrap(Box::new(close_dropdown) as Box<dyn Fn(MouseEvent)>);
-    //         web_sys::window()
-    //             .unwrap()
-    //             .add_event_listener_with_callback("click", listener.as_ref().unchecked_ref())
-    //             .unwrap();
-    //         listener.forget();
-    //     }
-    // });
-
-    // Clone options to avoid borrowing issues
-    let options_for_filtering = props.options.clone();
-    let options_for_lookup = props.options.clone();
-
-    // Filter options based on search
-    let filtered_options = use_memo(move || {
-        if search_query().is_empty() {
-            options_for_filtering.clone()
-        } else {
-            options_for_filtering
-                .iter()
-                .filter(|opt| {
-                    opt.value.matches(&search_query())
-                        || opt
-                            .label
-                            .to_lowercase()
-                            .contains(&search_query().to_lowercase())
-                })
-                .cloned()
-                .collect()
-        }
-    });
-
-    // Handle option selection
-    let mut handle_select = move |option: DropdownOption| {
-        if !option.disabled {
-            props.onchange.call(option.value.clone());
-            is_open.set(false);
-            search_query.set(String::new());
-        }
-    };
-
-    // Handle keyboard navigation
-    let handle_keydown = move |evt: KeyboardEvent| match &evt.key().to_string()[..] {
-        "ArrowDown" => {
-            evt.prevent_default();
-            if is_open() {
-                focused_index
-                    .set((focused_index() + 1).min(filtered_options().len().saturating_sub(1)));
-            } else {
-                is_open.set(true);
-            }
-        }
-        "ArrowUp" => {
-            evt.prevent_default();
-            if is_open() {
-                focused_index.set(focused_index().saturating_sub(1));
-            }
-        }
-        "Enter" | " " => {
-            evt.prevent_default();
-            if is_open() {
-                if let Some(option) = filtered_options().get(focused_index()) {
-                    handle_select(option.clone());
-                }
-            } else {
-                is_open.set(true);
-            }
-        }
-        "Escape" => {
-            evt.prevent_default();
-            is_open.set(false);
-        }
-        _ => {}
-    };
-
-    // Get selected option label
-    let selected_label = props
-        .value
-        .as_ref()
-        .and_then(|value| options_for_lookup.iter().find(|opt| opt.value == *value))
-        .map(|opt| opt.label.clone())
-        .unwrap_or_else(|| props.placeholder.clone());
-
-    let dropdown_classes = format!(
-        "dropdown {} {} {}",
-        "basic",
-        if is_open() { "open" } else { "closed" },
-        if props.disabled {
-            "disabled"
-        } else {
-            "enabled"
-        }
-    );
-
-    let final_classes = match &props.class {
-        Some(custom) => format!("{} {}", dropdown_classes, custom),
-        None => dropdown_classes,
-    };
 
     rsx! {
-        div { class: "{final_classes}",
-
-            // Dropdown trigger
-            button {
-                class: "dropdown-trigger",
-                r#type: "button",
-                disabled: props.disabled,
-                onclick: move |_| {
-                    if !props.disabled {
-                        is_open.set(!is_open());
-                    }
-                },
-                onfocus: props.onfocus,
-                onblur: props.onblur,
-                onkeydown: handle_keydown,
-                "aria-expanded": "{is_open()}",
-                "aria-haspopup": "listbox",
-
-                span { class: "dropdown-value", "{selected_label}" }
-                span { class: "dropdown-arrow", "▼" }
-            }
-
-            // Dropdown menu
-            if is_open() {
-                div { class: "dropdown-menu",
-                    role: "listbox",
-
-                    // Search input
-                    div { class: "dropdown-search",
-                        input {
-                            r#type: "text",
-                            class: "dropdown-search-input",
-                            placeholder: "Search options...",
-                            value: "{search_query()}",
-                            oninput: move |evt| {
-                                search_query.set(evt.value());
-                                focused_index.set(0);
-                            },
-                            onkeydown: handle_keydown,
-                            autofocus: true,
+        div { class: format!("dropdown-container {}", props.class.as_deref().unwrap_or("")),
+            div { class: "dropdown-trigger",
+                button {
+                    class: format!("dropdown-button {} {}",
+                        if props.disabled { "disabled" } else { "" },
+                        if is_open() { "open" } else { "" }
+                    ),
+                    r#type: "button",
+                    disabled: props.disabled,
+                    onclick: move |_| {
+                        if !props.disabled {
+                            is_open.set(!is_open());
                         }
+                    },
+                    onfocus: move |e: FocusEvent| {
+                        if !props.disabled {
+                            is_open.set(true);
+                        }
+                        props.onfocus.call(e);
+                    },
+                    onblur: move |e: FocusEvent| {
+                        is_open.set(false);
+                        props.onblur.call(e);
+                    },
+
+                    // Selected value or placeholder
+                    span { class: "dropdown-value",
+                        {props.value.as_ref().map(|v| v.as_string()).unwrap_or_else(|| props.placeholder.clone())}
                     }
 
-                    // Options list
-                    div { class: "dropdown-options",
-                        for (index, option) in filtered_options().clone().into_iter().enumerate() {
-                            button {
-                                class: format!("dropdown-option {} {} {}",
-                                    if index == focused_index() { "focused" } else { "" },
-                                    if option.disabled { "disabled" } else { "enabled" },
-                                    if props.value.as_ref() == Some(&option.value) { "selected" } else { "" }
-                                ),
-                                r#type: "button",
-                                disabled: option.disabled,
-                                onclick: {
-                                    let option_clone = option.clone();
-                                    move |_| handle_select(option_clone.clone())
-                                },
-                                role: "option",
-                                "aria-selected": "{props.value.as_ref() == Some(&option.value)}",
-                                "aria-disabled": "{option.disabled}",
+                    // Dropdown arrow
+                    span { class: "dropdown-arrow",
+                        {if is_open() { "▲" } else { "▼" }}
+                    }
+                }
 
-                                // Option icon
-                                if let Some(icon) = &option.icon {
-                                    span { class: "dropdown-option-icon", "{icon}" }
-                                }
+                // Dropdown menu
+                if is_open() {
+                    div { class: "dropdown-menu",
+                        {props.options.iter().enumerate().map(|(index, option)| {
+                            let is_selected = props.value.as_ref().map_or(false, |v| v.matches(&option.value));
+                            let option_clone = option.clone();
 
-                                // Option content
-                                div { class: "dropdown-option-content",
-                                    div { class: "dropdown-option-label", "{option.label}" }
-                                    if let Some(description) = &option.description {
-                                        div { class: "dropdown-option-description", "{description}" }
+                            rsx! {
+                                button {
+                                    class: format!("dropdown-option {} {}",
+                                        if option.disabled { "disabled" } else { "" },
+                                        if is_selected { "selected" } else { "" }
+                                    ),
+                                    r#type: "button",
+                                    disabled: option.disabled,
+                                    onclick: move |_| {
+                                        if !option_clone.disabled {
+                                            props.onchange.call(option_clone.value.clone());
+                                            is_open.set(false);
+                                        }
+                                    },
+                                    role: "option",
+                                    "aria-selected": "{is_selected}",
+                                    "aria-disabled": "{option.disabled}",
+
+                                    // Option icon
+                                    if let Some(icon) = &option.icon {
+                                        span { class: "dropdown-option-icon", "{icon}" }
+                                    }
+
+                                    // Option content
+                                    div { class: "dropdown-option-content",
+                                        div { class: "dropdown-option-label", "{option.label}" }
+                                        if let Some(description) = &option.description {
+                                            div { class: "dropdown-option-description", "{description}" }
+                                        }
                                     }
                                 }
                             }
-                        }
+                        })}
 
-                        // No results message
-                        if filtered_options().is_empty() {
-                            div { class: "dropdown-no-results",
-                                "No options found"
+                        // No options message
+                        if props.options.is_empty() {
+                            div { class: "dropdown-no-options",
+                                "No options available"
                             }
                         }
                     }
@@ -335,363 +174,173 @@ pub fn Dropdown(props: DropdownProps) -> Element {
 pub struct MultiSelectDropdownProps {
     /// Dropdown options
     pub options: Vec<DropdownOption>,
-
     /// Currently selected values
     pub values: HashSet<DropdownValue>,
-
     /// Placeholder text
     #[props(default = "Select options".to_string())]
     pub placeholder: String,
-
     /// Maximum number of selections
     pub max_selections: Option<usize>,
-
     /// Whether dropdown is disabled
     #[props(default = false)]
     pub disabled: bool,
-
     /// Custom CSS classes
     pub class: Option<String>,
-
     /// Change handler
     pub onchange: EventHandler<HashSet<DropdownValue>>,
-
     /// Focus handler
     pub onfocus: EventHandler<FocusEvent>,
-
     /// Blur handler
     pub onblur: EventHandler<FocusEvent>,
 }
 
-/// Multi-select dropdown component (placeholder)
+/// Multi-select dropdown component
 #[component]
 pub fn MultiSelectDropdown(props: MultiSelectDropdownProps) -> Element {
-    // Simple placeholder implementation to enable compilation
-    rsx! {
-        div { class: "multi-select-dropdown-placeholder",
-            p { "MultiSelectDropdown (Coming Soon)" }
-        }
-    }
-}
-
-// Original implementation temporarily disabled due to RSX syntax issues
-/*
-#[component]
-pub fn MultiSelectDropdown(props: MultiSelectDropdownProps) -> Element {
-    let is_open = use_signal(|| false);
-    let focused_index = use_signal(|| 0);
-    let search_query = use_signal(|| String::new());
-
-    // Filter options
-    let filtered_options = use_memo(move || {
-        if search_query().is_empty() {
-            props.options.clone()
-        } else {
-            props
-                .options
-                .iter()
-                .filter(|opt| {
-                    opt.value.matches(&search_query())
-                        || opt
-                            .label
-                            .to_lowercase()
-                            .contains(&search_query().to_lowercase())
-                })
-                .cloned()
-                .collect()
-        }
-    });
-
-    // Handle option toggle
-    let handle_toggle = move |option: DropdownOption| {
-        if !option.disabled {
-            let mut new_values = props.values.clone();
-            if new_values.contains(&option.value) {
-                new_values.remove(&option.value);
-            } else {
-                // Check max selections
-                if let Some(max) = props.max_selections {
-                    if new_values.len() >= max {
-                        return;
-                    }
-                }
-                new_values.insert(option.value.clone());
-            }
-            props.onchange.call(new_values);
-        }
-    };
-
-    // Handle remove tag
-    let handle_remove = move |value: DropdownValue| {
-        let mut new_values = props.values.clone();
-        new_values.remove(&value);
-        props.onchange.call(new_values);
-    };
-
-    // Handle keyboard navigation
-    let handle_keydown = move |evt: KeyboardEvent| {
-        match evt.key().as_str() {
-            "ArrowDown" => {
-                evt.prevent_default();
-                if is_open() {
-                    focused_index
-                        .set((focused_index() + 1).min(filtered_options().len().saturating_sub(1)));
-                } else {
-                    is_open.set(true);
-                }
-            }
-            "ArrowUp" => {
-                evt.prevent_default();
-                if is_open() {
-                    focused_index.set(focused_index().saturating_sub(1));
-                }
-            }
-            "Enter" | " " => {
-                evt.prevent_default();
-                if is_open() {
-                    if let Some(option) = filtered_options().get(focused_index()) {
-                        handle_toggle(option.clone());
-                    }
-                } else {
-                    is_open.set(true);
-                }
-            }
-            "Escape" => {
-                evt.prevent_default();
-                is_open.set(false);
-            }
-            "Backspace" => {
-                if search_query().is_empty() && !props.values.is_empty() {
-                    // Remove last selected value
-                    if let Some(last_value) = props.values.iter().last().cloned() {
-                        handle_remove(last_value);
-                    }
-                }
-            }
-            _ => {}
-        }
-    };
-
-    // Get selected labels for display
-    let selected_labels: Vec<String> = props
-        .values
-        .iter()
-        .filter_map(|value| {
-            props
-                .options
-                .iter()
-                .find(|opt| opt.value == *value)
-                .map(|opt| opt.label.clone())
-        })
-        .collect();
-
-    let display_text = if selected_labels.is_empty() {
-        props.placeholder.clone()
-    } else if selected_labels.len() == 1 {
-        selected_labels[0].clone()
-    } else {
-        format!("{} items selected", selected_labels.len())
-    };
-
-    let dropdown_classes = format!(
-        "dropdown {} {} {}",
-        "multi-select",
-        if is_open() { "open" } else { "closed" },
-        if props.disabled {
-            "disabled"
-        } else {
-            "enabled"
-        }
-    );
-
-    let final_classes = match &props.class {
-        Some(custom) => format!("{} {}", dropdown_classes, custom),
-        None => dropdown_classes,
-    };
+    let mut is_open = use_signal(|| false);
+    let mut selected_values = use_signal(|| props.values.clone());
 
     rsx! {
-        div { class: final_classes,
+        div { class: format!("multi-select-dropdown-container {}", props.class.as_deref().unwrap_or("")),
+            div { class: "dropdown-trigger",
+                button {
+                    class: format!("dropdown-button {} {}",
+                        if props.disabled { "disabled" } else { "" },
+                        if is_open() { "open" } else { "" }
+                    ),
+                    r#type: "button",
+                    disabled: props.disabled,
+                    onclick: move |_| {
+                        if !props.disabled {
+                            is_open.set(!is_open());
+                        }
+                    },
+                    onfocus: move |e: FocusEvent| {
+                        if !props.disabled {
+                            is_open.set(true);
+                        }
+                        props.onfocus.call(e);
+                    },
+                    onblur: move |e: FocusEvent| {
+                        is_open.set(false);
+                        props.onblur.call(e);
+                    },
 
-            // Dropdown trigger
-            button {
-                class: "dropdown-trigger",
-                r#type: "button",
-                disabled: props.disabled,
-                onclick: move |_| {
-                    if !props.disabled {
-                        is_open.set(!is_open());
+                    // Selected values or placeholder
+                    span { class: "dropdown-value",
+                        if selected_values().is_empty() {
+                            {props.placeholder.clone()}
+                        } else {
+                            {format!("{} selected", selected_values().len())}
+                        }
                     }
-                },
-                onfocus: props.onfocus,
-                onblur: props.onblur,
-                onkeydown: handle_keydown,
-                "aria-expanded": "{is_open()}",
-                "aria-haspopup": "listbox",
 
-                // Selected tags
-                div { class: "dropdown-selected-tags",
-                    for (index, label) in selected_labels.iter().enumerate() {
-                        if index < 3 { // Show max 3 tags
-                            span { class: "dropdown-tag",
-                                "{label}"
+                    // Dropdown arrow
+                    span { class: "dropdown-arrow",
+                        {if is_open() { "▲" } else { "▼" }}
+                    }
+                }
+
+                // Dropdown menu
+                if is_open() {
+                    div { class: "dropdown-menu",
+                        {props.options.iter().enumerate().map(|(index, option)| {
+                            let is_selected = selected_values().contains(&option.value);
+                            let option_clone = option.clone();
+                            let mut values_signal = selected_values.clone();
+                            let max_selections = props.max_selections;
+                            let onchange = props.onchange.clone();
+
+                            rsx! {
                                 button {
-                                    class: "dropdown-tag-remove",
+                                    class: format!("dropdown-option {} {}",
+                                        if option.disabled { "disabled" } else { "" },
+                                        if is_selected { "selected" } else { "" }
+                                    ),
                                     r#type: "button",
-                                    onclick: move |evt: MouseEvent| {
-                                        evt.stop_propagation();
-                                        if let Some(value) = props.values.iter()
-                                            .find(|v| {
-                                                props.options.iter()
-                                                    .find(|opt| opt.label == *label && opt.value == **v)
-                                                    .is_some()
-                                            })
-                                            .cloned() {
-                                            handle_remove(value);
+                                    disabled: option.disabled,
+                                    onclick: move |_| {
+                                        if !option_clone.disabled {
+                                            let mut values = values_signal.read().clone();
+
+                                            if values.contains(&option_clone.value) {
+                                                values.remove(&option_clone.value);
+                                            } else {
+                                                // Check max selections
+                                                if let Some(max) = max_selections {
+                                                    if values.len() >= max {
+                                                        return;
+                                                    }
+                                                }
+                                                values.insert(option_clone.value.clone());
+                                            }
+
+                                            values_signal.set(values.clone());
+                                            onchange.call(values);
                                         }
                                     },
-                                    "×"
-                                }
-                            }
-                        }
-                    }
+                                    role: "option",
+                                    "aria-selected": "{is_selected}",
+                                    "aria-disabled": "{option.disabled}",
 
-                    // More indicator
-                    if selected_labels.len() > 3 {
-                        span { class: "dropdown-more-indicator",
-                            "+{}"
-                        }
-                    }
+                                    // Checkbox
+                                    span { class: "dropdown-option-checkbox",
+                                        if is_selected { "✓" } else { "" }
+                                    }
 
-                    // Placeholder or count
-                    if selected_labels.is_empty() {
-                        span { class: "dropdown-placeholder", "{display_text}" }
-                    } else if selected_labels.len() > 3 {
-                        span { class: "dropdown-count", "{display_text}" }
-                    }
-                }
+                                    // Option icon
+                                    if let Some(icon) = &option.icon {
+                                        span { class: "dropdown-option-icon", "{icon}" }
+                                    }
 
-                span { class: "dropdown-arrow", "▼" }
-            }
-
-            // Dropdown menu
-            if is_open() {
-                div { class: "dropdown-menu",
-                    role: "listbox",
-                    "aria-multiselectable": "true",
-
-                    // Search input
-                    div { class: "dropdown-search",
-                        input {
-                            r#type: "text",
-                            class: "dropdown-search-input",
-                            placeholder: "Search options...",
-                            value: "{search_query()}",
-                            oninput: move |evt| {
-                                search_query.set(evt.value());
-                                focused_index.set(0);
-                            },
-                            onkeydown: handle_keydown,
-                            autofocus: true,
-                        }
-                    }
-
-                    // Options list
-                    div { class: "dropdown-options",
-                        for (index, option) in filtered_options().iter().enumerate() {
-                            let is_selected = props.values.contains(&option.value);
-
-                            button {
-                                class: format!("dropdown-option {} {} {}",
-                                    if index == focused_index() { "focused" } else { "" },
-                                    if option.disabled { "disabled" } else { "enabled" },
-                                    if is_selected { "selected" } else { "" }
-                                ),
-                                r#type: "button",
-                                disabled: option.disabled,
-                                onclick: move |_| handle_toggle(option.clone()),
-                                role: "option",
-                                "aria-selected": "{is_selected}",
-                                "aria-disabled": "{option.disabled}",
-
-                                // Checkbox
-                                span { class: "dropdown-option-checkbox",
-                                    if is_selected { "✓" } else { "" }
-                                }
-
-                                // Option icon
-                                if let Some(icon) = &option.icon {
-                                    span { class: "dropdown-option-icon", "{icon}" }
-                                }
-
-                                // Option content
-                                div { class: "dropdown-option-content",
-                                    div { class: "dropdown-option-label", "{option.label}" }
-                                    if let Some(description) = &option.description {
-                                        div { class: "dropdown-option-description", "{description}" }
+                                    // Option content
+                                    div { class: "dropdown-option-content",
+                                        div { class: "dropdown-option-label", "{option.label}" }
+                                        if let Some(description) = &option.description {
+                                            div { class: "dropdown-option-description", "{description}" }
+                                        }
                                     }
                                 }
                             }
-                        }
+                        })}
 
-                        // No results message
-                        if filtered_options().is_empty() {
-                            div { class: "dropdown-no-results",
-                                "No options found"
+                        // No options message
+                        if props.options.is_empty() {
+                            div { class: "dropdown-no-options",
+                                "No options available"
                             }
                         }
                     }
                 }
             }
         }
+    }
 }
-*/
-//
-// #[component]
-// pub fn SimpleDropdown(props: DropdownProps) -> Element {
-//     rsx! {
-//         div { class: "simple-dropdown",
-//             select {
-//                 class: "dropdown-select",
-//                 for option in props.options.iter() {
-//                     option {
-//                         value: "{option.value}",
-//                         {option.label}
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
 
 /// Searchable dropdown props
 #[derive(Debug, PartialEq, Clone, Props)]
 pub struct SearchableDropdownProps {
     /// Dropdown options
     pub options: Vec<DropdownOption>,
-
     /// Currently selected value
     pub value: Option<DropdownValue>,
-
     /// Placeholder text
     #[props(default = "Search and select".to_string())]
     pub placeholder: String,
-
     /// Whether to show search on focus (always open)
     #[props(default = true)]
     pub always_show_search: bool,
-
-    /// Custom search function (TODO: Fix function trait bounds)
+    /// Whether dropdown is disabled
+    #[props(default = false)]
+    pub disabled: bool,
+    /// Custom search function placeholder
     pub search_fn: Option<String>,
-
     /// Custom CSS classes
     pub class: Option<String>,
-
     /// Change handler
     pub onchange: EventHandler<DropdownValue>,
-
     /// Focus handler
     pub onfocus: EventHandler<FocusEvent>,
-
     /// Blur handler
     pub onblur: EventHandler<FocusEvent>,
 }
@@ -700,203 +349,126 @@ pub struct SearchableDropdownProps {
 #[component]
 pub fn SearchableDropdown(props: SearchableDropdownProps) -> Element {
     let mut is_open = use_signal(|| false);
-    let mut focused_index = use_signal(|| 0);
-    let mut search_query = use_signal(String::new);
-    let mut input_focused = use_signal(|| false);
+    let mut search_query = use_signal(|| String::new());
 
-    // Custom search function or default
-    let search_matches = move |query: &str, option: &DropdownOption| -> bool {
-        // TODO: Fix custom search function trait bounds
-        // if let Some(search_fn) = &props.search_fn {
-        //     // Use custom search function
-        //     search_fn(query, option)
-        // } else {
-        // Default search: match label or value
-        option.label.to_lowercase().contains(&query.to_lowercase()) || option.value.matches(query)
-        // }
-    };
-
-    // Filter options based on search
     let filtered_options = use_memo(move || {
-        if search_query().is_empty() && !props.always_show_search {
+        let query = search_query.read().to_lowercase();
+        if query.is_empty() {
             props.options.clone()
         } else {
             props
                 .options
                 .iter()
-                .filter(|opt| search_matches(&search_query(), opt))
+                .filter(|option| {
+                    option.label.to_lowercase().contains(&query)
+                        || option
+                            .description
+                            .as_ref()
+                            .map_or(false, |desc| desc.to_lowercase().contains(&query))
+                })
                 .cloned()
                 .collect()
         }
     });
 
-    // Handle option selection
-    let mut handle_select = move |option: DropdownOption| {
-        if !option.disabled {
-            props.onchange.call(option.value.clone());
-            search_query.set(option.label.clone());
-            is_open.set(false);
-        }
-    };
-
-    // Handle input changes
-    let mut handle_input_change = move |value: String| {
-        search_query.set(value.clone());
-        focused_index.set(0);
-        if props.always_show_search || !value.is_empty() {
-            is_open.set(true);
-        }
-    };
-
-    // Handle keyboard navigation
-    let handle_keydown = move |evt: KeyboardEvent| match &evt.key().to_string()[..] {
-        "ArrowDown" => {
-            evt.prevent_default();
-            if is_open() {
-                focused_index
-                    .set((focused_index() + 1).min(filtered_options().len().saturating_sub(1)));
-            } else {
-                is_open.set(true);
-            }
-        }
-        "ArrowUp" => {
-            evt.prevent_default();
-            if is_open() {
-                focused_index.set(focused_index().saturating_sub(1));
-            }
-        }
-        "Enter" => {
-            evt.prevent_default();
-            if is_open() {
-                if let Some(option) = filtered_options().get(focused_index()) {
-                    handle_select(option.clone());
-                }
-            }
-        }
-        "Escape" => {
-            evt.prevent_default();
-            is_open.set(false);
-        }
-        _ => {}
-    };
-
-    // Handle input focus
-    let handle_input_focus = move |evt: FocusEvent| {
-        input_focused.set(true);
-        if props.always_show_search {
-            is_open.set(true);
-        }
-        props.onfocus.call(evt);
-    };
-
-    // Handle input blur
-    let handle_input_blur = move |evt: FocusEvent| {
-        input_focused.set(false);
-        // Delay closing to allow option clicks
-        use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
-            let mut is_open = is_open;
-            async move {
-                tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
-                is_open.set(false);
-            }
-        });
-        props.onblur.call(evt);
-    };
-
-    let dropdown_classes = format!(
-        "dropdown {} {} {}",
-        "searchable",
-        if is_open() { "open" } else { "closed" },
-        if input_focused() { "focused" } else { "" }
-    );
-
-    let final_classes = match &props.class {
-        Some(custom) => format!("{} {}", dropdown_classes, custom),
-        None => dropdown_classes,
-    };
-
     rsx! {
-        div { class: "{final_classes}",
-
-            // Search input (always visible)
-            div { class: "dropdown-search-container",
-                input {
-                    r#type: "text",
-                    class: "dropdown-search-input",
-                    placeholder: "{props.placeholder}",
-                    value: "{search_query()}",
-                    oninput: move |evt| handle_input_change(evt.value()),
-                    onfocus: handle_input_focus,
-                    onblur: handle_input_blur,
-                    onkeydown: handle_keydown,
-                    role: "combobox",
-                    "aria-expanded": "{is_open()}",
-                    "aria-autocomplete": "list",
-                    "aria-activedescendant": if is_open() && !filtered_options().is_empty() {
-                        format!("dropdown-option-{}", focused_index())
-                    } else {
-                        String::new()
+        div { class: format!("searchable-dropdown-container {}", props.class.as_deref().unwrap_or("")),
+            div { class: "dropdown-trigger",
+                button {
+                    class: format!("dropdown-button {} {}",
+                        if props.disabled { "disabled" } else { "" },
+                        if is_open() { "open" } else { "" }
+                    ),
+                    r#type: "button",
+                    disabled: props.disabled,
+                    onclick: move |_| {
+                        if !props.disabled {
+                            is_open.set(!is_open());
+                        }
                     },
-                }
+                    onfocus: move |e: FocusEvent| {
+                        if !props.disabled {
+                            is_open.set(true);
+                        }
+                        props.onfocus.call(e);
+                    },
+                    onblur: move |e: FocusEvent| {
+                        is_open.set(false);
+                        props.onblur.call(e);
+                    },
 
-                // Clear button
-                if !search_query().is_empty() {
-                    button {
-                        class: "dropdown-clear",
-                        r#type: "button",
-                        onclick: move |_| {
-                            search_query.set(String::new());
-                            is_open.set(false);
-                        },
-                        "×"
+                    // Selected value or placeholder
+                    span { class: "dropdown-value",
+                        {props.value.as_ref().map(|v| v.as_string()).unwrap_or_else(|| props.placeholder.clone())}
+                    }
+
+                    // Dropdown arrow
+                    span { class: "dropdown-arrow",
+                        {if is_open() { "▲" } else { "▼" }}
                     }
                 }
-            }
 
-            // Dropdown menu
-            if is_open() && (!filtered_options().is_empty() || !search_query().is_empty()) {
-                div { class: "dropdown-menu",
-                    role: "listbox",
-
-                    // Options list
-                    div { class: "dropdown-options",
-                        for (index, option) in filtered_options().clone().into_iter().enumerate() {
-                            button {
-                                class: format!("dropdown-option {} {} {}",
-                                    if index == focused_index() { "focused" } else { "" },
-                                    if option.disabled { "disabled" } else { "enabled" },
-                                    if props.value.as_ref() == Some(&option.value) { "selected" } else { "" }
-                                ),
-                                "type": "button",
-                                disabled: option.disabled,
-                                onclick: {
-                                    let option_clone = option.clone();
-                                    move |_| handle_select(option_clone.clone())
-                                },
-                                role: "option",
-                                id: "dropdown-option-{index}",
-                                "aria-selected": "{props.value.as_ref().map_or(false, |v| v == &option.value)}",
-                                "aria-disabled": "{option.disabled}",
-
-                                // Option icon
-                                if let Some(icon) = &option.icon {
-                                    span { class: "dropdown-option-icon", "{icon}" }
-                                }
-
-                                // Option content
-                                div { class: "dropdown-option-content",
-                                    div { class: "dropdown-option-label", "{option.label}" }
-                                    if let Some(description) = &option.description {
-                                        div { class: "dropdown-option-description", "{description}" }
-                                    }
-                                }
+                // Dropdown menu with search
+                if is_open() {
+                    div { class: "dropdown-menu searchable",
+                        // Search input
+                        div { class: "dropdown-search",
+                            input {
+                                class: "search-input",
+                                r#type: "text",
+                                placeholder: "Search options...",
+                                value: "{search_query}",
+                                oninput: move |e| search_query.set(e.value()),
+                                autofocus: true,
                             }
                         }
 
-                        // No results message
-                        if filtered_options().is_empty() {
-                            div { class: "dropdown-no-results",
-                                "No options found for \"{search_query()}\""
+                        // Filtered options
+                        div { class: "dropdown-options",
+                            {filtered_options().iter().enumerate().map(|(index, option)| {
+                                let is_selected = props.value.as_ref().map_or(false, |v| v.matches(&option.value));
+                                let option_clone = option.clone();
+
+                                rsx! {
+                                    button {
+                                        class: format!("dropdown-option {} {}",
+                                            if option.disabled { "disabled" } else { "" },
+                                            if is_selected { "selected" } else { "" }
+                                        ),
+                                        r#type: "button",
+                                        disabled: option.disabled,
+                                        onclick: move |_| {
+                                            if !option_clone.disabled {
+                                                props.onchange.call(option_clone.value.clone());
+                                                is_open.set(false);
+                                                search_query.set(String::new());
+                                            }
+                                        },
+                                        role: "option",
+                                        "aria-selected": "{is_selected}",
+                                        "aria-disabled": "{option.disabled}",
+
+                                        // Option icon
+                                        if let Some(icon) = &option.icon {
+                                            span { class: "dropdown-option-icon", "{icon}" }
+                                        }
+
+                                        // Option content
+                                        div { class: "dropdown-option-content",
+                                            div { class: "dropdown-option-label", "{option.label}" }
+                                            if let Some(description) = &option.description {
+                                                div { class: "dropdown-option-description", "{description}" }
+                                            }
+                                        }
+                                    }
+                                }
+                            })}
+
+                            // No results message
+                            if filtered_options().is_empty() {
+                                div { class: "dropdown-no-results",
+                                    "No options found"
+                                }
                             }
                         }
                     }
@@ -913,32 +485,28 @@ mod tests {
     #[test]
     fn test_dropdown_value() {
         let string_val = DropdownValue::String("test".to_string());
-        let number_val = DropdownValue::Number(42.0);
+        let number_val = DropdownValue::Number(42);
         let bool_val = DropdownValue::Boolean(true);
 
         assert_eq!(string_val.as_string(), "test");
         assert_eq!(number_val.as_string(), "42");
         assert_eq!(bool_val.as_string(), "true");
-
-        assert!(string_val.matches("test"));
-        assert!(string_val.matches("tes"));
-        assert!(!string_val.matches("xyz"));
     }
 
     #[test]
     fn test_dropdown_option() {
         let option = DropdownOption {
-            value: DropdownValue::String("option1".to_string()),
-            label: "Option 1".to_string(),
-            description: Some("Description".to_string()),
+            value: DropdownValue::String("test".to_string()),
+            label: "Test Option".to_string(),
+            description: Some("A test option".to_string()),
             disabled: false,
-            icon: Some("📁".to_string()),
-            group: Some("Group 1".to_string()),
+            icon: Some("🧪".to_string()),
+            group: None,
         };
 
-        assert_eq!(option.label, "Option 1");
-        assert_eq!(option.description, Some("Description".to_string()));
+        assert_eq!(option.label, "Test Option");
+        assert_eq!(option.description, Some("A test option".to_string()));
         assert!(!option.disabled);
-        assert_eq!(option.icon, Some("📁".to_string()));
+        assert_eq!(option.icon, Some("🧪".to_string()));
     }
 }

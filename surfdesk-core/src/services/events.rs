@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Events Service Module
 //!
 //! This module provides an event system for the SurfDesk application.

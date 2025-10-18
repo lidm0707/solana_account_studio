@@ -4,8 +4,6 @@
 //! Uses the core SurfPool module for proper `surfpool start` command execution.
 //! Provides start/stop functionality, status monitoring, and MCP integration.
 
-#![allow(dead_code)]
-
 use anyhow::{Context, Result};
 use dioxus::prelude::*;
 use log::{debug, error, info, warn};

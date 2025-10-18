@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Database Service Module
 //!
 //! This module provides database integration for the SurfDesk application.

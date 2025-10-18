@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Notification Component (MVP Version)
 //!
 //! Simplified notification component for MVP approach.

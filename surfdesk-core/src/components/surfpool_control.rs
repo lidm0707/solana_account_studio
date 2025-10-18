@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # SurfPool Control Component Module
 //!
 //! This module provides components for integrating with the external SurfPool tool.

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # WebSocket Service Module
 //!
 //! This module provides WebSocket functionality for real-time updates

@@ -3,8 +3,6 @@
 //! Main dashboard showing account overview, portfolio metrics,
 //! recent transactions, and quick actions for the SurfDesk desktop application.
 
-#![allow(dead_code)]
-
 use crate::surfpool::{SurfPoolManager, SurfPoolStatus as DesktopSurfPoolStatus};
 use dioxus::prelude::*;
 use log::{debug, error, info, warn};

@@ -5,8 +5,6 @@
 //! - Process start/stop
 //! - Mainnet fork management
 
-#![allow(dead_code)]
-
 use crate::platform::Platform;
 use crate::surfpool::{ControllerStatus, ProcessStatus, SurfPoolController};
 use dioxus::prelude::*;

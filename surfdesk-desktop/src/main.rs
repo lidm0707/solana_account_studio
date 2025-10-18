@@ -9,11 +9,6 @@
 //! iterations. Warning suppression is enabled to facilitate rapid development
 //! and iterative feature implementation.
 
-#![allow(dead_code)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
-#![allow(unused_mut)]
-
 use anyhow::Result;
 use clap::Parser;
 use dioxus::prelude::*;

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Program Manager Component
 //!
 //! Program manager component for managing Solana programs,

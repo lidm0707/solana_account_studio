@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Transaction Builder Component Module
 //!
 //! This module provides a transaction builder component for creating

@@ -3,8 +3,6 @@
 //! Basic account management for MVP with real wallet file support.
 //! Implements create accounts, import wallet files, and request airdrops.
 
-#![allow(dead_code)]
-
 use dioxus::prelude::*;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};

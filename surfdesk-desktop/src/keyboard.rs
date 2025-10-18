@@ -3,8 +3,6 @@
 //! Comprehensive keyboard shortcut system for the SurfDesk desktop application.
 //! Provides global hotkeys, action handlers, and shortcut management.
 
-#![allow(dead_code)]
-
 use dioxus::prelude::*;
 use log::{debug, info};
 use std::collections::HashMap;

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Solana Service Module
 //!
 //! This module provides Solana blockchain integration for the SurfDesk application.

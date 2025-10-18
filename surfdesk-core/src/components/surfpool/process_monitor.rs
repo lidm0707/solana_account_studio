@@ -1,7 +1,5 @@
 //! Process Status Monitor Component
 
-#![allow(dead_code)]
-
 use crate::surfpool::ProcessStatus;
 use dioxus::prelude::*;
 

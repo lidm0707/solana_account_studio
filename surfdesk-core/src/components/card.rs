@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Card Component Module
 //!
 //! This module provides a reusable card component for the SurfDesk application.

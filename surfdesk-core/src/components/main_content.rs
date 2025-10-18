@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! # Main Content Component
 //!
 //! Main content area component for displaying the primary application
