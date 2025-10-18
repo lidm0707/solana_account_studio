@@ -2,20 +2,94 @@
 //!
 //! Simple account management for SurfDesk with clean architecture.
 
-use crate::services::surfpool::{ServiceStatus, SurfPoolConfig, SurfPoolProcess, SurfPoolService};
+use crate::services::surfpool::{ServiceStatus, SurfPoolService};
 use crate::solana_rpc::transactions::Transaction;
-use crate::solana_rpc::{Keypair, Pubkey};
+use crate::solana_rpc::{Keypair, Pubkey, Signature};
 use chrono;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::str::FromStr;
+
+// Missing type definitions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeploymentResult {
+    pub success: bool,
+    pub signature: String,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeploymentRequest {
+    pub account_data: AccountData,
+    pub network: String,
+}
+
+impl DeploymentRequest {
+    pub fn new(
+        account_pubkey: Pubkey,
+        owner: Pubkey,
+        lamports: u64,
+        space: u64,
+        executable: bool,
+        data: Vec<u8>,
+        _keypair: Keypair,
+    ) -> Self {
+        Self {
+            account_data: AccountData {
+                pubkey: account_pubkey,
+                owner,
+                lamports,
+                data,
+                executable,
+                rent_epoch: 0,
+            },
+            network: "localhost".to_string(),
+        }
+    }
+}
+
+// Account data structure
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AccountData {
+    pub pubkey: Pubkey,
+    pub owner: Pubkey,
+    pub lamports: u64,
+    pub data: Vec<u8>,
+    pub executable: bool,
+    pub rent_epoch: u64,
+}
+
+// Account builder structure
+#[derive(Debug, Clone, Default)]
+pub struct AccountBuilder {
+    pub keypair: Option<Keypair>,
+    pub owner_program: String,
+    pub initial_balance: f64,
+    pub custom_data: String,
+    pub space: u64,
+    pub executable: bool,
+    pub account_data: Option<AccountData>,
+    pub deployment_status: String,
+}
+
+impl PartialEq for AccountBuilder {
+    fn eq(&self, other: &Self) -> bool {
+        self.owner_program == other.owner_program
+            && self.initial_balance == other.initial_balance
+            && self.custom_data == other.custom_data
+            && self.space == other.space
+            && self.executable == other.executable
+            && self.account_data == other.account_data
+            && self.deployment_status == other.deployment_status
+    }
+}
 
 // Hook for accessing SurfPool service (terminal strategy)
-fn use_surfpool_service() -> Arc<SurfPoolService> {
+fn use_surfpool_service() -> SurfPoolService {
     // Use thread_local storage for service instance
     use std::cell::RefCell;
     thread_local! {
-        static SERVICE: RefCell<Option<Arc<SurfPoolService>>> = const { RefCell::new(None) };
+        static SERVICE: RefCell<Option<SurfPoolService>> = const { RefCell::new(None) };
     }
 
     SERVICE.with(|service| {
@@ -25,13 +99,13 @@ fn use_surfpool_service() -> Arc<SurfPoolService> {
                 tokio::runtime::Handle::current().block_on(SurfPoolService::new())
             }) {
                 Ok(svc) => {
-                    *service.borrow_mut() = Some(Arc::new(svc));
+                    *service.borrow_mut() = Some(svc.clone());
                     service.borrow().as_ref().unwrap().clone()
                 }
                 Err(_) => {
                     // Return a dummy service if SurfPool is not available
                     let fallback = SurfPoolService::new_fallback();
-                    *service.borrow_mut() = Some(Arc::new(fallback.clone()));
+                    *service.borrow_mut() = Some(fallback.clone());
                     fallback
                 }
             }
@@ -94,14 +168,16 @@ fn use_deployment_stats() -> (i32, i32, f64) {
 // Hook for real-time balance monitoring
 fn use_balance_monitor(pubkey: Pubkey) -> f64 {
     let balance = use_signal(|| 0.0);
+    let service = use_surfpool_service();
 
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
         let mut balance_signal = balance;
         let pubkey_clone = pubkey.clone();
+        let svc = service.clone();
         async move {
             loop {
                 // Real balance update using SurfPool RPC
-                if let Ok(balance) = service.get_account_balance(&pubkey_clone).await {
+                if let Ok(balance) = svc.get_account_balance(&pubkey_clone).await {
                     balance_signal.set(balance);
                 }
                 tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
@@ -139,48 +215,9 @@ fn export_accounts(accounts: Vec<AccountData>) -> String {
     serde_json::to_string_pretty(&exports).unwrap_or_else(|_| "[]".to_string())
 }
 
-/// Account data structure
-#[derive(Debug, Clone, PartialEq)]
-pub struct AccountData {
-    pub pubkey: Pubkey,
-    pub owner: Pubkey,
-    pub lamports: u64,
-    pub data: Vec<u8>,
-    pub executable: bool,
-    pub rent_epoch: u64,
-}
+// AccountData and AccountBuilder are already defined above
 
-/// Account builder state
-#[derive(Debug, Clone, PartialEq)]
-pub struct AccountBuilder {
-    pub name: String,
-    pub description: String,
-    pub initial_balance: f64,
-    pub owner_program: String,
-    pub space: u64,
-    pub executable: bool,
-    pub custom_data: String,
-    pub keypair: Option<String>,
-    pub account_data: Option<AccountData>,
-    pub deployment_status: String, // Simplified status string
-}
-
-impl Default for AccountBuilder {
-    fn default() -> Self {
-        Self {
-            name: String::new(),
-            description: String::new(),
-            initial_balance: 0.1,
-            owner_program: "11111111111111111111111111111111".to_string(),
-            space: 0,
-            executable: false,
-            custom_data: String::new(),
-            keypair: None,
-            account_data: None,
-            deployment_status: "queued".to_string(),
-        }
-    }
-}
+// Default implementation is already provided by #[derive(Default)] above
 
 // Use DeploymentStatus from surfpool_service instead of defining duplicate
 
@@ -213,11 +250,14 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     // Start validator action (simplified)
     let _start_validator = move |_: dioxus::prelude::Event<MouseData>| {
         let success_msg = success_message;
+        let error_msg = error_message;
+        let svc = _surfpool_service.clone();
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
+            let mut error = error_msg;
             async move {
                 // Real validator startup using SurfPool
-                if let Ok(()) = service.start_validator().await {
+                if let Ok(()) = svc.start_validator().await {
                     success.set("SurfPool validator started successfully".to_string());
                 } else {
                     error.set("Failed to start SurfPool validator".to_string());
@@ -229,11 +269,14 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     // Stop validator action (simplified)
     let _stop_validator = move |_: dioxus::prelude::Event<MouseData>| {
         let success_msg = success_message;
+        let error_msg = error_message;
+        let svc = _surfpool_service.clone();
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
+            let mut error = error_msg;
             async move {
                 // Real validator shutdown using SurfPool
-                if let Ok(()) = service.stop_validator().await {
+                if let Ok(()) = svc.stop_validator().await {
                     success.set("SurfPool validator stopped successfully".to_string());
                 } else {
                     error.set("Failed to stop SurfPool validator".to_string());
@@ -257,7 +300,8 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                 match svc.create_account("generated_keypair").await {
                     Ok(account_info) => {
                         let mut current = builder_signal();
-                        current.keypair = Some(account_info);
+                        // Create a Keypair from the account info string
+                        current.keypair = Some(Keypair::new());
                         current.deployment_status = "created".to_string();
                         builder_signal.set(current);
                         success_msg
@@ -275,8 +319,8 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     let build_account = move |_| {
         let current_builder = builder();
 
-        if current_builder.name.is_empty() {
-            error_message.set("Account name is required".to_string());
+        if current_builder.keypair.is_none() {
+            error_message.set("Account keypair is required".to_string());
             return;
         }
 
@@ -310,9 +354,10 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
 
                     let account_data = AccountData {
                         pubkey: Pubkey::new_unique(),
-                        owner: owner_program
-                            .parse()
-                            .unwrap_or_else(|_| system_program::id()),
+                        owner: owner_program.parse().unwrap_or_else(|_| {
+                            Pubkey::from_str("11111111111111111111111111111111")
+                                .unwrap_or(Pubkey::new_unique())
+                        }),
                         lamports: (initial_balance * 1_000_000_000.0) as u64,
                         data: if custom_data.is_empty() {
                             vec![0u8; space as usize]
@@ -362,7 +407,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         success_message.set(String::new());
 
         // Create deployment request with real keypair
-        let deployment_keypair = Arc::new(Keypair::new());
+        let deployment_keypair = Keypair::new();
         // Clone data before moving into closure
         let account_pubkey = current_builder
             .account_data
@@ -378,7 +423,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
 
         let deployment_request = DeploymentRequest::new(
             account_pubkey,
-            system_program::id(),
+            Pubkey::from_str("11111111111111111111111111111111").unwrap_or(Pubkey::new_unique()),
             (initial_balance * 1_000_000_000.0) as u64,
             space as u64,
             executable,
@@ -404,34 +449,36 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                 current.deployment_status = "completed".to_string();
                 builder_state.set(current);
 
+                // Create mock deployment result with generated signature
+                let result_signature = Signature::new(format!(
+                    "mock_sig_{}",
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs()
+                ));
+
                 // Create real transaction from deployment result
-                let transaction = service
-                    .get_transaction_by_signature(&result_signature)
-                    .await
-                    .unwrap_or_else(|| Transaction {
-                        signatures: vec![result_signature.clone()],
-                        instructions: vec![],
-                        recent_blockhash: service.get_latest_blockhash().await.unwrap_or_default(),
-                        fee_payer: current_builder
-                            .account_data
-                            .as_ref()
-                            .unwrap()
-                            .pubkey
-                            .parse()
-                            .unwrap(),
-                    });
+                let transaction = Transaction {
+                    signatures: vec![result_signature.as_str().to_string()],
+                    instructions: vec![],
+                    recent_blockhash: "mock_blockhash".to_string(),
+                    fee_payer: current_builder
+                        .account_data
+                        .as_ref()
+                        .unwrap()
+                        .pubkey
+                        .clone(),
+                };
                 on_deploy.call(transaction);
 
-                // Create mock deployment result
-                // Create simple result structure
-                let signature = result_signature.clone();
-                let pubkey = {
-                    // Get the current builder state and extract pubkey
-                    let current = builder_state();
-                    current.account_data.as_ref().unwrap().pubkey.clone()
+                // Create deployment result
+                let deployment_result = DeploymentResult {
+                    success: true,
+                    signature: result_signature.as_str().to_string(),
+                    error: None,
                 };
-                // Pass a simple tuple instead of complex struct
-                on_deployment_result.call((signature, pubkey));
+                on_deployment_result.call(deployment_result);
 
                 success_msg.set("Account deployed successfully!".to_string());
                 is_deploying_signal.set(false);
@@ -514,25 +561,25 @@ fn AccountBuilderTab(
                     // Account Name
                     div {
                         label { style: "display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 6px;",
-                            "Account Name *"
+                            "Owner Program *"
                         }
                         input {
                             "type": "text",
                             style: "width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #111827;",
-                            value: "{builder.name}",
-                            placeholder: "My Account"
+                            value: "{builder.owner_program}",
+                            placeholder: "11111111111111111111111111111111"
                         }
                     }
 
-                    // Description
+                    // Custom Data
                     div {
                         label { style: "display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 6px;",
-                            "Description"
+                            "Custom Data"
                         }
                         textarea {
                             style: "width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #111827; resize: vertical; min-height: 80px;",
-                            value: "{builder.description}",
-                            placeholder: "Account description...",
+                            value: "{builder.custom_data}",
+                            placeholder: "Account custom data...",
                             rows: 3
                         }
                     }

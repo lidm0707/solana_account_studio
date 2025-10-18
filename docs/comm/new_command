@@ -1,3 +1,5 @@
+
+No use anchor or solana sdk. Just use my solana_rpc.
 You must work in continuous development cycles until there are no errors or warnings left if warnning is don't use code you just impl real future and use it.
 Each cycles must be to git push.
 Dioxus can't use Arc.

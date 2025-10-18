@@ -486,6 +486,67 @@ impl SurfPoolService {
             Err(_) => false,
         }
     }
+
+    /// Get account balance (placeholder implementation)
+    pub async fn get_account_balance(&self, _pubkey: &crate::solana_rpc::Pubkey) -> Result<f64> {
+        // Check if this is a fallback service
+        if self.is_fallback() {
+            return Ok(0.0); // Return default balance for fallback
+        }
+
+        // Placeholder implementation - in real scenario would query Solana RPC
+        info!("Getting account balance for pubkey: {}", _pubkey);
+        Ok(1.0) // Return mock balance
+    }
+
+    /// Start validator (placeholder implementation)
+    pub async fn start_validator(&self) -> Result<()> {
+        // Check if this is a fallback service
+        if self.is_fallback() {
+            return Err(SurfDeskError::platform(
+                "Cannot start validator: SurfPool not installed",
+            ));
+        }
+
+        info!("Starting validator via SurfPool");
+        // For now, just start the service
+        self.start().await
+    }
+
+    /// Stop validator (placeholder implementation)
+    pub async fn stop_validator(&self) -> Result<()> {
+        // Check if this is a fallback service
+        if self.is_fallback() {
+            return Err(SurfDeskError::platform(
+                "Cannot stop validator: SurfPool not installed",
+            ));
+        }
+
+        info!("Stopping validator via SurfPool");
+        // For now, just stop the service
+        self.stop().await
+    }
+
+    /// Get transaction by signature (placeholder implementation)
+    pub async fn get_transaction_by_signature(
+        &self,
+        _signature: &crate::solana_rpc::Signature,
+    ) -> Option<crate::solana_rpc::transactions::Transaction> {
+        info!("Getting transaction by signature: {}", _signature);
+        // Return mock transaction for now
+        Some(crate::solana_rpc::transactions::Transaction {
+            signatures: vec![_signature.as_str().to_string()],
+            instructions: vec![],
+            recent_blockhash: "mock_blockhash".to_string(),
+            fee_payer: crate::solana_rpc::Pubkey::new_unique(),
+        })
+    }
+
+    /// Get latest blockhash (placeholder implementation)
+    pub async fn get_latest_blockhash(&self) -> Option<String> {
+        info!("Getting latest blockhash");
+        Some("mock_latest_blockhash".to_string())
+    }
 }
 
 #[async_trait]

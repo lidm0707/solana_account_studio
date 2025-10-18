@@ -3,11 +3,12 @@
 //! Enhanced SurfPool integration with real-time controls, status monitoring,
 //! live metrics, log viewing, and configuration management for local Solana validator.
 
-use crate::surfpool::{SurfPoolConfig, SurfPoolManager};
+use crate::surfpool::{SurfPoolConfig, SurfPoolManager, SurfPoolMetrics, SurfPoolStatus};
 use dioxus::prelude::*;
 use log::{error, info, warn};
+use std::time::Duration;
 use surfdesk_core::components::{Button, Card, Input, Size, Variant};
-use surfdesk_core::solana_rpc::{SolanaNetwork, SolanaRpcClient};
+use surfdesk_core::solana_rpc::SolanaRpcClient;
 
 // Re-export spawn from tokio for async tasks
 use dioxus::prelude::spawn;
@@ -18,6 +19,9 @@ pub fn SurfPoolPage() -> Element {
     let mut config = use_signal(SurfPoolConfig::default);
     let mut show_config_modal = use_signal(|| false);
     let mut error_message = use_signal(|| Option::<String>::None);
+    let mut current_status = use_signal(|| Option::<SurfPoolStatus>::None);
+    let mut current_metrics = use_signal(|| Option::<SurfPoolMetrics>::None);
+    let mut is_refreshing = use_signal(|| false);
 
     // Enhanced SurfPool manager with real service integration
     let surfpool_manager = use_signal(|| {
@@ -33,18 +37,48 @@ pub fn SurfPoolPage() -> Element {
         )
     });
 
-    // Periodic RPC health check
+    // Enhanced periodic status and metrics update
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
         let mut error_signal = error_message;
+        let mut status_signal = current_status;
+        let mut metrics_signal = current_metrics;
+        let mut refreshing_signal = is_refreshing;
+        let manager = surfpool_manager.clone();
         let rpc = rpc_client.clone();
 
         async move {
             loop {
+                // Set refreshing state
+                refreshing_signal.set(true);
+
+                // Get SurfPool status
+                if let Ok(manager_ref) = manager.try_read() {
+                    match manager_ref.get_status().await {
+                        Ok(status) => {
+                            status_signal.set(Some(status));
+                            error_signal.set(None);
+                        }
+                        Err(e) => {
+                            warn!("Failed to get SurfPool status: {}", e);
+                            error_signal.set(Some(format!("Status check failed: {}", e)));
+                        }
+                    }
+
+                    // Get SurfPool metrics
+                    match manager_ref.get_metrics().await {
+                        Ok(metrics) => {
+                            metrics_signal.set(Some(metrics));
+                        }
+                        Err(e) => {
+                            warn!("Failed to get SurfPool metrics: {}", e);
+                        }
+                    }
+                }
+
                 // Periodic RPC health check
                 if let Ok(health) = rpc.read().get_health().await {
                     if health {
                         info!("RPC health check passed");
-                        error_signal.set(None);
                     } else {
                         warn!("RPC health check failed");
                         error_signal.set(Some("RPC health check failed".to_string()));
@@ -54,7 +88,8 @@ pub fn SurfPoolPage() -> Element {
                     error_signal.set(Some("Unable to connect to RPC".to_string()));
                 }
 
-                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                refreshing_signal.set(false);
+                tokio::time::sleep(Duration::from_secs(3)).await;
             }
         }
     });
@@ -62,6 +97,84 @@ pub fn SurfPoolPage() -> Element {
     // Handle configuration change
     let handle_config_change = move |_| {
         show_config_modal.set(true);
+    };
+
+    // Handle manual refresh
+    let handle_refresh = move |_| {
+        let manager = surfpool_manager.clone();
+        let mut status_signal = current_status;
+        let mut metrics_signal = current_metrics;
+        let mut refreshing_signal = is_refreshing;
+
+        spawn(async move {
+            refreshing_signal.set(true);
+
+            if let Ok(manager_ref) = manager.try_read() {
+                // Refresh status
+                match manager_ref.get_status().await {
+                    Ok(status) => {
+                        status_signal.set(Some(status));
+                        info!("SurfPool status refreshed successfully");
+                    }
+                    Err(e) => {
+                        error!("Failed to refresh SurfPool status: {}", e);
+                    }
+                }
+
+                // Refresh metrics
+                match manager_ref.get_metrics().await {
+                    Ok(metrics) => {
+                        metrics_signal.set(Some(metrics));
+                        info!("SurfPool metrics refreshed successfully");
+                    }
+                    Err(e) => {
+                        error!("Failed to refresh SurfPool metrics: {}", e);
+                    }
+                }
+            }
+
+            refreshing_signal.set(false);
+        });
+    };
+
+    // Handle start SurfPool
+    let handle_start_surfpool = move |_| {
+        let manager = surfpool_manager.clone();
+        let mut error_signal = error_message;
+
+        spawn(async move {
+            if let Ok(mut manager_ref) = manager.try_write() {
+                match manager_ref.start().await {
+                    Ok(_) => {
+                        info!("SurfPool started successfully");
+                    }
+                    Err(e) => {
+                        error!("Failed to start SurfPool: {}", e);
+                        error_signal.set(Some(format!("Failed to start SurfPool: {}", e)));
+                    }
+                }
+            }
+        });
+    };
+
+    // Handle stop SurfPool
+    let handle_stop_surfpool = move |_| {
+        let manager = surfpool_manager.clone();
+        let mut error_signal = error_message;
+
+        spawn(async move {
+            if let Ok(mut manager_ref) = manager.try_write() {
+                match manager_ref.stop().await {
+                    Ok(_) => {
+                        info!("SurfPool stopped successfully");
+                    }
+                    Err(e) => {
+                        error!("Failed to stop SurfPool: {}", e);
+                        error_signal.set(Some(format!("Failed to stop SurfPool: {}", e)));
+                    }
+                }
+            }
+        });
     };
 
     // Handle configuration save
@@ -168,15 +281,139 @@ pub fn SurfPoolPage() -> Element {
                 }
             }
 
+            // Enhanced Status Display
+            Card {
+                title: Some("📊 Real-Time Status".to_string()),
+                size: Size::Large,
+                elevated: true,
+                children: rsx! {
+                    div { class: "surfpool-status-display",
+                        // Status indicator
+                        div { class: "status-header",
+                            div { class: "flex items-center gap-3",
+                                div { class: format!("status-indicator {}",
+                                    match current_status.read().as_ref().map(|s| &s.service_status) {
+                                        Some(crate::surfpool::ServiceStatus::Running) => "status-online",
+                                        Some(crate::surfpool::ServiceStatus::Starting) => "status-starting",
+                                        Some(crate::surfpool::ServiceStatus::Stopping) => "status-stopping",
+                                        Some(crate::surfpool::ServiceStatus::Stopped) => "status-offline",
+                                        Some(crate::surfpool::ServiceStatus::Error(_)) => "status-error",
+                                        None => "status-offline"
+                                    })
+                                }
+                                span { class: "status-text",
+                                    {current_status.read().as_ref()
+                                        .map(|s| format!("{:?}", s.service_status))
+                                        .unwrap_or_else(|| "Unknown".to_string())}
+                                }
+                                if is_refreshing() {
+                                    span { class: "text-xs text-muted ml-2", "Refreshing..." }
+                                }
+                            }
+                            Button {
+                                variant: Variant::Ghost,
+                                size: Size::Small,
+                                onclick: handle_refresh,
+                                disabled: is_refreshing(),
+                                children: rsx! {
+                                    "🔄 Refresh"
+                                }
+                            }
+                        }
+
+                        // Control buttons
+                        div { class: "surfpool-actions mt-4",
+                            Button {
+                                variant: Variant::Primary,
+                                size: Size::Medium,
+                                onclick: handle_start_surfpool,
+                                disabled: current_status.read().as_ref()
+                                    .map(|s| matches!(s.service_status, crate::surfpool::ServiceStatus::Running))
+                                    .unwrap_or(false),
+                                children: rsx! {
+                                    "▶️ Start SurfPool"
+                                }
+                            }
+                            Button {
+                                variant: Variant::Secondary,
+                                size: Size::Medium,
+                                onclick: handle_stop_surfpool,
+                                disabled: current_status.read().as_ref()
+                                    .map(|s| !matches!(s.service_status, crate::surfpool::ServiceStatus::Running))
+                                    .unwrap_or(true),
+                                children: rsx! {
+                                    "⏹️ Stop SurfPool"
+                                }
+                            }
+                        }
+
+                        // Status details
+                        if let Some(status) = current_status.read().as_ref() {
+                            div { class: "status-details mt-6 grid grid-cols-2 md:grid-cols-4 gap-4",
+                                div { class: "metric-item",
+                                    span { class: "metric-label", "Current Slot" }
+                                    span { class: "metric-value", "{status.current_slot}" }
+                                }
+                                div { class: "metric-item",
+                                    span { class: "metric-label", "Block Height" }
+                                    span { class: "metric-value", "{status.block_height}" }
+                                }
+                                div { class: "metric-item",
+                                    span { class: "metric-label", "Connected Peers" }
+                                    span { class: "metric-value", "{status.connected_peers}" }
+                                }
+                                div { class: "metric-item",
+                                    span { class: "metric-label", "Network" }
+                                    span { class: "metric-value", "{status.network}" }
+                                }
+                            }
+                        }
+
+                        // Metrics display
+                        if let Some(metrics) = current_metrics.read().as_ref() {
+                            div { class: "metrics-section mt-6",
+                                h4 { class: "font-semibold mb-3", "📈 Performance Metrics" }
+                                div { class: "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4",
+                                    div { class: "metric-item",
+                                        span { class: "metric-label", "TPS" }
+                                        span { class: "metric-value", "{metrics.tps}" }
+                                    }
+                                    div { class: "metric-item",
+                                        span { class: "metric-label", "Validators" }
+                                        span { class: "metric-value", "{metrics.validators}" }
+                                    }
+                                    div { class: "metric-item",
+                                        span { class: "metric-label", "Memory" }
+                                        span { class: "metric-value", "{metrics.memory_mb}MB" }
+                                    }
+                                    div { class: "metric-item",
+                                        span { class: "metric-label", "CPU" }
+                                        span { class: "metric-value", "{metrics.cpu_percent}%" }
+                                    }
+                                    div { class: "metric-item",
+                                        span { class: "metric-label", "Latency" }
+                                        span { class: "metric-value", "{metrics.network_latency_ms}ms" }
+                                    }
+                                    div { class: "metric-item",
+                                        span { class: "metric-label", "Accounts" }
+                                        span { class: "metric-value", "{metrics.active_accounts}" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Enhanced SurfPool Controls
             Card {
-                title: Some("🎛️ Real-Time Controls".to_string()),
+                title: Some("🎛️ Advanced Controls".to_string()),
                 size: Size::Large,
                 elevated: true,
                 children: rsx! {
                     // Use the enhanced SurfPoolControls component
                     crate::surfpool::SurfPoolControls {
-                        manager: surfpool_manager.read().clone()
+                        manager: std::sync::Arc::new(surfpool_manager.read().clone())
                     }
                 }
             }
@@ -211,7 +448,7 @@ pub fn SurfPoolPage() -> Element {
                                 div { class: "flex justify-between",
                                     span { class: "text-muted", "Solana CLI:" }
                                     code { class: "bg-surface px-2 py-1 rounded text-xs",
-                                        "solana config set --url http://localhost:8899" }
+                                        "// solana config set --url http://127.0.0.1:8899" }
                                 }
                                 div { class: "flex justify-between",
                                     span { class: "text-muted", "Network Type:" }
@@ -254,9 +491,24 @@ pub fn SurfPoolPage() -> Element {
                             variant: Variant::Outline,
                             size: Size::Medium,
                             onclick: move |_| {
+                                let rpc = rpc_client.clone();
+                                let mut error_signal = error_message;
+
                                 spawn(async move {
-                                    // Test RPC connection
-                                    info!("Testing RPC connection");
+                                    match rpc.read().get_health().await {
+                                        Ok(healthy) => {
+                                            if healthy {
+                                                info!("RPC connection test successful");
+                                            } else {
+                                                warn!("RPC connection test failed - unhealthy");
+                                                error_signal.set(Some("RPC connection unhealthy".to_string()));
+                                            }
+                                        }
+                                        Err(e) => {
+                                            error!("RPC connection test failed: {}", e);
+                                            error_signal.set(Some(format!("RPC test failed: {}", e)));
+                                        }
+                                    }
                                 });
                             },
                             children: rsx! {
@@ -270,9 +522,19 @@ pub fn SurfPoolPage() -> Element {
                             variant: Variant::Outline,
                             size: Size::Medium,
                             onclick: move |_| {
+                                let rpc = rpc_client.clone();
+                                let mut error_signal = error_message;
+
                                 spawn(async move {
-                                    // Get validator info
-                                    info!("Fetching validator information");
+                                    match rpc.read().get_version().await {
+                                        Ok(version) => {
+                                            info!("Validator version: {}", version);
+                                        }
+                                        Err(e) => {
+                                            error!("Failed to get validator info: {}", e);
+                                            error_signal.set(Some(format!("Failed to get validator info: {}", e)));
+                                        }
+                                    }
                                 });
                             },
                             children: rsx! {

@@ -4,6 +4,7 @@
 //! Provides full RPC/WebSocket connectivity, real-time monitoring, and control.
 
 use anyhow::{Context, Result};
+use dioxus::prelude::UnboundedReceiver;
 use dioxus::prelude::*;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -433,17 +434,31 @@ impl SurfPoolManager {
 
 /// Enhanced SurfPool controls component for Dioxus with real service integration
 #[component]
-pub fn SurfPoolControls(manager: SurfPoolManager) -> Element {
+pub fn SurfPoolControls(manager: std::sync::Arc<SurfPoolManager>) -> Element {
     let mut status = use_signal(|| SurfPoolStatus::default());
     let mut logs = use_signal(Vec::<LogEntry>::new);
     let mut metrics = use_signal(|| Option::<SurfPoolMetrics>::None);
     let mut is_loading = use_signal(|| false);
-    let manager_signal = use_signal(|| manager);
+    let manager_signal = use_signal(|| Arc::clone(&manager));
 
-    // Initialize status
-    let current_manager = manager_signal();
-    let initial_status = current_manager.get_status().await;
-    status.set(initial_status);
+    // Initialize status using coroutine for async operations
+    use_coroutine(move |_: UnboundedReceiver<()>| {
+        let mut status_signal = status;
+        let manager = Arc::clone(&manager_signal);
+
+        async move {
+            if let Ok(current_manager) = manager.try_read() {
+                match current_manager.get_status().await {
+                    Ok(initial_status) => {
+                        status_signal.set(initial_status);
+                    }
+                    Err(e) => {
+                        log::error!("Failed to get initial status: {}", e);
+                    }
+                }
+            }
+        }
+    });
 
     // Handle start action
     let handle_start = move |_| {
