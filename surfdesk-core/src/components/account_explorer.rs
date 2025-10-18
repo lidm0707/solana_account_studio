@@ -247,11 +247,15 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     let _validator_status = use_validator_status();
     let _deployment_stats = use_deployment_stats();
 
+    // Clone service before using in closures
+    let service_clone1 = _surfpool_service.clone();
+    let service_clone2 = _surfpool_service.clone();
+
     // Start validator action (simplified)
     let _start_validator = move |_: dioxus::prelude::Event<MouseData>| {
         let success_msg = success_message;
         let error_msg = error_message;
-        let svc = _surfpool_service.clone();
+        let svc = service_clone1.clone();
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
             let mut error = error_msg;
@@ -271,7 +275,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     let _stop_validator = move |_: dioxus::prelude::Event<MouseData>| {
         let success_msg = success_message;
         let error_msg = error_message;
-        let svc = _surfpool_service.clone();
+        let svc = service_clone2.clone();
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
             let mut error = error_msg;
@@ -305,7 +309,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
                         // Create a Keypair from the account info string
                         current.keypair = Some(Keypair::new());
                         current.deployment_status = "created".to_string();
-                        builder_signal.set(current);
+                        builder.set(current);
                         success_msg
                             .set("New account created successfully via SurfPool".to_string());
                     }

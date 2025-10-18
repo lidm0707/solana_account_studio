@@ -129,7 +129,7 @@ impl Keypair {
 
         // Convert to Base58 for storage
         let secret_b58 = bs58::encode(&secret_bytes).into_string();
-        let pubkey_b58 = bs58::encode(public_key.to_bytes()).into_string();
+        let pubkey_b58 = bs58::encode(&public_key).into_string();
 
         Self {
             pubkey: Pubkey::from_string(&pubkey_b58),
@@ -151,7 +151,7 @@ impl Keypair {
         // In real implementation, this would use proper key generation
         let secret_key = [0u8; 32]; // Mock secret key
         let public_key = [0u8; 32]; // Mock public key
-        let pubkey_b58 = bs58::encode(public_key.to_bytes()).into_string();
+        let pubkey_b58 = bs58::encode(&public_key).into_string();
 
         Self {
             pubkey: Pubkey::from_string(&pubkey_b58),
@@ -187,7 +187,7 @@ impl Keypair {
         // Mock implementation without ed25519_dalek dependency
         // In real implementation, this would use proper key parsing
         let public_key = [0u8; 32]; // Mock public key
-        let pubkey_b58 = bs58::encode(public_key.to_bytes()).into_string();
+        let pubkey_b58 = bs58::encode(&public_key).into_string();
         let secret_b58 = bs58::encode(bytes).into_string();
 
         Ok(Self {
@@ -570,14 +570,14 @@ impl SolanaRpcClient {
                             .send()
                             .await
                             .map_err(|e| {
-                                crate::error::SurfDeskError::rpc(format!(
+                                crate::error::SurfDeskError::SolanaRpc(format!(
                                     "HTTP request failed: {}",
                                     e
                                 ))
                             })?;
 
                         let text = response.text().await.map_err(|e| {
-                            crate::error::SurfDeskError::rpc(format!(
+                            crate::error::SurfDeskError::SolanaRpc(format!(
                                 "Failed to read response: {}",
                                 e
                             ))
@@ -643,6 +643,12 @@ impl SolanaRpcClient {
 
         let response: BalanceResponse = self.make_request("getBalance", params).await?;
         Ok(response.value)
+    }
+
+    /// Post raw JSON request
+    pub async fn post(&self, body: &str) -> Result<String> {
+        let future = self.http_client.post_json(&self.rpc_url, body.to_string());
+        future.await
     }
 
     /// Get account information

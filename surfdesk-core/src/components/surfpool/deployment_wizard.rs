@@ -60,6 +60,7 @@ pub fn ProgramDeploymentWizard() -> Element {
 
         // Real deployment using SurfPool terminal strategy
         let service = use_surfpool_service();
+        let service_clone = service.clone();
 
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let code_clone = code.clone();
@@ -67,6 +68,7 @@ pub fn ProgramDeploymentWizard() -> Element {
             let mut deployed_id = deployed_program_id;
             let mut error_msg = error_message;
             let mut success_msg = success_message;
+            let svc = service_clone.clone();
 
             async move {
                 // Save the code to a temporary file for deployment
@@ -80,7 +82,7 @@ pub fn ProgramDeploymentWizard() -> Element {
 
                 match std::fs::write(&temp_file, &code_clone) {
                     Ok(_) => {
-                        match service.deploy_program(&temp_file).await {
+                        match svc.deploy_program(&temp_file).await {
                             Ok(program_pubkey) => {
                                 // Parse the pubkey string into a Pubkey
                                 let pubkey = Pubkey::from_string(&program_pubkey);

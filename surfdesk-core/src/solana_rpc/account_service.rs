@@ -158,7 +158,10 @@ impl AccountService {
         let response = self.rpc_client.post(&transfer_request.to_string()).await?;
 
         // Parse response to get signature
-        let signature = response
+        let parsed_response: serde_json::Value = serde_json::from_str(&response)
+            .map_err(|e| SurfDeskError::network(format!("Failed to parse response: {}", e)))?;
+
+        let signature = parsed_response
             .get("result")
             .and_then(|r| r.as_str())
             .ok_or_else(|| SurfDeskError::network("Invalid transaction response"))?;

@@ -41,6 +41,7 @@ reqwest = { version = "0.11", features = ["json"] }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = "0.9"
 toml = "0.8"
 uuid = { workspace = true }
 diesel = { version = "2.1", features = ["sqlite", "r2d2", "chrono"], optional = true }
