@@ -5,8 +5,8 @@
 //! It handles RPC connections, account management, transaction operations, and
 //! program interactions across all platforms using our unified RPC client.
 
-use crate::accounts::{Account, AccountManager};
 use crate::error::{Result, SurfDeskError};
+use crate::solana_rpc::accounts::{Account, AccountManager};
 use crate::solana_rpc::{Keypair, Pubkey, Signature, SolanaNetwork, SolanaRpcClient};
 
 /// Enhanced Solana service for blockchain interactions
@@ -153,19 +153,19 @@ impl WebAccountService {
 
     /// Create new account
     pub fn create_account(&mut self, label: String) -> Result<(Account, Keypair)> {
-        let (account, keypair) = Account::new(label)
+        let (account, keypair) = Account::new(label, self.network().clone())
             .map_err(|e| SurfDeskError::internal(format!("Failed to create account: {}", e)))?;
 
         self.account_manager
             .add_account(account.clone())
             .map_err(|e| SurfDeskError::internal(format!("Failed to add account: {}", e)))?;
 
-        Ok((account, Keypair::with_secret(keypair)))
+        Ok((account, keypair))
     }
 
     /// Import account from secret key
     pub fn import_account(&mut self, secret_key: &str, label: String) -> Result<Account> {
-        let account = Account::from_secret_key(secret_key, label)
+        let account = Account::from_secret_key(secret_key, label, self.network().clone())
             .map_err(|e| SurfDeskError::internal(format!("Failed to import account: {}", e)))?;
 
         self.account_manager
@@ -196,13 +196,19 @@ impl WebAccountService {
     }
 
     /// Get all accounts
-    pub fn get_accounts(&self) -> &[Account] {
-        self.account_manager.get_accounts()
+    pub fn get_accounts(&self) -> Vec<Account> {
+        self.account_manager
+            .get_all_accounts()
+            .into_iter()
+            .cloned()
+            .collect()
     }
 
     /// Remove account
     pub fn remove_account(&mut self, pubkey: &Pubkey) -> bool {
-        self.account_manager.remove_account(pubkey)
+        self.account_manager
+            .remove_account(&pubkey.to_string())
+            .is_ok()
     }
 
     /// Get current network

@@ -1,173 +1,181 @@
-# name: CI/CD Pipeline
+name: CI/CD Pipeline
 
-# on:
-#   push:
-#     branches: [ main, develop ]
-#   pull_request:
-#     branches: [ main ]
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
 
-# env:
-#   CARGO_TERM_COLOR: always
+env:
+  CARGO_TERM_COLOR: always
 
-# jobs:
-#   test:
-#     name: Test Suite
-#     runs-on: ubuntu-latest
-#     strategy:
-#       matrix:
-#         rust:
-#           - stable
-#           - beta
-#           - nightly
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - beta
 
-#     steps:
-#     - uses: actions/checkout@v3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-#     - name: Install Rust
-#       uses: actions-rs/toolchain@v1
-#       with:
-#         profile: minimal
-#         toolchain: ${{ matrix.rust }}
-#         override: true
-#         components: rustfmt, clippy, rust-src
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: rustfmt, clippy
 
-#     - name: Cache dependencies
-#       uses: actions/cache@v3
-#       with:
-#         path: |
-#           ~/.cargo/registry
-#           ~/.cargo/git
-#           target
-#         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-#     - name: Install wasm32 target
-#       run: rustup target add wasm32-unknown-unknown
+      - name: Install wasm32 target
+        run: rustup target add wasm32-unknown-unknown
 
-#     - name: Check formatting
-#       run: cargo fmt --all -- --check
+      - name: Check formatting
+        run: cargo fmt --all -- --check
 
-#     - name: Run clippy
-#       run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
-#     - name: Run tests
-#       run: cargo test --all-features --workspace
+      - name: Run tests
+        run: cargo test --all-features --workspace
 
-#   build:
-#     name: Build
-#     runs-on: ${{ matrix.os }}
-#     strategy:
-#       matrix:
-#         include:
-#           - os: ubuntu-latest
-#             target: x86_64-unknown-linux-gnu
-#             artifact: surfdesk-desktop
-#           - os: windows-latest
-#             target: x86_64-pc-windows-msvc
-#             artifact: surfdesk-desktop.exe
-#           - os: macos-latest
-#             target: x86_64-apple-darwin
-#             artifact: surfdesk-desktop
+  build-desktop:
+    name: Build Desktop
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: surfdesk-desktop
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: surfdesk-desktop.exe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: surfdesk-desktop
 
-#     steps:
-#     - uses: actions/checkout@v3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-#     - name: Install Rust
-#       uses: actions-rs/toolchain@v1
-#       with:
-#         profile: minimal
-#         toolchain: stable
-#         target: ${{ matrix.target }}
-#         override: true
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
 
-#     - name: Cache dependencies
-#       uses: actions/cache@v3
-#       with:
-#         path: |
-#           ~/.cargo/registry
-#           ~/.cargo/git
-#           target
-#         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-#     - name: Build desktop
-#       run: cargo build --release --bin surfdesk-desktop --target ${{ matrix.target }}
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
 
-#     - name: Upload artifact
-#       uses: actions/upload-artifact@v3
-#       with:
-#         name: ${{ matrix.artifact }}
-#         path: target/${{ matrix.target }}/release/${{ matrix.artifact }}
+      - name: Build desktop
+        run: cargo build --release --bin surfdesk-desktop --target ${{ matrix.target }}
 
-#   build-web:
-#     name: Build Web
-#     runs-on: ubuntu-latest
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact }}
+          path: target/${{ matrix.target }}/release/${{ matrix.artifact }}
 
-#     steps:
-#     - uses: actions/checkout@v3
+  build-core:
+    name: Build Core Library
+    runs-on: ubuntu-latest
 
-#     - name: Install Rust
-#       uses: actions-rs/toolchain@v1
-#       with:
-#         profile: minimal
-#         toolchain: stable
-#         override: true
-#         components: rust-src
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-#     - name: Install wasm32 target
-#       run: rustup target add wasm32-unknown-unknown
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
 
-#     - name: Install trunk
-#       run: cargo install trunk
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-#     - name: Cache dependencies
-#       uses: actions/cache@v3
-#       with:
-#         path: |
-#           ~/.cargo/registry
-#           ~/.cargo/git
-#           target
-#         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build core library
+        run: cargo build --release --package surfdesk-core
 
-#     - name: Build web
-#       run: |
-#         cd surfdesk-web
-#         trunk build --release
+      - name: Upload core artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: surfdesk-core
+          path: target/release/libsurfdesk_core.rlib
 
-#     - name: Upload web artifact
-#       uses: actions/upload-artifact@v3
-#       with:
-#         name: surfdesk-web
-#         path: surfdesk-web/dist/
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
 
-#   security:
-#     name: Security Audit
-#     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-#     steps:
-#     - uses: actions/checkout@v3
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
 
-#     - name: Install cargo-audit
-#       run: cargo install cargo-audit
+      - name: Run security audit
+        run: cargo audit
 
-#     - name: Run security audit
-#       run: cargo audit
+  check-docs:
+    name: Check Documentation
+    runs-on: ubuntu-latest
 
-#   deploy:
-#     name: Deploy
-#     runs-on: ubuntu-latest
-#     needs: [test, build, build-web]
-#     if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-#     steps:
-#     - uses: actions/checkout@v3
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
 
-#     - name: Download artifacts
-#       uses: actions/download-artifact@v3
-#       with:
-#         path: artifacts
+      - name: Check documentation
+        run: cargo doc --all-features --no-deps
 
-#     - name: Deploy to GitHub Pages
-#       if: success()
-#       uses: peaceiris/actions-gh-pages@v3
-#       with:
-#         github_token: ${{ secrets.GITHUB_TOKEN }}
-#         publish_dir: ./artifacts/surfdesk-web
+  deploy-docs:
+    name: Deploy Documentation
+    runs-on: ubuntu-latest
+    needs: [test, build-core, check-docs]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build documentation
+        run: cargo doc --all-features --no-deps
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: target/doc
+          destination_dir: api

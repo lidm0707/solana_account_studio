@@ -434,7 +434,7 @@ impl AccountManager {
     pub fn get_accounts_by_tag(&self, tag: &str) -> Vec<&Account> {
         self.accounts
             .values()
-            .filter(|account| account.metadata.tags.contains(&tag))
+            .filter(|account| account.metadata.tags.iter().any(|t| t == tag))
             .collect()
     }
 
