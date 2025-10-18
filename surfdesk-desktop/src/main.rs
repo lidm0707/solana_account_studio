@@ -12,12 +12,10 @@
 use anyhow::Result;
 use clap::Parser;
 use dioxus::prelude::*;
-use dioxus_desktop::launch;
 use log::{error, info, LevelFilter};
 
 mod keyboard;
 mod pages;
-mod surfpool;
 
 // Simple notification component
 #[derive(Debug, Clone, PartialEq)]
@@ -36,8 +34,9 @@ fn NotificationCenter(children: Element) -> Element {
 
 // Import core components
 use pages::{AccountsPage, DashboardPage, SurfPoolPage};
-use surfdesk_core::components::{Button, Card, Loading, Size};
-use surfpool::{SurfPoolConfig, SurfPoolManager};
+use surfdesk_core::components::surfpool::{
+    surfpool_controller::SurfPoolConfig, ui_manager::SurfPoolManager,
+};
 
 /// Command line arguments
 #[derive(Parser, Debug, Clone)]
@@ -217,7 +216,7 @@ fn Sidebar(
 fn SurfDeskDesktopApp() -> Element {
     // Args are not needed in the component for now
     let surfpool_config = SurfPoolConfig::default();
-    let surfpool_manager = SurfPoolManager::new(surfpool_config);
+    let surfpool_manager = SurfPoolManager::new();
 
     // Initialize application state
     let mut app_state = AppState {

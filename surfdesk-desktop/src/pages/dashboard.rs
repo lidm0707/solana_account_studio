@@ -3,9 +3,9 @@
 //! Main dashboard showing account overview, portfolio metrics,
 //! recent transactions, and quick actions for the SurfDesk desktop application.
 
-use crate::surfpool::{SurfPoolManager, SurfPoolStatus as DesktopSurfPoolStatus};
 use dioxus::prelude::*;
 use log::info;
+use surfdesk_core::components::surfpool::ui_manager::SurfPoolManager;
 use surfdesk_core::components::{Button, Card, ServiceStatus, Size, SurfPoolConfig, Variant};
 use surfdesk_core::solana_rpc::accounts::AccountManager;
 use surfdesk_core::solana_rpc::pubkey_key::{RpcCommitment, SolanaRpcClient};
@@ -35,7 +35,7 @@ pub fn DashboardPage() -> Element {
     });
 
     // Create SurfPool manager for actions
-    let surfpool_manager = SurfPoolManager::new(SurfPoolConfig::default());
+    let surfpool_manager = SurfPoolManager::new();
 
     // Real data fetching effect
     use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {

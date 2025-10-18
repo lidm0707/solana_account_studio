@@ -6,6 +6,8 @@
 pub mod control_panel;
 pub mod deployment_wizard;
 pub mod environment;
+pub mod page;
 pub mod process_monitor;
 pub mod surfpool_control;
 pub mod surfpool_controller;
+pub mod ui_manager;

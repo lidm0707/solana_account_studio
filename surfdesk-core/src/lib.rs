@@ -25,6 +25,7 @@ pub mod platform;
 pub mod services;
 pub mod solana_rpc;
 pub mod state;
+pub mod styles;
 pub mod types;
 // Re-export commonly used items
 pub use app::SurfDeskApp;

@@ -149,6 +149,11 @@ pub enum Variant {
     Outlined,
     Text,
     Contained,
+    Primary,
+    Secondary,
+    Error,
+    Ghost,
+    Outline,
 }
 
 impl_default_enum!(Variant, Default);
@@ -161,6 +166,11 @@ impl Variant {
             Self::Outlined => "variant-outlined",
             Self::Text => "variant-text",
             Self::Contained => "variant-contained",
+            Self::Primary => "variant-primary",
+            Self::Secondary => "variant-secondary",
+            Self::Error => "variant-error",
+            Self::Ghost => "variant-ghost",
+            Self::Outline => "variant-outline",
         }
     }
 }
