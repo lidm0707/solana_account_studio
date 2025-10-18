@@ -1,10 +1,7 @@
 /* =============================================================================
-   SurfDesk Desktop Application - Enhanced Styles
-   Professional desktop application styles with design system integration
+   SurfDesk Application Styles - Component & Layout Styles
+   Uses design-system.css for variables and base styles
    ============================================================================= */
-
-/* Import design system */
-@import url("./design-system.css");
 
 /* === BODY & BASE === */
 body {
@@ -36,7 +33,7 @@ body {
     justify-content: space-between;
     height: 60px;
     background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--border-color);
     padding: 0 var(--space-4);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -116,7 +113,7 @@ body {
     right: 6px;
     width: 8px;
     height: 8px;
-    background: var(--success-500);
+    background: var(--color-success);
     border-radius: var(--radius-full);
     animation: pulse 2s infinite;
 }
@@ -143,15 +140,15 @@ body {
 }
 
 .surfpool-status-Running {
-    color: var(--success-500);
+    color: var(--color-success);
 }
 
 .surfpool-status-Starting {
-    color: var(--warning-500);
+    color: var(--color-warning);
 }
 
 .surfpool-status-Stopping {
-    color: var(--warning-500);
+    color: var(--color-warning);
 }
 
 .surfpool-status-Stopped {
@@ -159,7 +156,7 @@ body {
 }
 
 .surfpool-status-Error {
-    color: var(--error-500);
+    color: var(--color-error);
 }
 
 .window-controls {
@@ -189,7 +186,7 @@ body {
 }
 
 .window-control.close:hover {
-    background: var(--error-500);
+    background: var(--color-error);
     color: white;
 }
 
@@ -203,7 +200,7 @@ body {
 .sidebar {
     width: 280px;
     background: var(--color-surface);
-    border-right: 1px solid var(--color-border);
+    border-right: 1px solid var(--border-color);
     padding: var(--space-6);
     overflow-y: auto;
     display: flex;
@@ -248,7 +245,7 @@ body {
 }
 
 .activity-item:hover {
-    background: var(--color-card);
+    background: var(--color-surface);
     transform: translateX(2px);
 }
 
@@ -267,7 +264,6 @@ body {
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
     color: var(--color-text-primary);
-    margin-bottom: var(--space-1);
 }
 
 .activity-time {
@@ -320,7 +316,6 @@ body {
     font-size: var(--text-lg);
     color: var(--color-text-secondary);
     margin: 0;
-    font-weight: var(--font-normal);
 }
 
 .page-actions {
@@ -376,7 +371,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: var(--space-2) 0;
-    border-bottom: 1px solid var(--color-border-variant);
+    border-bottom: 1px solid var(--border-color-subtle);
 }
 
 .network-item:last-child {
@@ -386,7 +381,6 @@ body {
 .network-label {
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
-    font-weight: var(--font-medium);
 }
 
 .network-value {
@@ -433,8 +427,8 @@ body {
 }
 
 .status-online {
-    background: var(--success-500);
-    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    background: var(--color-success);
+    box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
 }
 
 .status-offline {
@@ -442,17 +436,17 @@ body {
 }
 
 .status-starting {
-    background: var(--warning-500);
-    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+    background: var(--color-warning);
+    box-shadow: 0 0 0 2px rgba(255, 136, 68, 0.2);
 }
 
 .status-stopping {
-    background: var(--warning-500);
+    background: var(--color-warning);
 }
 
 .status-error {
-    background: var(--error-500);
-    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    background: var(--color-error);
+    box-shadow: 0 0 0 2px rgba(255, 68, 68, 0.2);
 }
 
 .status-text {
@@ -494,12 +488,12 @@ body {
 }
 
 .surfpool-error-message {
-    color: var(--error-600);
+    color: var(--color-error);
     font-size: var(--text-sm);
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(255, 68, 68, 0.1);
     padding: var(--space-3);
     border-radius: var(--radius-lg);
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(255, 68, 68, 0.2);
 }
 
 .surfpool-actions {
@@ -554,14 +548,14 @@ body {
     padding: var(--space-4);
     background: var(--color-surface-variant);
     border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border-color);
     transition: all var(--duration-200) var(--ease-out);
 }
 
 .transaction-item:hover {
-    background: var(--color-card);
+    background: var(--color-surface);
     transform: translateX(2px);
-    border-color: var(--purple-500);
+    border-color: var(--color-secondary);
 }
 
 .transaction-icon {
@@ -634,15 +628,15 @@ body {
 }
 
 .status-success {
-    background: var(--success-500);
+    background: var(--color-success);
 }
 
 .status-warning {
-    background: var(--warning-500);
+    background: var(--color-warning);
 }
 
 .status-error {
-    background: var(--error-500);
+    background: var(--color-error);
 }
 
 .view-all {
@@ -662,7 +656,7 @@ body {
     gap: var(--space-4);
     padding: var(--space-4);
     background: var(--color-surface-variant);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     cursor: pointer;
     transition: all var(--duration-200) var(--ease-out);
@@ -671,8 +665,8 @@ body {
 }
 
 .quick-action-card:hover {
-    background: var(--color-card);
-    border-color: var(--purple-500);
+    background: var(--color-surface);
+    border-color: var(--color-secondary);
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
@@ -715,7 +709,7 @@ body {
 }
 
 .quick-action-card:hover .quick-action-arrow {
-    color: var(--purple-500);
+    color: var(--color-secondary);
     transform: translateX(2px);
 }
 
@@ -726,7 +720,7 @@ body {
     justify-content: space-between;
     height: 32px;
     background: var(--color-surface);
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid var(--border-color);
     padding: 0 var(--space-4);
     font-size: var(--text-xs);
     font-family: var(--font-family-mono);
@@ -775,7 +769,7 @@ body {
     position: absolute;
     top: 4px;
     right: 4px;
-    background: var(--error-500);
+    background: var(--color-error);
     color: white;
     font-size: 10px;
     font-weight: var(--font-bold);
@@ -792,8 +786,8 @@ body {
     right: 0;
     width: 320px;
     max-height: 400px;
-    background: var(--color-card);
-    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-xl);
     padding: var(--space-4);
@@ -812,17 +806,17 @@ body {
     padding: var(--space-3);
     background: var(--color-surface-variant);
     border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border-color);
     transition: all var(--duration-200) var(--ease-out);
 }
 
 .notification-item.unread {
     background: rgba(139, 92, 246, 0.1);
-    border-color: var(--purple-500);
+    border-color: var(--color-secondary);
 }
 
 .notification-item:hover {
-    background: var(--color-card);
+    background: var(--color-surface);
 }
 
 .notification-header {
@@ -907,7 +901,7 @@ body {
     .sidebar {
         width: 100%;
         border-right: none;
-        border-bottom: 1px solid var(--color-border);
+        border-bottom: 1px solid var(--border-color);
     }
 }
 
@@ -916,24 +910,22 @@ body {
     --color-background: #f9fafb;
     --color-surface: #ffffff;
     --color-surface-variant: #f8fafc;
-    --color-card: #ffffff;
     --color-text-primary: #1e293b;
     --color-text-secondary: #475569;
     --color-text-muted: #94a3b8;
-    --color-border: #e2e8f0;
-    --color-border-variant: #f1f5f9;
+    --border-color: #e2e8f0;
+    --border-color-subtle: #f1f5f9;
 }
 
 .theme-dark {
     --color-background: #111827;
     --color-surface: #1f2937;
     --color-surface-variant: #374151;
-    --color-card: #1f2937;
     --color-text-primary: #f9fafb;
     --color-text-secondary: #d1d5db;
     --color-text-muted: #9ca3af;
-    --color-border: #4b5563;
-    --color-border-variant: #374151;
+    --border-color: #4b5563;
+    --border-color-subtle: #374151;
 }
 
 /* Add system preference detection for auto theme */
@@ -942,12 +934,11 @@ body {
         --color-background: #111827;
         --color-surface: #1f2937;
         --color-surface-variant: #374151;
-        --color-card: #1f2937;
         --color-text-primary: #f9fafb;
         --color-text-secondary: #d1d5db;
         --color-text-muted: #9ca3af;
-        --color-border: #4b5563;
-        --color-border-variant: #374151;
+        --border-color: #4b5563;
+        --border-color-subtle: #374151;
     }
 }
 
@@ -956,12 +947,11 @@ body {
         --color-background: #f9fafb;
         --color-surface: #ffffff;
         --color-surface-variant: #f8fafc;
-        --color-card: #ffffff;
         --color-text-primary: #1e293b;
         --color-text-secondary: #475569;
         --color-text-muted: #94a3b8;
-        --color-border: #e2e8f0;
-        --color-border-variant: #f1f5f9;
+        --border-color: #e2e8f0;
+        --border-color-subtle: #f1f5f9;
     }
 }
 
@@ -983,7 +973,7 @@ body {
 .nav-item:focus-visible,
 .quick-action-card:focus-visible,
 .notification-bell:focus-visible {
-    outline: 2px solid var(--purple-500);
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
 }
 
@@ -1014,7 +1004,7 @@ body {
     padding: var(--space-6);
     background: var(--color-surface);
     border-radius: var(--radius-xl);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border-color);
 }
 
 .monitoring-stats {
@@ -1033,14 +1023,14 @@ body {
     padding: var(--space-4);
     background: var(--color-surface-variant);
     border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border-color);
     text-align: center;
 }
 
 .stat-value {
     font-size: var(--text-2xl);
     font-weight: var(--font-bold);
-    color: var(--purple-500);
+    color: var(--color-secondary);
     margin-bottom: var(--space-1);
 }
 
@@ -1072,7 +1062,7 @@ body {
 
 .account-item {
     background: var(--color-surface-variant);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     overflow: hidden;
 }
@@ -1082,7 +1072,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: var(--space-4);
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .account-info {
@@ -1105,8 +1095,8 @@ body {
 }
 
 .monitoring-status.enabled {
-    background: rgba(34, 197, 94, 0.1);
-    color: var(--success-500);
+    background: rgba(0, 255, 136, 0.1);
+    color: var(--color-success);
 }
 
 .monitoring-status.disabled {
@@ -1122,7 +1112,7 @@ body {
 .monitoring-details {
     padding: var(--space-4);
     background: var(--color-surface);
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid var(--border-color);
 }
 
 .detail-row {
@@ -1142,7 +1132,7 @@ body {
 }
 
 .status-enabled {
-    color: var(--success-500);
+    color: var(--color-success);
 }
 
 .status-disabled {
@@ -1152,7 +1142,7 @@ body {
 .alerts-section {
     padding: var(--space-4);
     background: var(--color-surface);
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid var(--border-color);
 }
 
 .alerts-header {
@@ -1170,7 +1160,7 @@ body {
 
 .alert-item {
     background: var(--color-surface-variant);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     padding: var(--space-3);
 }
@@ -1224,7 +1214,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--color-border);
+    background-color: var(--border-color);
     transition: var(--duration-200);
     border-radius: var(--radius-full);
 }
@@ -1242,7 +1232,7 @@ body {
 }
 
 input:checked + .toggle-slider {
-    background-color: var(--purple-500);
+    background-color: var(--color-secondary);
 }
 
 input:checked + .toggle-slider:before {
@@ -1282,7 +1272,7 @@ input:checked + .toggle-slider:before {
 .form-group input,
 .form-group select {
     padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     background: var(--color-surface);
     color: var(--color-text-primary);
@@ -1292,8 +1282,8 @@ input:checked + .toggle-slider:before {
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
-    border-color: var(--purple-500);
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(0, 245, 240, 0.1);
 }
 
 .form-actions {
@@ -1304,10 +1294,10 @@ input:checked + .toggle-slider:before {
 
 .error-message {
     padding: var(--space-2) var(--space-3);
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.2);
     border-radius: var(--radius-lg);
-    color: var(--error-500);
+    color: var(--color-error);
     font-size: var(--text-sm);
 }
 
@@ -1377,7 +1367,7 @@ input:checked + .toggle-slider:before {
 .stat-item .stat-value {
     display: block;
     font-weight: var(--font-bold);
-    color: var(--purple-500);
+    color: var(--color-secondary);
 }
 
 .desktop-monitoring-controls {

@@ -38,6 +38,8 @@ pub enum ServiceStatus {
     Stopping,
     /// Service encountered an error
     Error(String),
+    /// Service status is unknown
+    Unknown,
 }
 
 impl Default for ServiceStatus {

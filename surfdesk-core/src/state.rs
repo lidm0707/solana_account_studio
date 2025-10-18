@@ -6,7 +6,7 @@
 
 use crate::{
     error::Result,
-    services::{monitoring::MonitoringService, surfpool_service::SurfPoolService},
+    services::{monitoring::MonitoringService, surfpool::SurfPoolService},
     types::*,
 };
 use dioxus::prelude::*;
@@ -450,9 +450,7 @@ impl AppState {
     }
 
     /// Get the SurfPool service
-    pub fn surfpool_service(
-        &self,
-    ) -> Option<Arc<crate::services::surfpool_service::SurfPoolService>> {
+    pub fn surfpool_service(&self) -> Option<Arc<crate::services::surfpool::SurfPoolService>> {
         self.surfpool_service.read().clone()
     }
 
