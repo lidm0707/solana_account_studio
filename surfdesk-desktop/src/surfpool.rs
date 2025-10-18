@@ -434,7 +434,7 @@ impl SurfPoolManager {
 
 /// Enhanced SurfPool controls component for Dioxus with real service integration
 #[component]
-pub fn SurfPoolControls(manager: std::sync::Arc<SurfPoolManager>) -> Element {
+pub fn SurfPoolControls(manager: SurfPoolManager) -> Element {
     let mut status = use_signal(|| SurfPoolStatus::default());
     let mut logs = use_signal(Vec::<LogEntry>::new);
     let mut metrics = use_signal(|| Option::<SurfPoolMetrics>::None);

@@ -12,11 +12,33 @@ use crate::types::{
 use log::{debug, error, info, warn};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::Instant;
 use uuid::Uuid;
+
+// Missing type definitions
+#[derive(Debug, Clone, Default)]
+pub struct AlertConditions {
+    pub min_balance: Option<f64>,
+    pub max_balance: Option<f64>,
+    pub balance_change_threshold: Option<f64>,
+}
+
+#[derive(Debug, Clone)]
+pub enum NotificationChannel {
+    InApp,
+    Email(String),
+    Webhook(String),
+}
+
+impl Default for NotificationChannel {
+    fn default() -> Self {
+        Self::InApp
+    }
+}
 
 /// Account monitoring service
 pub struct MonitoringService {

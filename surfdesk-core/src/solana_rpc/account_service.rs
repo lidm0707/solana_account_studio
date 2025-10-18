@@ -7,6 +7,7 @@ use crate::solana_rpc::{
     Keypair, Pubkey, RpcCommitment, SolanaNetwork, SolanaRpcClient,
 };
 use base64::Engine;
+use serde_json::json;
 
 /// Account service with real Solana integration
 pub struct AccountService {
@@ -153,11 +154,16 @@ impl AccountService {
             }
         });
 
-        let response = self
-            .rpc_client
-            .send_transaction(&transaction_base64)
-            .await?;
-        Ok(signature.as_str().to_string())
+        // Send transaction using RPC client
+        let response = self.rpc_client.post(&transfer_request.to_string()).await?;
+
+        // Parse response to get signature
+        let signature = response
+            .get("result")
+            .and_then(|r| r.as_str())
+            .ok_or_else(|| SurfDeskError::network("Invalid transaction response"))?;
+
+        Ok(signature.to_string())
     }
 
     /// Confirm transaction

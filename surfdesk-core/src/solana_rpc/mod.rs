@@ -41,6 +41,12 @@ impl Pubkey {
         Pubkey::from_string(&pubkey_b58)
     }
 
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        // Create pubkey from byte array
+        let pubkey_b58 = bs58::encode(bytes).into_string();
+        Pubkey::from_string(&pubkey_b58)
+    }
+
     pub fn to_bytes(&self) -> [u8; 32] {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
