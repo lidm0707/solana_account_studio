@@ -194,12 +194,12 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     let mut success_message = use_signal(String::new);
 
     // Get simplified services for now
-    let surfpool_service = use_surfpool_service();
-    let validator_status = use_validator_status();
-    let deployment_stats = use_deployment_stats();
+    let _surfpool_service = use_surfpool_service();
+    let _validator_status = use_validator_status();
+    let _deployment_stats = use_deployment_stats();
 
     // Start validator action (simplified)
-    let start_validator = move |_: dioxus::prelude::Event<MouseData>| {
+    let _start_validator = move |_: dioxus::prelude::Event<MouseData>| {
         let success_msg = success_message;
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
@@ -212,7 +212,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
     };
 
     // Stop validator action (simplified)
-    let stop_validator = move |_: dioxus::prelude::Event<MouseData>| {
+    let _stop_validator = move |_: dioxus::prelude::Event<MouseData>| {
         let success_msg = success_message;
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut success = success_msg;
@@ -236,7 +236,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
 
     // Build account
     let build_account = move |_| {
-        let mut current_builder = builder();
+        let current_builder = builder();
 
         if current_builder.name.is_empty() {
             error_message.set("Account name is required".to_string());
@@ -339,7 +339,7 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         let space = current_builder.space;
         let executable = current_builder.executable;
         let account_data_clone2 = current_builder.account_data.as_ref().unwrap().data.clone();
-        let account_data_clone = current_builder.account_data.clone();
+        let _account_data_clone = current_builder.account_data.clone();
 
         let deployment_request = DeploymentRequest::new(
             account_pubkey,
@@ -355,11 +355,11 @@ pub fn AccountExplorer(props: AccountExplorerProps) -> Element {
         use_coroutine(move |_: dioxus::prelude::UnboundedReceiver<()>| {
             let mut builder_state = builder;
             let mut is_deploying_signal = is_deploying;
-            let deployment_req = deployment_request.clone();
+            let _deployment_req = deployment_request.clone();
             let on_deploy = props.on_deploy;
             let on_deployment_result = props.on_deployment_result;
             let mut success_msg = success_message;
-            let mut error_msg = error_message;
+            let error_msg = error_message;
 
             async move {
                 // Simulate deployment process

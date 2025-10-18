@@ -55,7 +55,7 @@ pub fn SurfPoolPage() -> Element {
                 logs_signal.set(recent_logs);
 
                 // Perform health check if running
-                if let DesktopSurfPoolStatus::Running { .. } = &current_status {
+                if let DesktopSurfPoolStatus::Running = &current_status {
                     match manager_ref.health_check().await {
                         Ok(health) => {
                             log::info!(
@@ -220,7 +220,7 @@ pub fn SurfPoolPage() -> Element {
                                         "Start Validator"
                                     }
                                 },
-                                DesktopSurfPoolStatus::Running { .. } => rsx! {
+                                DesktopSurfPoolStatus::Running => rsx! {
                                     Button {
                                         onclick: handle_stop,
                                         disabled: loading(),

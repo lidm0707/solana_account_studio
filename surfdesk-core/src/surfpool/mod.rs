@@ -18,11 +18,9 @@ use serde::{Deserialize, Serialize};
 
 // Re-export Platform for public API
 pub use crate::platform::Platform;
-use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command};
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
-use tokio::time::{sleep, Duration};
 
 /// Cross-platform SurfPool controller for managing Solana validators
 #[derive(Clone)]

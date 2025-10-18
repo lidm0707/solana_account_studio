@@ -409,7 +409,7 @@ impl AppState {
     }
 
     /// Initialize Solana service
-    pub async fn initialize_solana_service(&mut self, rpc_url: String) -> Result<()> {
+    pub async fn initialize_solana_service(&mut self, _rpc_url: String) -> Result<()> {
         #[cfg(feature = "solana")]
         {
             use crate::services::surfpool_service::SurfPoolService;
@@ -446,7 +446,7 @@ impl AppState {
 
     /// Refresh the active environment
     pub async fn refresh_active_environment(&mut self) -> Result<()> {
-        let active_environment = match self.active_environment() {
+        let _active_environment = match self.active_environment() {
             Some(env) => env,
             None => return Ok(()),
         };

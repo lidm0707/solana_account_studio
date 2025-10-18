@@ -51,8 +51,8 @@ pub fn DashboardPage() -> Element {
         let mut slot_signal = slot;
         let mut sol_price_signal = sol_price;
         let mut portfolio_change_signal = portfolio_change;
-        let account_mgr = account_manager.clone();
-        let rpc = rpc_client.clone();
+        let account_mgr = account_manager;
+        let rpc = rpc_client;
 
         async move {
             loop {
@@ -120,10 +120,10 @@ pub fn DashboardPage() -> Element {
     // Handle real airdrop
     let handle_airdrop = std::rc::Rc::new({
         let manager = surfpool_manager.clone();
-        let account_mgr = account_manager.clone();
+        let account_mgr = account_manager;
         move |_| {
             let manager = manager.clone();
-            let acct_mgr = account_mgr.clone();
+            let acct_mgr = account_mgr;
             spawn(async move {
                 let accounts = acct_mgr
                     .read()
@@ -131,7 +131,7 @@ pub fn DashboardPage() -> Element {
                     .into_iter()
                     .cloned()
                     .collect::<Vec<_>>();
-                if accounts.len() > 0 {
+                if !accounts.is_empty() {
                     let first_account = accounts.first().unwrap();
                     if let Err(e) = manager
                         .request_airdrop(&first_account.pubkey.to_string(), 1_000_000_000)
@@ -245,7 +245,7 @@ pub fn DashboardPage() -> Element {
 
                         div { class: "surfpool-dashboard",
                             match surfpool_status() {
-                                DesktopSurfPoolStatus::Running { .. } => rsx! {
+                                DesktopSurfPoolStatus::Running => rsx! {
                                     div { class: "surfpool-running",
                                         div { class: "status-indicator running" }
                                         h3 { "SurfPool Running" }

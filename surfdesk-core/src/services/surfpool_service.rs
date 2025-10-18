@@ -9,7 +9,7 @@
 use crate::error::{Result, SurfDeskError};
 use crate::solana_rpc::transactions::Transaction;
 use crate::solana_rpc::{
-    transactions::{AccountMeta, TransactionInfo, TransactionInstruction, TransactionStatus},
+    transactions::{AccountMeta, TransactionInstruction, TransactionStatus},
     Keypair, Pubkey, Signature, SolanaRpcClient,
 };
 
@@ -24,9 +24,9 @@ use tokio::time::{sleep, Duration};
 fn create_system_account_instruction(
     from: &Pubkey,
     to: &Pubkey,
-    lamports: u64,
-    space: u64,
-    owner: Pubkey,
+    _lamports: u64,
+    _space: u64,
+    _owner: Pubkey,
 ) -> TransactionInstruction {
     TransactionInstruction {
         program_id: crate::solana_rpc::system_program(),
@@ -82,9 +82,9 @@ pub mod system_instruction {
     pub fn create_account(
         from_pubkey: &Pubkey,
         to_pubkey: &Pubkey,
-        lamports: u64,
-        space: u64,
-        owner: &Pubkey,
+        _lamports: u64,
+        _space: u64,
+        _owner: &Pubkey,
     ) -> Instruction {
         Instruction {
             program_id: Pubkey::from_string("11111111111111111111111111111111"), // System program

@@ -119,7 +119,7 @@ pub fn Header(props: HeaderProps) -> Element {
     let class_attr = combine_classes(&classes);
 
     // Navigation items
-    let nav_items = vec![
+    let _nav_items = vec![
         NavItem {
             id: "dashboard".to_string(),
             label: "Dashboard".to_string(),

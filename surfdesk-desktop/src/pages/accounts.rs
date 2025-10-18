@@ -39,8 +39,8 @@ pub fn AccountsPage() -> Element {
         let mut accounts_signal = accounts;
         let mut loading_signal = loading;
         let mut error_signal = error_message;
-        let account_mgr = account_manager.clone();
-        let rpc = rpc_client.clone();
+        let account_mgr = account_manager;
+        let rpc = rpc_client;
 
         async move {
             loading_signal.set(true);
@@ -231,7 +231,7 @@ fn AccountCard(account: Account, index: usize, on_airdrop: EventHandler<MouseEve
                     size: Size::Small,
                     onclick: move |_| {
                         // Copy address to clipboard
-                        log::info!("Copied address: {}", account.pubkey.to_string());
+                        log::info!("Copied address: {}", account.pubkey);
                     },
                     "Copy Address"
                 }
