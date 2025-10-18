@@ -12,7 +12,7 @@ use crate::types::{
 use log::{debug, error, info, warn};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::str::FromStr;
+// FromStr no longer needed
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, RwLock};
@@ -600,7 +600,7 @@ impl AlertHandler for InAppAlertHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::SolanaNetwork;
+    // SolanaNetwork no longer needed
 
     #[tokio::test]
     async fn test_monitoring_service_creation() {
@@ -643,8 +643,8 @@ mod tests {
             name: "Test Alert".to_string(),
             alert_type: AlertType::BalanceChange,
             active: true,
-            conditions: AlertConditions::default(),
-            notification_channels: vec![NotificationChannel::InApp],
+            conditions: crate::types::AlertConditions::default(),
+            notification_channels: vec![crate::types::NotificationChannel::InApp],
             cooldown_seconds: 300,
             last_triggered: None,
             trigger_count: 0,

@@ -9,7 +9,7 @@ use dioxus::prelude::*;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
-use surfdesk_core::services::surfpool::{ServiceStatus, SurfPoolConfig, SurfPoolService};
+use surfdesk_core::services::surfpool::SurfPoolService;
 
 /// Enhanced SurfPool manager using real service integration
 #[derive(Debug, Clone, PartialEq)]

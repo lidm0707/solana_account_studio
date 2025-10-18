@@ -450,11 +450,11 @@ impl HttpClient for DesktopHttpClient {
                 .send()
                 .await
                 .map_err(|e| {
-                    crate::error::SurfDeskError::rpc(format!("HTTP request failed: {}", e))
+                    crate::error::SurfDeskError::SolanaRpc(format!("HTTP request failed: {}", e))
                 })?;
 
             let text = response.text().await.map_err(|e| {
-                crate::error::SurfDeskError::rpc(format!("Failed to read response: {}", e))
+                crate::error::SurfDeskError::SolanaRpc(format!("Failed to read response: {}", e))
             })?;
             Ok(text)
         })
