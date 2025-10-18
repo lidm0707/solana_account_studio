@@ -55,6 +55,9 @@ clipboard = "0.5"
 # Hex encoding for wallet files
 hex = "0.4"
 
+# Base58 encoding for Solana keys
+bs58 = "0.5"
+
 # Web dependencies for enhanced modal functionality
 gloo-timers = "0.3"
 web-sys = "0.3"

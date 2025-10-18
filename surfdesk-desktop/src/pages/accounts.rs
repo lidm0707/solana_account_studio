@@ -3,12 +3,13 @@
 //! Basic account management for MVP with real wallet file support.
 //! Implements create accounts, import wallet files, and request airdrops.
 
+use dioxus::prelude::spawn;
 use dioxus::prelude::*;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-use surfdesk_core::components::{Button, Card, Input, Modal, Size, Variant};
+use surfdesk_core::components::{Button, Card, Input, Modal, Size, Variant, WalletImport};
 use surfdesk_core::solana_rpc::accounts::{Account, AccountManager};
 use surfdesk_core::solana_rpc::{Keypair, Pubkey, SolanaRpcClient};
 
@@ -172,15 +173,33 @@ pub fn AccountsPage() -> Element {
             }
 
             if show_import_modal() {
-                div { class: "modal-backdrop",
-                    div { class: "modal",
-                        h3 { "Import Wallet" }
-                        p { "Wallet import not implemented yet" }
-                        button {
-                            onclick: move |_| show_import_modal.set(false),
-                            "Close"
-                        }
-                    }
+                WalletImport {
+                    account_manager: account_manager.read().clone(),
+                    network: surfdesk_core::solana_rpc::SolanaNetwork::Devnet,
+                    on_import_success: move |imported_accounts: Vec<Account>| {
+                        let mut accounts_signal = accounts;
+                        let mut account_mgr = account_manager;
+                        let mut show_modal = show_import_modal;
+                        let mut error_signal = error_message;
+
+                        spawn(async move {
+                            // Add imported accounts to account manager
+                            for account in imported_accounts {
+                                if let Err(e) = account_mgr.write().add_account(account.clone()) {
+                                    error_signal.set(Some(format!("Failed to add account: {}", e)));
+                                }
+                            }
+
+                            // Refresh accounts list
+                            let existing_accounts = account_mgr.read().get_all_accounts();
+                            accounts_signal.set(existing_accounts.into_iter().cloned().collect());
+                            show_modal.set(false);
+                        });
+                    },
+                    on_import_error: move |error: String| {
+                        error_message.set(Some(error));
+                    },
+                    class: Some("wallet-import-modal"),
                 }
             }
         }
