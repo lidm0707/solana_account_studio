@@ -10,8 +10,8 @@ use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-use surfdesk_core::accounts::{Account, AccountManager};
 use surfdesk_core::components::{Button, Card, Input, Modal, Size, Variant};
+use surfdesk_core::solana_rpc::accounts::{Account, AccountManager};
 use surfdesk_core::solana_rpc::{Keypair, Pubkey, SolanaRpcClient};
 
 /// Accounts page component
@@ -56,7 +56,8 @@ pub fn AccountsPage() -> Element {
 
             // Fetch real balances from SurfPool RPC
             for account in &mut accounts_with_balances {
-                if let Ok(balance): Result<u64, _> = rpc.read().get_balance(&account.pubkey.to_string()).await {
+                if let Ok(balance) = rpc.read().get_balance(&account.pubkey.to_string()).await {
+                    let balance: u64 = balance;
                     account.lamports = balance;
                 }
             }
@@ -257,11 +258,7 @@ fn AccountCard(account: Account, index: usize, on_airdrop: EventHandler<MouseEve
         )
     });
 
-    let account_label = account
-        .metadata
-        .label
-        .as_deref()
-        .unwrap_or("Unnamed Account");
+    let account_label = account.label.as_str();
 
     rsx! {
         div {
@@ -274,7 +271,7 @@ fn AccountCard(account: Account, index: usize, on_airdrop: EventHandler<MouseEve
                 }
                 div { class: "account-balance",
                     span { class: "balance-amount",
-                        {format!("{:.3} SOL", account.lamports as f64 / 1_000_000_000.0)}
+                        {format!("{:.3} SOL", account.balance as f64 / 1_000_000_000.0)}
                     }
                 }
             }

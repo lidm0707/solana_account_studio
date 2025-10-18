@@ -36,19 +36,19 @@ impl AccountService {
 
     /// Create new account
     pub fn create_account(&mut self, label: String) -> Result<(Account, Keypair)> {
-        let (account, keypair) = Account::new(label)
+        let (account, keypair) = Account::new(label, self.network.clone())
             .map_err(|e| SurfDeskError::internal(format!("Failed to create account: {}", e)))?;
 
         self.account_manager
             .add_account(account.clone())
             .map_err(|e| SurfDeskError::internal(format!("Failed to add account: {}", e)))?;
 
-        Ok((account, Keypair::with_secret(keypair)))
+        Ok((account, keypair))
     }
 
     /// Import account from secret key
     pub fn import_account(&mut self, secret_key: &str, label: String) -> Result<Account> {
-        let account = Account::from_secret_key(secret_key, label)
+        let account = Account::from_secret_key(secret_key, label, self.network.clone())
             .map_err(|e| SurfDeskError::internal(format!("Failed to import account: {}", e)))?;
 
         self.account_manager
@@ -60,7 +60,7 @@ impl AccountService {
 
     /// Get all accounts with real-time balances
     pub async fn get_accounts_with_balances(&mut self) -> Result<Vec<AccountWithBalance>> {
-        let accounts = self.account_manager.get_accounts();
+        let accounts = self.account_manager.get_all_accounts();
         let mut accounts_with_balance = Vec::new();
 
         // Get all pubkeys for batch request
@@ -94,7 +94,7 @@ impl AccountService {
         &mut self,
         pubkey: &Pubkey,
     ) -> Result<Option<AccountWithBalance>> {
-        if let Some(account) = self.account_manager.get_account(pubkey) {
+        if let Some(account) = self.account_manager.get_account(&pubkey.to_string()) {
             let balance = self
                 .rpc_client
                 .get_balance(&account.pubkey.to_string())
@@ -175,12 +175,18 @@ impl AccountService {
 
     /// Remove account
     pub fn remove_account(&mut self, pubkey: &Pubkey) -> bool {
-        self.account_manager.remove_account(pubkey)
+        self.account_manager
+            .remove_account(&pubkey.to_string())
+            .is_ok()
     }
 
     /// Get all accounts (without balance updates)
     pub fn get_accounts(&self) -> Vec<Account> {
-        self.account_manager.get_accounts().to_vec()
+        self.account_manager
+            .get_all_accounts()
+            .into_iter()
+            .cloned()
+            .collect()
     }
 
     /// Get current network

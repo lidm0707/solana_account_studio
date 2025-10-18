@@ -15,14 +15,14 @@ use surfdesk_core::solana_rpc::{SolanaNetwork, SolanaRpcClient};
 #[component]
 pub fn SurfPoolPage() -> Element {
     let surfpool_status = use_signal(|| DesktopSurfPoolStatus::Stopped);
-    let logs = use_signal(Vec::<String>::new);
-    let config = use_signal(SurfPoolConfig::default);
-    let show_config_modal = use_signal(|| false);
+    let mut logs = use_signal(Vec::<String>::new);
+    let mut config = use_signal(SurfPoolConfig::default);
+    let mut show_config_modal = use_signal(|| false);
     let loading = use_signal(|| false);
-    let error_message = use_signal(|| Option::<String>::None);
+    let mut error_message = use_signal(|| Option::<String>::None);
 
     // Real SurfPool manager (no Arc for Dioxus compatibility)
-    let surfpool_manager = use_signal(|| {
+    let mut surfpool_manager = use_signal(|| {
         let cfg = config.read().clone();
         SurfPoolManager::new(cfg)
     });
@@ -93,7 +93,7 @@ pub fn SurfPoolPage() -> Element {
                 error.set(None);
 
                 // Update manager config
-                let new_manager = SurfPoolManager::new(config);
+                let mut new_manager = SurfPoolManager::new(config);
 
                 match new_manager.start().await {
                     Ok(_) => {

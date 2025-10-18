@@ -1,9 +1,9 @@
 # SurfDesk Product Specification & UX/UI Design
-> **Multi-platform Solana Account Studio with Dioxus 0.6+**
+> **Multi-platform Solana Account Studio with Dioxus 0.6+ & MCP SurfPool Integration**
 
 ## Product Overview
 
-SurfDesk is a comprehensive Solana account studio built with **Dioxus 0.6+** that provides a rich, cross-platform development experience for Solana program developers. The application seamlessly runs on both desktop (CLI/TUI) and web browsers, offering a unified interface for local development, testing, and program management.
+SurfDesk is a comprehensive Solana account studio built with **Dioxus 0.6+** that provides a rich, cross-platform development experience for Solana program developers. The application seamlessly runs on both desktop (CLI/TUI) and web browsers, offering a unified interface for local development, testing, and program management with **MCP SurfPool mainnet forking capabilities**.
 
 ### Core Value Proposition
 
@@ -12,6 +12,8 @@ SurfDesk is a comprehensive Solana account studio built with **Dioxus 0.6+** tha
 - **AI-Powered Testing**: Automated test generation and execution
 - **Local First**: Full offline capability with optional cloud sync
 - **Cross-Platform**: Native desktop experience + web accessibility
+- **🌊 MCP SurfPool Integration**: Mainnet fork simnet with zero transaction costs
+- **🦀 Rust-Only Architecture**: Complete elimination of external dependencies
 
 ### Target Platforms
 

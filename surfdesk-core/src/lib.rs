@@ -16,21 +16,6 @@
 //! iterations. Warning suppression is enabled to facilitate rapid development
 //! and iterative feature implementation.
 
-#![allow(dead_code)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
-#![allow(unused_mut)]
-#![allow(ambiguous_glob_reexports)]
-//! - **Service Layer**: Modular service architecture for blockchain operations
-//! - **Database Integration**: SQLite database with Diesel ORM for persistence
-//! - **Configuration Management**: Flexible configuration system
-//! - **Error Handling**: Comprehensive error handling with proper propagation
-
-#![allow(missing_docs)]
-#![warn(clippy::all)]
-#![warn(rust_2018_idioms)]
-
-pub mod accounts;
 pub mod app;
 pub mod components;
 // pub mod database;  // Temporarily disabled due to dependency conflicts
@@ -44,7 +29,6 @@ pub mod surfpool;
 pub mod types;
 
 // Re-export commonly used items
-pub use accounts::{Account, AccountManager};
 pub use app::SurfDeskApp;
 pub use error::{Result, SurfDeskError};
 pub use platform::Platform;

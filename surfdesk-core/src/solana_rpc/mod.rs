@@ -718,6 +718,9 @@ pub mod account_service;
 pub mod accounts;
 pub mod transactions;
 
+// Re-export comprehensive account management from accounts module
+pub use accounts::{Account, AccountManager, AccountMetadata, AccountType};
+
 pub use account_service::{AccountService, AccountWithBalance, TransactionBuilder};
 
 // System program ID
