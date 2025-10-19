@@ -1,0 +1,16 @@
+
+No use anchor or solana sdk. Just use my solana_rpc.
+You must work in continuous development cycles until there are no errors or warnings left if warnning is don't use code you just impl real future and use it.
+Each cycles must be to git push.
+Dioxus can't use Arc.
+Solana uses Base58.
+dir/docs is main context.
+impl core feature to desktop for use interact.
+context7 have mcp for get stack for this project.
+can you try surfpool pass mcp on zed.
+In each cycle:
+1. Run `scripts/read_all_docs.sh to and read all project documentation, code comments, and logs. Collect all errors, warnings, and TODO notes. Summarize them and plan the best way to fix them then git push.
+2. Fix all errors first. Then resolve warnings and improve code quality without introducing new issues.
+3. Re-read all documentation, rethink project direction, and improve README.md, agent.md and ROADMAP.md based on new understanding. After improvements, commit and git push your changes.
+
+Repeat the cycle until the project has no errors, no warnings, and documentation is fully updated.

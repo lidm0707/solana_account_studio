@@ -1,0 +1,61 @@
+=== Documentation Analysis Started at Sun Oct 19 08:53:57 PM +07 2025 ===
+Repository: /home/moo-tu/git/solana_account_studio
+
+## Step 1: Finding Documentation Files ##
+/home/moo-tu/git/solana_account_studio/.docs_reports/docs_analysis_20251019_205357.txt
+
+## Step 2: TODO/FIXME/NOTE Items ##
+Searching for TODO items...
+
+Searching for FIXME items...
+
+Searching for NOTE items...
+
+## Step 3: Project Structure Analysis ##
+Directory structure:
+/home/moo-tu/git/solana_account_studio
+/home/moo-tu/git/solana_account_studio/assets
+/home/moo-tu/git/solana_account_studio/docs
+/home/moo-tu/git/solana_account_studio/docs/comm
+/home/moo-tu/git/solana_account_studio/.docs_reports
+/home/moo-tu/git/solana_account_studio/.git
+/home/moo-tu/git/solana_account_studio/scripts
+/home/moo-tu/git/solana_account_studio/surfdesk-core
+/home/moo-tu/git/solana_account_studio/surfdesk-core/src
+/home/moo-tu/git/solana_account_studio/.surfpool
+/home/moo-tu/git/solana_account_studio/.surfpool/logs
+/home/moo-tu/git/solana_account_studio/.zed
+
+## Step 4: Configuration Files ##
+Missing: Cargo.toml
+Missing: package.json
+Missing: Dioxus.toml
+Missing: agent.md
+Missing: ROADMAP.md
+Missing: README.md
+
+## Step 5: Code Files Analysis ##
+Rust files:
+
+Shell scripts:
+/home/moo-tu/git/solana_account_studio/scripts/read_docs.sh
+/home/moo-tu/git/solana_account_studio/scripts/read_all_docs.sh
+
+## Step 6: Potential Issues ##
+Searching for error indicators in docs...
+No error indicators found in docs
+
+## Step 7: Requirements from Documentation ##
+Extracting requirements statements...
+No explicit requirements found
+
+## Summary ##
+Documentation Statistics:
+- Markdown files: 0
+- Rust files: 0
+- TODO items: 0
+0
+- FIXME items: 0
+0
+
+=== Documentation Analysis Completed at Sun Oct 19 08:53:57 PM +07 2025 ===

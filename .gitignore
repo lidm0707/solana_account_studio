@@ -1,0 +1,39 @@
+# Rust build artifacts
+/target/
+*/target/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Surfpool logs and data
+.surfpool/logs/
+.surfpool/data/
+.surfpool/pid/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Documentation reports
+.docs_reports/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build artifacts
+*.lock

@@ -1,0 +1,91 @@
+[package]
+name = "surfdesk-core"
+version = "0.1.0"
+edition = "2021"
+description = "No-code Solana development platform"
+authors = ["Surfdesk Team"]
+license = "MIT"
+repository = "https://github.com/surfdesk/surfdesk"
+
+[dependencies]
+# Dioxus core dependencies
+dioxus = { version = "0.6.3", features = ["web"] }
+dioxus-web = "0.6.3"
+dioxus-router = "0.6.3"
+
+# Async runtime - WASM compatible configuration
+tokio = { version = "1.0", features = ["rt", "macros", "sync", "time"] }
+
+# HTTP client for custom RPC - WASM compatible
+reqwest = { version = "0.11", features = ["json"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Base58 encoding for Solana addresses
+bs58 = "0.5"
+
+# Cryptography for key generation
+rand = "0.8"
+getrandom = { version = "0.2", features = ["js"] }
+uuid = { version = "1.0", features = ["v4", "js"] }
+sha2 = "0.10"
+hmac = "0.12"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Async traits
+async-trait = "0.1"
+
+# Additional dependencies
+base64 = "0.21"
+rand_chacha = "0.3"
+url = "2.4"
+
+# Process management for Surfpool - disabled for WASM
+# sysinfo = { version = "0.30", optional = true }  # Not compatible with WASM
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# File system operations - disabled for WASM
+# dirs = "5.0"  # Not compatible with WASM
+
+[dev-dependencies]
+# Testing utilities
+tokio-test = "0.4"
+tempfile = "3.0"
+
+[build-dependencies]
+# Build-time code generation if needed
+
+[[bin]]
+name = "surfdesk"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"

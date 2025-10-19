@@ -1,0 +1,298 @@
+in each cycle must be no err and warnning
+read doc by srcipt .sh
+1. I think you read alldoc and read all error and summary for best way to fix all them
+2. fix err first
+3. you read all document ,re think and impore agent.md , check roadmap , git push then work to develop
+
+
+next step command
+in each cycle must be no err and warnning
+read doc by srcipt .sh
+I want core feature about surfpool
+surfpool is 3th party program just first insntall in local
+when surfpool start it fork main net to sim net 8999 and can interacti it.
+and can run and kill surfpool next  I want to no code create program & account and deploy by my solana_rpc. the program no code and get raw code to my solana_rpc
+1. I think you read alldoc and read all error and summary for best way to fix all them
+2. fix err first
+3. you read all document ,re think and impore agent.md , check roadmap , git push then work to develop
+
+
+Nice — here’s a practical, ready-to-run cycle script plus a short workflow you can use to implement your 3-step process reliably every cycle:
+
+read all docs and errors, 2) fix errors first, 3) update agent.md + roadmap + git push then continue dev.
+
+I’ve written a robust order_ai_cycle.sh that:
+
+scans the repo and docs,
+
+runs build / linters / tests,
+
+collects and summarizes errors & warnings,
+
+attempts safe auto-fixes where available (formatters, eslint --fix, cargo fix, shellcheck autofix helpers),
+
+writes a concise summary into agent.md,
+
+opens a draft branch, commits & pushes (safe/dry-run modes included).
+
+Copy this into your repo root, make it executable (chmod +x order_ai_cycle.sh) and adapt the configurable section at the top to match your toolchain.
+
+The script — order_ai_cycle.sh
+#!/usr/bin/env bash
+# order_ai_cycle.sh
+# Usage: ./order_ai_cycle.sh [--push] [--auto-fix] [--dry-run]
+# Purpose: One-cycle "read docs, gather errors, fix errors, update agent.md, push"
+
+set -o pipefail
+
+# -------------- CONFIG --------------
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPORT_DIR="$REPO_ROOT/.order_ai_reports"
+LOGFILE="$REPORT_DIR/cycle_$(date +%Y%m%d_%H%M%S).log"
+AGENT_DOC="$REPO_ROOT/agent.md"
+ROADMAP="$REPO_ROOT/ROADMAP.md"
+BRANCH_PREFIX="order-ai-cycle"
+GIT_REMOTE="origin"
+
+# Tools you may want to customize
+USE_RUST=true      # cargo build / fmt / clippy / fix
+USE_NODE=true      # npm/yarn lint, format
+USE_PYTHON=false   # black / isort / pytest
+USE_SHELLCHECK=true
+
+# -------------- FLAGS --------------
+PUSH=false
+AUTO_FIX=false
+DRY_RUN=false
+
+for arg in "$@"; do
+  case $arg in
+    --push) PUSH=true ;;
+    --auto-fix) AUTO_FIX=true ;;
+    --dry-run) DRY_RUN=true ;;
+    *) ;;
+  esac
+done
+
+mkdir -p "$REPORT_DIR"
+
+echo "=== order_ai_cycle started at $(date) ===" | tee -a "$LOGFILE"
+echo "Config: PUSH=$PUSH, AUTO_FIX=$AUTO_FIX, DRY_RUN=$DRY_RUN" | tee -a "$LOGFILE"
+
+# -------------- helpers --------------
+run_cmd() {
+  # run command, capture stdout+stderr to log; never exit script on failure so we can collect errors
+  echo "+ $*" | tee -a "$LOGFILE"
+  if $DRY_RUN; then
+    echo "(dry-run) would run: $*" | tee -a "$LOGFILE"
+    return 0
+  fi
+  timeout 600 bash -c "$*" >>"$LOGFILE" 2>&1 || true
+}
+
+collect_pattern() {
+  # arg1: pattern, arg2: source file
+  grep -inE "$1" "$2" 2>/dev/null || true
+}
+
+summarize_log() {
+  local src="$1"
+  echo "" >> "$LOGFILE"
+  echo "---- SUMMARY (errors & warnings) ----" >> "$LOGFILE"
+  # common keywords
+  grep -inE "(error|warning|fail|undefined|exception|traceback)" "$src" || true
+  echo "---- END SUMMARY ----" >> "$LOGFILE"
+}
+
+append_agent_md() {
+  local title="$1"
+  local body="$2"
+  if $DRY_RUN; then
+    echo "(dry-run) would append summary to $AGENT_DOC"
+    return
+  fi
+  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  echo -e "\n\n## Cycle summary: $timestamp - $title\n\n$body\n" >> "$AGENT_DOC"
+  echo "Appended cycle summary to $AGENT_DOC" | tee -a "$LOGFILE"
+}
+
+git_commit_and_push() {
+  local message="$1"
+  branch="${BRANCH_PREFIX}/$(date +%Y%m%d_%H%M%S)"
+  echo "Creating branch: $branch" | tee -a "$LOGFILE"
+  if $DRY_RUN; then
+    echo "(dry-run) would: git checkout -b $branch; git add -A; git commit -m \"$message\"; git push $GIT_REMOTE $branch" | tee -a "$LOGFILE"
+    return
+  fi
+  git checkout -b "$branch" >>"$LOGFILE" 2>&1 || true
+  git add -A >>"$LOGFILE" 2>&1 || true
+  git commit -m "$message" >>"$LOGFILE" 2>&1 || true
+  git push -u "$GIT_REMOTE" "$branch" >>"$LOGFILE" 2>&1 || true
+  echo "Pushed branch $branch" | tee -a "$LOGFILE"
+}
+
+# -------------- Step A: Read docs --------------
+echo "Step A: Reading documentation files..." | tee -a "$LOGFILE"
+run_cmd "find \"$REPO_ROOT\" -type f -name '*.md' -not -path '*/.git/*' -maxdepth 3 -print"   # list docs
+run_cmd "find \"$REPO_ROOT\" -type f -name 'README*' -print"
+run_cmd "ls -la \"$REPO_ROOT\""
+
+# Optionally extract TODO / FIXME / NOTE markers from docs and code
+echo "Extracting TODO / FIXME / NOTE markers..." | tee -a "$LOGFILE"
+run_cmd "grep -RIn --exclude-dir=.git -E 'TODO|FIXME|NOTE' \"$REPO_ROOT\" || true"
+
+# -------------- Step B: Run builds, linters, tests (collect errors/warnings) --------------
+echo "Step B: Run builds & linters to collect errors/warnings..." | tee -a "$LOGFILE"
+
+# 1) Shell scripts: shellcheck
+if $USE_SHELLCHECK; then
+  if command -v shellcheck >/dev/null 2>&1; then
+    echo "Running shellcheck (scan only)..." | tee -a "$LOGFILE"
+    run_cmd "find \"$REPO_ROOT\" -type f -name '*.sh' -not -path '*/.git/*' -print0 | xargs -0 shellcheck || true"
+    if $AUTO_FIX; then
+      echo "NOTE: shellcheck doesn't auto-fix reliably; consider manual fixes." | tee -a "$LOGFILE"
+    fi
+  else
+    echo "shellcheck not installed, skipping" | tee -a "$LOGFILE"
+  fi
+fi
+
+# 2) Rust
+if $USE_RUST && command -v cargo >/dev/null 2>&1; then
+  echo "Running cargo build, clippy, fmt, test..." | tee -a "$LOGFILE"
+  run_cmd "cargo fmt --all -- --check || true"
+  if $AUTO_FIX; then run_cmd "cargo fmt --all || true"; fi
+  run_cmd "cargo clippy --all-targets --all-features -- -D warnings || true"
+  if $AUTO_FIX; then run_cmd "cargo fix --allow-dirty --allow-staged || true"; fi
+  run_cmd "cargo build --workspace --release || true"
+  run_cmd "cargo test --workspace || true"
+fi
+
+# 3) Node / JS
+if $USE_NODE && (command -v npm >/dev/null 2>&1 || command -v yarn >/dev/null 2>&1); then
+  echo "Running node formatters/linters/tests (if package.json present)..." | tee -a "$LOGFILE"
+  if [ -f "$REPO_ROOT/package.json" ]; then
+    if command -v npm >/dev/null 2>&1; then
+      run_cmd "npm run format --if-present || true"
+      if $AUTO_FIX; then run_cmd "npx eslint . --ext .js,.ts --fix || true"; fi
+      run_cmd "npm run lint --if-present || true"
+      run_cmd "npm test --if-present || true"
+    else
+      run_cmd "yarn format --if-present || true"
+      if $AUTO_FIX; then run_cmd "yarn eslint --fix || true"; fi
+      run_cmd "yarn lint --if-present || true"
+      run_cmd "yarn test --if-present || true"
+    fi
+  else
+    echo "No package.json found; skipping Node steps." | tee -a "$LOGFILE"
+  fi
+fi
+
+# 4) Python
+if $USE_PYTHON && command -v python3 >/dev/null 2>&1; then
+  echo "Running Python formatters and tests..." | tee -a "$LOGFILE"
+  run_cmd "python3 -m pip install -q black isort pytest || true"
+  if $AUTO_FIX; then run_cmd "python3 -m black . || true"; run_cmd "python3 -m isort . || true"; fi
+  run_cmd "pytest -q || true"
+fi
+
+# -------------- Step C: Grep logs for errors/warnings, summarize --------------
+echo "Step C: Collecting errors & warnings..." | tee -a "$LOGFILE"
+# At this point the LOGFILE has captured outputs. Summarize.
+summarize_log "$LOGFILE"
+
+# Produce a short human-readable summary for agent.md
+ERROR_COUNT=$(grep -icE "error|failed|fail|exception|traceback" "$LOGFILE" || true)
+WARN_COUNT=$(grep -icE "warning" "$LOGFILE" || true)
+
+SUMMARY="Automatic cycle summary:
+- Errors found: $ERROR_COUNT
+- Warnings found: $WARN_COUNT
+
+Key actions attempted:
+- formatters run: $( [ "$USE_RUST" = true ] && echo "rustfmt" || echo "-" ), $( [ "$USE_NODE" = true ] && echo "prettier/eslint" || echo "-" )
+- linters run where available
+- build & tests executed where available
+- attempted auto-fix: $( $AUTO_FIX && echo "yes" || echo "no" )
+
+Full log available: $LOGFILE
+"
+
+# Add top 20 grep hits to summary for manual inspection
+TOP_HITS="$(grep -inE "(error|warning|fail|exception|traceback)" "$LOGFILE" | head -n 40 || true)"
+if [ -z "$TOP_HITS" ]; then TOP_HITS="No direct error/warning lines found in logs."; fi
+
+SUMMARY="$SUMMARY
+
+Top hits (sample):
+$TOP_HITS
+"
+
+# -------------- Step D: Update agent.md + roadmap --------------
+echo "Step D: Updating $AGENT_DOC and $ROADMAP" | tee -a "$LOGFILE"
+append_agent_md "Auto summary (errors/warnings)" "$SUMMARY"
+
+# Optionally update ROADMAP: add a note about fixes needed
+ROADM_NOTE="- $(date -u +%Y-%m-%d) Auto-cycle note: $ERROR_COUNT errors, $WARN_COUNT warnings. See $LOGFILE"
+if [ "$DRY_RUN" = false ]; then
+  echo -e "\n$ROADM_NOTE" >> "$ROADMAP" || true
+  echo "Appended note to $ROADMAP" | tee -a "$LOGFILE"
+fi
+
+# -------------- Step E: Git commit & push --------------
+COMMIT_MSG="chore(order-ai): cycle summary $(date -u +%Y-%m-%dT%H:%M:%SZ): $ERROR_COUNT errors, $WARN_COUNT warnings"
+if $PUSH; then
+  git_commit_and_push "$COMMIT_MSG"
+else
+  echo "PUSH not enabled; skipping git push. Use --push to enable." | tee -a "$LOGFILE"
+fi
+
+echo "=== Cycle finished at $(date) ===" | tee -a "$LOGFILE"
+echo "Log saved to: $LOGFILE"
+
+How to use (quick)
+
+Put the script at repo root, chmod +x order_ai_cycle.sh.
+
+Run a safe dry-run first:
+
+./order_ai_cycle.sh --dry-run
+
+Run with auto-fix (will run formatters and some auto-fix commands):
+
+./order_ai_cycle.sh --auto-fix
+
+Run and push branch with commit:
+
+./order_ai_cycle.sh --auto-fix --push
+(Make sure git remotes are configured & you have write access.)
+
+Notes & behavior explanation
+
+The script does not abort on the first error — it collects everything into a log and a short summary so you can see all issues in one pass.
+
+--auto-fix runs safe auto-fix commands: cargo fix, cargo fmt, eslint --fix, black etc. These are limited — not all errors can be fixed automatically (logic errors, failing tests, missing dependencies).
+
+It appends a machine-readable cycle summary to agent.md and adds a line to ROADMAP.md. Edit the append_agent_md() function if you want a different format or a separate file.
+
+Use --dry-run to validate what will happen without changing files or pushing.
+
+The script logs everything to .order_ai_reports/ so you have an artifact for each cycle.
+
+Suggested augmentations (optional)
+
+Add a CI check to run this automatically (GitHub Actions / GitLab CI) on a schedule or pre-merge.
+
+Add an automatic PR creation step after push (use gh CLI or GitHub API) so changes and proposed fixes can be reviewed.
+
+Expand language/tool support as needed (Go, Java, Dockerfile linters).
+
+Add a small Node/Python script to parse complicated tool outputs into structured JSON for better automated triage.
+
+Quick checklist for your 3-step process mapped to the script
+
+Read all docs & errors — script collects .md, README*, TODOs and runs build outputs into a timestamped log.
+
+Fix errors first — --auto-fix runs safe auto-fixers; script surfaces errors that need human attention on top of attempts.
+
+Rethink & update agent.md, check roadmap, git push, continue dev — script appends summary to agent.md, appends note to ROADMAP.md, optionally commits + pushes a branch.
