@@ -141,29 +141,230 @@ Surfdesk is a no-code Solana development platform built with Dioxus 0.6.3, focus
 - [ ] Implement transaction models
 - [ ] Build program representation
 
-### Phase 5: No-Code Program Builder (Week 8-10)
-**Objective**: Visual interface for program creation
+### Phase 5: No-Code Program Builder - UI → JSON (Week 8-10)
+**Objective**: Build a user interface that lets anyone visually design a Solana program structure and automatically generate a JSON schema representation
 
-#### 4.1 Visual Editor
-- [ ] Create drag-and-drop interface
-- [ ] Implement component palette
-- [ ] Build program canvas
-- [ ] Add connection tools
-- [ ] Create property panels
+#### 5.1 Core Data Structures
+- [x] Define `ProgramSchema` data structure with serde serialization
+- [x] Create `Field`, `Account`, and `Instruction` structs
+- [x] Implement JSON export functionality
+- [ ] Add validation for data structures
+- [ ] Create TypeScript definitions for frontend integration
 
-#### 4.2 Program Templates
-- [ ] Design basic program templates
-- [ ] Implement template system
-- [ ] Create custom template builder
-- [ ] Add template library
-- [ ] Implement template sharing
+#### 5.2 Program Information Interface
+- [x] Add program name input field with real-time validation
+- [x] Add version input field with semantic versioning support
+- [ ] Auto-generate program ID placeholders
+- [ ] Add program description field
+- [ ] Implement program metadata management
 
-#### 4.3 Code Generation
-- [ ] Build code generator for solana_rpc
-- [ ] Create optimization system
-- [ ] Implement validation
-- [ ] Add code preview
-- [ ] Create export functionality
+#### 5.3 Account Management UI
+- [ ] Create dynamic account creation interface
+- [ ] Implement add/remove account functionality
+- [ ] Build field management for each account
+- [ ] Add field type dropdown (u8, u64, String, Pubkey, Vec<T>, etc.)
+- [ ] Implement field validation and type checking
+- [ ] Add account reordering with drag-and-drop
+- [ ] Create account preview cards
+
+#### 5.4 Instruction Builder Interface
+- [ ] Create instruction creation wizard
+- [ ] Implement account selection interface (checkboxes for required accounts)
+- [ ] Build argument definition system with type validation
+- [ ] Add instruction ordering and dependencies
+- [ ] Create instruction preview with account mapping
+- [ ] Implement instruction templates (transfer, mint, etc.)
+
+#### 5.5 Real-time JSON Preview
+- [x] Implement split-screen layout with JSON preview panel
+- [x] Add real-time JSON updates as user makes changes
+- [x] Implement syntax highlighting for JSON display
+- [ ] Add JSON validation and error display
+- [ ] Create export/copy JSON functionality
+- [ ] Add import JSON feature for existing programs
+
+#### 5.6 UI Layout and Components
+- [x] Implement responsive two-panel layout (left: controls, right: preview)
+- [x] Create collapsible sections for better organization
+- [ ] Add keyboard shortcuts for common actions
+- [ ] Implement undo/redo functionality
+- [ ] Create dark/light theme support
+- [ ] Add mobile-responsive design
+
+#### 5.7 Advanced Features
+- [ ] Add program templates (vault, token, staking, etc.)
+- [ ] Implement account relationship visualization
+- [ ] Create instruction flow diagram
+- [ ] Add code generation for Anchor framework
+- [ ] Implement program testing interface
+- [ ] Create deployment wizard integration
+
+#### 5.8 Data Persistence
+- [ ] Implement localStorage for auto-save
+- [ ] Add project save/load functionality
+- [ ] Create project sharing capabilities
+- [ ] Add version history for programs
+- [ ] Implement export/import of project files
+
+#### 5.9 Target JSON Schema Example
+```json
+{
+  "program": {
+    "name": "vault_program",
+    "version": "0.1.0"
+  },
+  "accounts": [
+    {
+      "name": "Vault",
+      "fields": [
+        { "name": "owner", "type": "Pubkey" },
+        { "name": "balance", "type": "u64" }
+      ]
+    },
+    {
+      "name": "User",
+      "fields": [
+        { "name": "authority", "type": "Pubkey" }
+      ]
+    }
+  ],
+  "instructions": [
+    {
+      "name": "deposit",
+      "accounts": ["Vault", "User"],
+      "args": [
+        { "name": "amount", "type": "u64" }
+      ]
+    }
+  ]
+}
+```
+
+#### 5.10 Example Dioxus Component Implementation
+```rust
+use dioxus::prelude::*;
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct Field {
+    name: String,
+    field_type: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct Account {
+    name: String,
+    fields: Vec<Field>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct Instruction {
+    name: String,
+    accounts: Vec<String>,
+    args: Vec<Field>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct ProgramSchema {
+    name: String,
+    version: String,
+    accounts: Vec<Account>,
+    instructions: Vec<Instruction>,
+}
+
+#[component]
+pub fn ProgramBuilder() -> Element {
+    let mut schema = use_signal(ProgramSchema::default);
+
+    rsx! {
+        div { class: "flex gap-6",
+            // Left panel - Controls
+            div { class: "w-1/2 space-y-4",
+                h2 { "Program Builder" }
+                
+                // Program Info
+                div { class: "space-y-2",
+                    h3 { "Program Information" }
+                    input {
+                        placeholder: "Program Name",
+                        value: "{schema().name}",
+                        oninput: move |e| schema.with_mut(|s| s.name = e.value())
+                    }
+                    input {
+                        placeholder: "Version",
+                        value: "{schema().version}",
+                        oninput: move |e| schema.with_mut(|s| s.version = e.value())
+                    }
+                }
+                
+                // Accounts Section
+                div { class: "space-y-2",
+                    h3 { "Accounts" }
+                    button {
+                        onclick: move |_| schema.with_mut(|s| {
+                            s.accounts.push(Account {
+                                name: "NewAccount".into(),
+                                ..Default::default()
+                            })
+                        }),
+                        "Add Account"
+                    }
+                    
+                    for (account_idx, account) in schema().accounts.iter().enumerate() {
+                        div { class: "border p-3 rounded",
+                            input {
+                                value: "{account.name}",
+                                oninput: move |e| schema.with_mut(|s| {
+                                    s.accounts[account_idx].name = e.value()
+                                })
+                            }
+                            button {
+                                onclick: move |_| schema.with_mut(|s| {
+                                    s.accounts.remove(account_idx);
+                                }),
+                                "Remove"
+                            }
+                        }
+                    }
+                }
+                
+                // Instructions Section
+                div { class: "space-y-2",
+                    h3 { "Instructions" }
+                    button {
+                        onclick: move |_| schema.with_mut(|s| {
+                            s.instructions.push(Instruction {
+                                name: "NewInstruction".into(),
+                                accounts: vec![],
+                                args: vec![],
+                            })
+                        }),
+                        "Add Instruction"
+                    }
+                }
+            }
+
+            // Right panel - JSON preview
+            div { class: "w-1/2 bg-gray-900 text-white p-4 rounded-xl font-mono text-sm",
+                h3 { "JSON Output" }
+                pre { 
+                    class: "whitespace-pre-wrap break-all",
+                    "{serde_json::to_string_pretty(&schema()).unwrap_or_default()}" 
+                }
+                button {
+                    onclick: move |_| {
+                        // Copy to clipboard functionality
+                        if let Ok(json) = serde_json::to_string_pretty(&schema()) {
+                            // Implement clipboard API call
+                        }
+                    },
+                    "Copy JSON"
+                }
+            }
+        }
+    }
+}
+```
 
 ### Phase 6: Account Management (Week 10-11)
 **Objective**: Comprehensive account and wallet management

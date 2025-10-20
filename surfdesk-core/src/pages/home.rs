@@ -3,11 +3,15 @@
 //! This is the main dashboard page that provides an overview of the Surfdesk
 //! application, showing system status, quick actions, and recent activity.
 
+use crate::routes::Route;
 use dioxus::prelude::*;
+use dioxus_router::components::Link;
+use dioxus_router::prelude::*;
 
 /// Home page component - the main dashboard
 #[component]
 pub fn Home() -> Element {
+    let navigator = use_navigator();
     let surfpool_status = use_signal(|| "Stopped".to_string());
     let network_info = use_signal(|| "Local Simulation".to_string());
     let recent_activity = use_signal(|| {
@@ -26,6 +30,15 @@ pub fn Home() -> Element {
                 style: "margin-bottom: 2rem;",
                 h1 { style: "font-size: 2.25rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem;", "Dashboard" }
                 p { style: "font-size: 1.125rem; color: #4b5563;", "Welcome to Surfdesk - Your No-Code Solana Development Platform" }
+                div {
+                    style: "margin-top: 1rem;",
+                    Link {
+                        to: Route::ProgramBuilderPage {},
+                        style: "display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background-color: #2563eb; color: white; text-decoration: none; border-radius: 0.5rem; font-weight: 500;",
+                        span { style: "font-size: 1.25rem;", "🔧" }
+                        span { "Open Program Builder" }
+                    }
+                }
             }
 
             // Status Cards
@@ -204,8 +217,9 @@ fn QuickActionCard(title: String, description: String, icon: String, action: Str
                             tracing::info!("Start surfpool requested");
                         }
                         "create_program" => {
-                            // TODO: Navigate to program builder
+                            // Navigate to program builder
                             tracing::info!("Create program requested");
+                            navigator().push(Route::ProgramBuilderPage {});
                         }
                         "create_account" => {
                             // TODO: Navigate to account manager

@@ -6,8 +6,9 @@
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 
-// Import only the working home page for now
+// Import pages
 use crate::pages::home::Home;
+use crate::pages::program_builder::ProgramBuilderPage;
 
 #[component]
 pub fn LayoutWrapper() -> Element {
@@ -19,11 +20,15 @@ pub fn LayoutWrapper() -> Element {
     }
 }
 
-/// Application routes enumeration - simplified for now
+/// Application routes enumeration
 #[derive(Clone, Debug, PartialEq, Routable)]
 #[rustfmt::skip]
 pub enum Route {
     #[layout(LayoutWrapper)]
     #[route("/")]
     Home {},
+
+    #[layout(LayoutWrapper)]
+    #[route("/program-builder")]
+    ProgramBuilderPage {},
 }

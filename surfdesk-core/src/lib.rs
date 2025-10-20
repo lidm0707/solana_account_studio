@@ -15,7 +15,7 @@ fn TestComponent() -> Element {
 }
 
 // Modules for the Surfdesk application
-// pub mod components;  // Temporarily disabled due to compilation errors
+pub mod components;
 pub mod models;
 pub mod pages;
 pub mod routes;
@@ -23,7 +23,7 @@ pub mod routes;
 // pub mod utils;       // Temporarily disabled due to compilation errors
 
 // Re-export main types for easier access
-// pub use components::*;
+pub use components::*;
 pub use pages::*;
 pub use routes::*;
 // pub use services::*;

@@ -2039,6 +2039,7 @@ dependencies = [
  "dioxus-web",
  "getrandom 0.2.16",
  "hmac",
+ "js-sys",
  "rand",
  "rand_chacha",
  "reqwest",
@@ -2053,6 +2054,8 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "uuid",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

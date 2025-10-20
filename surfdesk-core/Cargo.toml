@@ -44,6 +44,11 @@ base64 = "0.21"
 rand_chacha = "0.3"
 url = "2.4"
 
+# Web APIs for clipboard functionality
+web-sys = "0.3"
+js-sys = "0.3"
+wasm-bindgen = "0.2"
+
 # Process management for Surfpool - disabled for WASM
 # sysinfo = { version = "0.30", optional = true }  # Not compatible with WASM
 
