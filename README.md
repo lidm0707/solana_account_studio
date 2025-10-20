@@ -4,14 +4,15 @@ Surfdesk is a no-code web application for creating, deploying, and managing Sola
 
 ## 🚀 Phase 1: UI → JSON Implementation (NEW!)
 
-We've successfully implemented **Phase 1 (UI → JSON)** - a visual program builder that lets anyone design Solana program structures and automatically generate JSON schemas. This is the first step in our no-code development platform.
+We've successfully implemented **Phase 1 (UI → JSON)** - a visual program builder that lets anyone design Solana program structures and automatically generate JSON schemas. This includes **instruction templates** for common operations like swap, transfer, and add liquidity, making it even easier to build programs quickly!
 
 ### Key Features
-- **Visual Program Design**: Create Solana programs through an intuitive interface
-- **Real-time JSON Generation**: See your program structure as JSON instantly
-- **Account Management**: Define accounts with custom fields and types
-- **Instruction Builder**: Create instructions with account mappings and arguments
-- **Live Preview**: Watch JSON output update as you build
+- **🎨 Visual Program Design**: Create Solana programs through an intuitive interface
+- **⚡ Real-time JSON Generation**: See your program structure as JSON instantly
+- **📋 Account Management**: Define accounts with custom fields and types
+- **🔧 Instruction Builder**: Create instructions with account mappings and arguments
+- **📦 Instruction Templates**: Pre-built blocks for common operations (swap, transfer, add liquidity, etc.)
+- **👀 Live Preview**: Watch JSON output update as you build
 
 ### Access the Program Builder
 Visit http://127.0.0.1:8080/program-builder to start building Solana programs visually!
@@ -31,6 +32,7 @@ The application is now fully functional with:
 
 ### Core Features
 - **🎨 Visual Program Builder (Phase 1)**: Design Solana programs with drag-and-drop interface and live JSON generation
+- **📦 Instruction Templates**: Pre-built blocks for common operations like swap, transfer, and add liquidity
 - **Surfpool Integration**: Manage local Solana testnet by forking mainnet to simulation network on port 8999
 - **No-Code Program Creation**: Create Solana programs visually without writing code
 - **Account Management**: Create and manage blockchain accounts
@@ -127,7 +129,12 @@ dx serve
 - **Visual Interface**: Intuitive UI for designing Solana programs
 - **Real-time JSON**: Live JSON schema generation as you build
 - **Account Management**: Create accounts with custom fields and types (u8, u64, String, Pubkey, bool)
-- **Instruction Builder**: Define instructions with account selection and arguments
+- **Instruction Builder**: Complete instruction design with account mapping
+- **📦 Instruction Templates**: Pre-built blocks for common operations:
+  - **Token Operations**: Swap, Transfer
+  - **Liquidity Operations**: Add Liquidity  
+  - **Account Management**: Initialize Account
+- **Template Modal**: Beautiful categorized interface for quick template selection
 - **Export Functionality**: Copy generated JSON schemas for development use
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
 
@@ -241,6 +248,13 @@ dx serve
 - **Real-time JSON Generation**: Live schema updates as users design programs
 - **Account Management**: Dynamic account and field creation with type validation
 - **Instruction Builder**: Complete instruction design with account mapping
+- **📦 Instruction Templates**: Pre-built blocks for common Solana operations:
+  - **Swap**: Token swapping with pool integration
+  - **Transfer**: Token/SOL transfers between accounts
+  - **Add Liquidity**: Liquidity pool operations
+  - **Initialize Account**: Account setup and initialization
+- **Template Categories**: Organized by Token Operations, Liquidity, and Account Management
+- **Modal Interface**: Beautiful template selection modal with detailed descriptions
 - **Responsive Design**: Mobile-friendly interface with modern styling
 - **Export Functionality**: Copy JSON schemas for external development use
 
@@ -256,6 +270,8 @@ dx serve
 - **Clean Codebase**: Removed obsolete files and simplified structure
 - **Responsive Design**: Mobile-first UI implementation
 - **Component Architecture**: Reusable, maintainable UI components
+- **📦 Template System**: Extensible instruction template framework
+- **Documentation**: Comprehensive guides for instruction templates and usage
 
 ## License
 

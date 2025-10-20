@@ -21,6 +21,10 @@ Surfdesk is a no-code Solana development platform built with Dioxus 0.6.3, focus
 - ✅ **Dashboard UI**: Created responsive dashboard with status cards, quick actions, and activity feed
 - ✅ **Build Quality**: Fixed all compilation errors and warnings
 - ✅ **WebASM Compatibility**: Ensured all dependencies work with WebAssembly
+- ✅ **Phase 1 UI → JSON**: Complete visual program builder with real-time JSON generation
+- ✅ **📦 Instruction Templates**: Pre-built blocks for common operations (swap, transfer, add liquidity, initialize account)
+- ✅ **Template Modal System**: Beautiful categorized interface for quick template selection
+- ✅ **Template Documentation**: Comprehensive guides and examples for instruction templates
 
 ## Development Phases
 
@@ -186,10 +190,25 @@ Surfdesk is a no-code Solana development platform built with Dioxus 0.6.3, focus
 #### 5.6 UI Layout and Components
 - [x] Implement responsive two-panel layout (left: controls, right: preview)
 - [x] Create collapsible sections for better organization
+- [x] **Instruction Templates Modal**: Beautiful template selection interface
+- [x] **Template Categories**: Organized by Token Operations, Liquidity, Account Management
+- [x] **Pre-built Templates**: Swap, Transfer, Add Liquidity, Initialize Account
 - [ ] Add keyboard shortcuts for common actions
 - [ ] Implement undo/redo functionality
 - [ ] Create dark/light theme support
-- [ ] Add mobile-responsive design
+- [x] Add mobile-responsive design
+
+#### 5.11 Instruction Templates System
+- [x] **Template Framework**: Extensible system for pre-built instruction blocks
+- [x] **Token Operations**: Swap, Transfer templates with proper account mapping
+- [x] **Liquidity Operations**: Add Liquidity template for pool operations
+- [x] **Account Management**: Initialize Account template for setup operations
+- [x] **Modal Interface**: Categorized template selection with descriptions
+- [x] **One-click Integration**: Templates instantly add to program structure
+- [x] **Documentation**: Complete guide with examples and best practices
+- [ ] **Custom Templates**: User-defined template creation
+- [ ] **Template Sharing**: Import/export template functionality
+- [ ] **Smart Suggestions**: AI-powered template recommendations
 
 #### 5.7 Advanced Features
 - [ ] Add program templates (vault, token, staking, etc.)
