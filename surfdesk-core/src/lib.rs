@@ -19,21 +19,4 @@ pub mod components;
 pub mod models;
 pub mod pages;
 pub mod routes;
-// pub mod services;    // Temporarily disabled due to compilation errors
-// pub mod utils;       // Temporarily disabled due to compilation errors
-
-// Re-export main types for easier access
-pub use components::*;
-pub use pages::*;
-pub use routes::*;
-// pub use services::*;
-// pub use utils::*;
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn test_library_compiles() {
-        // Basic compilation test - the fact this compiles is the test
-    }
-}
+pub mod services;

@@ -1,7 +1,7 @@
 [application]
 name = "Surfdesk"
 # Currently supported platforms: web, desktop
-default_platform = "web"
+default_platform = "desktop"
 
 [web.app]
 title = "Surfdesk - No-Code Solana Development"

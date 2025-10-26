@@ -1,12 +1,6 @@
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
-
-mod components;
-mod pages;
-mod routes;
-
-use pages::home::Home;
-use routes::Route;
+use surfdesk_core::routes::Route;
 
 fn main() {
     // Initialize logging

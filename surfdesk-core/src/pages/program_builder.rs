@@ -5,8 +5,9 @@
 
 use dioxus::prelude::*;
 
+use crate::components::program_builder::ProgramBuilder;
+
 // Import the program builder component
-use crate::components::ProgramBuilder;
 
 #[component]
 pub fn ProgramBuilderPage() -> Element {

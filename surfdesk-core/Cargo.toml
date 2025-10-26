@@ -1,5 +1,5 @@
 [package]
-name = "surfdesk-core"
+name = "surfdesk_core"
 version = "0.1.0"
 edition = "2021"
 description = "No-code Solana development platform"
@@ -9,12 +9,12 @@ repository = "https://github.com/surfdesk/surfdesk"
 
 [dependencies]
 # Dioxus core dependencies
-dioxus = { version = "0.6.3", features = ["web"] }
+dioxus = { version = "0.6.3", features = ["desktop","web"] }
 dioxus-web = "0.6.3"
 dioxus-router = "0.6.3"
 
 # Async runtime - WASM compatible configuration
-tokio = { version = "1.0", features = ["rt", "macros", "sync", "time"] }
+tokio = { version = "1.0", features = ["rt", "macros", "sync", "time", "rt-multi-thread"] }
 
 # HTTP client for custom RPC - WASM compatible
 reqwest = { version = "0.11", features = ["json"] }
@@ -94,3 +94,8 @@ inherits = "dev"
 
 [profile.android-dev]
 inherits = "dev"
+
+[features]
+default = ["desktop"]
+desktop = ["dioxus/desktop"]
+web = ["dioxus/web"]

@@ -1,7 +1,7 @@
 //! Surfpool Manager Page Component
 //!
-//! This page provides the interface for managing the Surfpool local Solana
-//! simulation network, including starting/stopping the service, monitoring
+//! This page provides interface for managing Surfpool local Solana
+//! simulation network, including starting/stopping service, monitoring
 //! status, and configuring network parameters.
 
 use dioxus::prelude::*;
@@ -9,21 +9,24 @@ use dioxus::prelude::*;
 /// Surfpool Manager page component
 #[component]
 pub fn SurfpoolManager() -> Element {
-    let is_running = use_signal(|| false);
-    let status_message = use_signal(|| "Surfpool is stopped".to_string());
+    let mut is_running = use_signal(|| false);
+    let mut status_message = use_signal(|| "Surfpool is stopped".to_string());
     let port = use_signal(|| 8999u16);
-    let network_status = use_signal(|| "Disconnected".to_string());
-    let logs = use_signal(|| Vec::<String>::new());
+    let mut network_status = use_signal(|| "Disconnected".to_string());
+    let mut logs = use_signal(|| Vec::<String>::new());
 
     rsx! {
-        div { class: "surfpool-manager-page",
-            div { class: "page-header",
-                h1 { "Surfpool Manager" }
-                p { "Manage your local Solana simulation network" }
+        div {
+            style: "min-height: 100vh; background-color: #f9fafb; padding: 1.5rem; font-family: system-ui, -apple-system, sans-serif;",
+
+            div {
+                style: "margin-bottom: 2rem;",
+                h1 { style: "font-size: 2.25rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem;", "Surfpool Manager" }
+                p { style: "font-size: 1.125rem; color: #4b5563;", "Manage your local Solana simulation network" }
             }
 
-            // Status Section
-            div { class: "status-section",
+            div {
+                style: "margin-bottom: 2rem;",
                 StatusCard {
                     is_running: is_running(),
                     status_message: status_message(),
@@ -32,163 +35,52 @@ pub fn SurfpoolManager() -> Element {
                 }
             }
 
-            // Control Panel
-            div { class: "control-panel",
-                h2 { "Control Panel" }
-                div { class: "control-buttons",
+            div {
+                style: "margin-bottom: 2rem;",
+                h2 { style: "font-size: 1.5rem; font-weight: 600; color: #111827; margin-bottom: 1rem;", "Control Panel" }
+                div {
+                    style: "display: flex; gap: 1rem;",
                     if !is_running() {
                         button {
-                            class: "btn btn-primary btn-large",
+                            style: "padding: 0.75rem 1.5rem; background-color: #10b981; color: white; border: none; border-radius: 0.5rem; font-weight: 500; cursor: pointer;",
                             onclick: move |_| {
                                 is_running.set(true);
-                                status_message.set("Starting Surfpool...");
-                                logs.write().push("Surfpool start initiated".to_string());
-                                // TODO: Implement actual surfpool start logic
-                                spawn(async move {
-                                    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-                                    status_message.set("Surfpool is running");
-                                    network_status.set("Connected - Local Simulation");
-                                    logs.write().push("Surfpool successfully started on port 8999".to_string());
-                                });
+                                status_message.set("Surfpool is running".to_string());
+                                network_status.set("Connected - Local Simulation".to_string());
+                                logs.write().push("Surfpool started successfully".to_string());
                             },
                             "🚀 Start Surfpool"
                         }
                     } else {
                         button {
-                            class: "btn btn-danger btn-large",
+                            style: "padding: 0.75rem 1.5rem; background-color: #ef4444; color: white; border: none; border-radius: 0.5rem; font-weight: 500; cursor: pointer;",
                             onclick: move |_| {
                                 is_running.set(false);
-                                status_message.set("Stopping Surfpool...");
-                                logs.write().push("Surfpool stop initiated".to_string());
-                                // TODO: Implement actual surfpool stop logic
-                                spawn(async move {
-                                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                                    status_message.set("Surfpool is stopped");
-                                    network_status.set("Disconnected");
-                                    logs.write().push("Surfpool successfully stopped".to_string());
-                                });
+                                status_message.set("Surfpool is stopped".to_string());
+                                network_status.set("Disconnected".to_string());
+                                logs.write().push("Surfpool stopped successfully".to_string());
                             },
                             "🛑 Stop Surfpool"
                         }
                     }
-
-                    button {
-                        class: "btn btn-secondary",
-                        onclick: move |_| {
-                            logs.write().push("Network status refreshed".to_string());
-                            // TODO: Implement network status refresh
-                        },
-                        "🔄 Refresh Status"
-                    }
-
-                    button {
-                        class: "btn btn-secondary",
-                        onclick: move |_| {
-                            logs.write().push("Configuration opened".to_string());
-                            // TODO: Open configuration dialog
-                        },
-                        "⚙️ Configure"
-                    }
                 }
             }
 
-            // Network Information
-            div { class: "network-info-section",
-                h2 { "Network Information" }
-                div { class: "info-grid",
-                    InfoCard {
-                        label: "Network Type",
-                        value: "Local Simulation (Mainnet Fork)"
-                    }
-                    InfoCard {
-                        label: "Port",
-                        value: "{port()}"
-                    }
-                    InfoCard {
-                        label: "RPC Endpoint",
-                        value: "http://localhost:8999"
-                    }
-                    InfoCard {
-                        label: "WebSocket",
-                        value: "ws://localhost:8999"
-                    }
-                }
-            }
-
-            // Configuration Section
-            div { class: "config-section",
-                h2 { "Configuration" }
-                div { class: "config-form",
-                    div { class: "form-group",
-                        label { "RPC Port" }
-                        input {
-                            r#type: "number",
-                            value: "{port()}",
-                            class: "form-control",
-                            onchange: move |evt| {
-                                if let Ok(new_port) = evt.value().parse::<u16>() {
-                                    port.set(new_port);
-                                }
-                            }
-                        }
-                    }
-
-                    div { class: "form-group",
-                        label { "Auto-start on Launch" }
-                        input {
-                            r#type: "checkbox",
-                            class: "form-checkbox"
-                        }
-                    }
-
-                    div { class: "form-group",
-                        label { "Log Level" }
-                        select {
-                            class: "form-control",
-                            option { "Info" }
-                            option { "Debug" }
-                            option { "Error" }
-                        }
-                    }
-
-                    button {
-                        class: "btn btn-primary",
-                        onclick: move |_| {
-                            logs.write().push("Configuration saved".to_string());
-                            // TODO: Save configuration
-                        },
-                        "💾 Save Configuration"
-                    }
-                }
-            }
-
-            // Logs Section
-            div { class: "logs-section",
-                div { class: "logs-header",
-                    h2 { "Activity Logs" }
-                    button {
-                        class: "btn btn-secondary btn-small",
-                        onclick: move |_| {
-                            logs.write().clear();
-                        },
-                        "🗑️ Clear Logs"
-                    }
-                }
-
-                div { class: "logs-container",
+            div {
+                h2 { style: "font-size: 1.5rem; font-weight: 600; color: #111827; margin-bottom: 1rem;", "Activity Logs" }
+                div {
+                    style: "background-color: white; border-radius: 0.5rem; border: 1px solid #e5e7eb; padding: 1rem; max-height: 400px; overflow-y: auto;",
                     if logs().is_empty() {
-                        div { class: "logs-empty",
+                        div {
+                            style: "text-align: center; color: #6b7280; padding: 2rem;",
                             p { "No activity logs yet. Start Surfpool to see logs." }
                         }
                     } else {
-                        for (index, log_entry) in logs().iter().enumerate() {
+                        for log_entry in logs().iter() {
                             div {
-                                key: "{index}",
-                                class: "log-entry",
-                                span { class: "log-timestamp",
-                                    "[{chrono::Utc::now().format(\"%H:%M:%S\")}]"
-                                }
-                                span { class: "log-message", "{log_entry}" }
+                                style: "padding: 0.5rem 0; border-bottom: 1px solid #f3f4f6; font-family: monospace; font-size: 0.875rem; color: #374151;",
+                                span { style: "color: #6b7280; margin-right: 0.5rem;", "[LOG]" }
+                                span { "{log_entry}" }
                             }
                         }
                     }
@@ -207,47 +99,50 @@ fn StatusCard(
     network_status: String,
 ) -> Element {
     rsx! {
-        div { class: "surfpool-status-card",
-            div { class: "status-header",
+        div {
+            style: "background-color: white; border-radius: 0.5rem; border: 1px solid #e5e7eb; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);",
+
+            div {
+                style: "display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;",
                 div {
-                    class: "status-indicator {if is_running { 'status-running' } else { 'status-stopped' }}",
-                    div { class: "status-dot" }
-                    span { class: "status-text", "{status_message}" }
+                    style: "display: flex; align-items: center; gap: 0.5rem;",
+                    div {
+                        style: if is_running {
+                            "width: 12px; height: 12px; border-radius: 50%; background-color: #10b981;"
+                        } else {
+                            "width: 12px; height: 12px; border-radius: 50%; background-color: #ef4444;"
+                        },
+                    }
+                    span { style: "font-weight: 500; color: #111827;", "{status_message}" }
                 }
             }
 
-            div { class: "status-details",
-                div { class: "status-item",
-                    span { class: "status-label", "Port:" }
-                    span { class: "status-value", "{port}" }
+            div {
+                style: "display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;",
+                div {
+                    style: "display: flex; justify-content: space-between;",
+                    span { style: "color: #6b7280;", "Port:" }
+                    span { style: "font-weight: 500;", "{port}" }
                 }
-                div { class: "status-item",
-                    span { class: "status-label", "Network:" }
-                    span { class: "status-value", "{network_status}" }
+                div {
+                    style: "display: flex; justify-content: space-between;",
+                    span { style: "color: #6b7280;", "Network:" }
+                    span { style: "font-weight: 500;", "{network_status}" }
                 }
             }
 
-            div { class: "status-features",
-                h3 { "Features" }
+            div {
+                style: "border-top: 1px solid #e5e7eb; padding-top: 1rem;",
+                h3 { style: "font-size: 1rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem;", "Features" }
                 ul {
-                    li { "Mainnet fork to local simulation" }
-                    li { "Full RPC compatibility" }
-                    li { "WebSocket support" }
-                    li { "Account state persistence" }
-                    li { "Transaction history" }
+                    style: "list-style: none; padding: 0; margin: 0;",
+                    li { style: "padding: 0.25rem 0; color: #4b5563; font-size: 0.875rem;", "• Mainnet fork to local simulation" }
+                    li { style: "padding: 0.25rem 0; color: #4b5563; font-size: 0.875rem;", "• Full RPC compatibility" }
+                    li { style: "padding: 0.25rem 0; color: #4b5563; font-size: 0.875rem;", "• WebSocket support" }
+                    li { style: "padding: 0.25rem 0; color: #4b5563; font-size: 0.875rem;", "• Account state persistence" }
+                    li { style: "padding: 0.25rem 0; color: #4b5563; font-size: 0.875rem;", "• Transaction history" }
                 }
             }
-        }
-    }
-}
-
-/// Information card component
-#[component]
-fn InfoCard(label: String, value: String) -> Element {
-    rsx! {
-        div { class: "info-card",
-            div { class: "info-label", "{label}" }
-            div { class: "info-value", "{value}" }
         }
     }
 }

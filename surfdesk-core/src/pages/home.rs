@@ -2,8 +2,8 @@
 //!
 //! This is the main dashboard page that provides an overview of the Surfdesk
 //! application, showing system status, quick actions, and recent activity.
-
 use crate::routes::Route;
+use crate::services::surfpool::{Surfpool, TraitSurfpool};
 use dioxus::prelude::*;
 use dioxus_router::components::Link;
 use dioxus_router::prelude::*;
@@ -14,13 +14,48 @@ pub fn Home() -> Element {
     let navigator = use_navigator();
     let surfpool_status = use_signal(|| "Stopped".to_string());
     let network_info = use_signal(|| "Local Simulation".to_string());
-    let recent_activity = use_signal(|| {
-        vec![
-            "Program deployment completed".to_string(),
-            "Account created: 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM".to_string(),
-            "Surfpool network started".to_string(),
-        ]
-    });
+    let mut surfpool = use_signal(|| Surfpool::new());
+    let logs = use_signal(Vec::<String>::new);
+
+    // ฟังก์ชัน toggle surfpool
+    let toggle_surfpool = move |_| {
+        let mut surfpool = surfpool.clone();
+        let mut surfpool_status = surfpool_status.clone();
+        let mut logs = logs.clone();
+
+        spawn(async move {
+            if surfpool_status() == "Running" {
+                if let Err(e) = surfpool.write().stop().await {
+                    logs.write().push(format!("Error stopping surfpool: {e}"));
+                } else {
+                    logs.write().push("🟥 Surfpool stopped".into());
+                    surfpool_status.set("Stopped".into());
+                }
+            } else {
+                if let Err(e) = surfpool.write().start().await {
+                    logs.write().push(format!("Error starting surfpool: {e}"));
+                } else {
+                    logs.write().push("🟩 Surfpool started".into());
+                    surfpool_status.set("Running".into());
+
+                    // อ่าน log
+
+                    // spawn(async move {
+                    //     loop {
+                    //         let output = surfpool.write().read().await.unwrap_or_default();
+                    //         if !output.is_empty() {
+                    //             logs.write().push(output);
+                    //         }
+                    //         if surfpool.read().is_running().await == false {
+                    //             break;
+                    //         }
+                    //         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    //     }
+                    // });
+                }
+            }
+        });
+    };
 
     rsx! {
         div {
@@ -79,29 +114,29 @@ pub fn Home() -> Element {
                     style: "display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;",
 
                     QuickActionCard {
-                        title: "Start Surfpool".to_string(),
-                        description: "Initialize local Solana simulation network".to_string(),
-                        icon: "🚀".to_string(),
-                        action: "start_surfpool".to_string()
+                        title: if surfpool_status() == "Running" { "Stop Surfpool".to_string() } else { "Start Surfpool".to_string() },
+                        description: "Toggle Surfpool process".to_string(),
+                        icon: if surfpool_status() == "Running" { "🟥".to_string() } else { "🟩".to_string() },
+                        onclick: toggle_surfpool
                     }
-                    QuickActionCard {
-                        title: "Create Program".to_string(),
-                        description: "Build a new Solana program visually".to_string(),
-                        icon: "➕".to_string(),
-                        action: "create_program".to_string()
-                    }
-                    QuickActionCard {
-                        title: "Create Account".to_string(),
-                        description: "Generate a new Solana account".to_string(),
-                        icon: "👤".to_string(),
-                        action: "create_account".to_string()
-                    }
-                    QuickActionCard {
-                        title: "Deploy Program".to_string(),
-                        description: "Deploy program to local network".to_string(),
-                        icon: "📤".to_string(),
-                        action: "deploy_program".to_string()
-                    }
+                    // QuickActionCard {
+                    //     title: "Create Program".to_string(),
+                    //     description: "Build a new Solana program visually".to_string(),
+                    //     icon: "➕".to_string(),
+                    //     onclick: |_|{}
+                    // }
+                    // QuickActionCard {
+                    //     title: "Create Account".to_string(),
+                    //     description: "Generate a new Solana account".to_string(),
+                    //     icon: "👤".to_string(),
+                    //     action: "create_account".to_string()
+                    // }
+                    // QuickActionCard {
+                    //     title: "Deploy Program".to_string(),
+                    //     description: "Deploy program to local network".to_string(),
+                    //     icon: "📤".to_string(),
+                    //     action: "deploy_program".to_string()
+                    // }
                 }
             }
 
@@ -112,7 +147,7 @@ pub fn Home() -> Element {
                 div {
                     style: "display: flex; flex-direction: column; gap: 1rem;",
 
-                    for (index, activity) in recent_activity().iter().enumerate() {
+                    for (index, activity) in logs().iter().enumerate() {
                         div {
                             key: "{index}",
                             style: "background-color: white; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); padding: 1rem; display: flex; align-items: center;",
@@ -196,43 +231,22 @@ fn StatusCard(
 
 /// Quick action card for common operations
 #[component]
-fn QuickActionCard(title: String, description: String, icon: String, action: String) -> Element {
+fn QuickActionCard(
+    title: String,
+    description: String,
+    icon: String,
+    onclick: EventHandler<MouseEvent>,
+) -> Element {
     rsx! {
         div {
-            style: "background-color: white; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); padding: 1.5rem;",
-
-            div { style: "font-size: 1.875rem; margin-bottom: 1rem;", "{icon}" }
-            div {
-                style: "margin-bottom: 1rem;",
-                h3 { style: "font-size: 1.125rem; font-weight: 600; color: #111827; margin: 0 0 0.5rem 0;", "{title}" }
-                p { style: "color: #6b7280; font-size: 0.875rem; margin: 0 0 1rem 0;", "{description}" }
-            }
+            style: "background-color: white; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 1.5rem; text-align: center;",
+            div { style: "font-size: 2rem; margin-bottom: 0.5rem;", "{icon}" }
+            h3 { style: "font-size: 1.25rem; font-weight: 600;", "{title}" }
+            p { style: "font-size: 0.875rem; color: #555;", "{description}" }
             button {
-                style: "background-color: #2563eb; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; border: none; cursor: pointer; font-size: 0.875rem; font-weight: 500;",
-                onclick: move |_| {
-                    // Handle action based on action type
-                    match action.as_str() {
-                        "start_surfpool" => {
-                            // TODO: Implement surfpool start logic
-                            tracing::info!("Start surfpool requested");
-                        }
-                        "create_program" => {
-                            // Navigate to program builder
-                            tracing::info!("Create program requested");
-                            navigator().push(Route::ProgramBuilderPage {});
-                        }
-                        "create_account" => {
-                            // TODO: Navigate to account manager
-                            tracing::info!("Create account requested");
-                        }
-                        "deploy_program" => {
-                            // TODO: Navigate to deployment interface
-                            tracing::info!("Deploy program requested");
-                        }
-                        _ => {}
-                    }
-                },
-                "Get Started"
+                style: "margin-top: 0.5rem; background-color: #2563eb; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer;",
+                onclick: move |evt| onclick.call(evt),
+                "{title}"
             }
         }
     }
