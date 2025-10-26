@@ -17,7 +17,6 @@ pub fn Home() -> Element {
     let mut surfpool = use_signal(|| Surfpool::new());
     let logs = use_signal(Vec::<String>::new);
 
-    // ฟังก์ชัน toggle surfpool
     let toggle_surfpool = move |_| {
         let mut surfpool = surfpool.clone();
         let mut surfpool_status = surfpool_status.clone();
@@ -25,33 +24,60 @@ pub fn Home() -> Element {
 
         spawn(async move {
             if surfpool_status() == "Running" {
-                if let Err(e) = surfpool.write().stop().await {
-                    logs.write().push(format!("Error stopping surfpool: {e}"));
-                } else {
-                    logs.write().push("🟥 Surfpool stopped".into());
-                    surfpool_status.set("Stopped".into());
+                // Stop the surfpool
+                match surfpool.write().stop().await {
+                    Ok(_) => {
+                        logs.write().insert(0, "🟥 Surfpool stopped".to_string());
+                        surfpool_status.set("Stopped".into());
+                    }
+                    Err(e) => {
+                        logs.write()
+                            .insert(0, format!("Error stopping surfpool: {e}"));
+                    }
                 }
             } else {
-                if let Err(e) = surfpool.write().start().await {
-                    logs.write().push(format!("Error starting surfpool: {e}"));
-                } else {
-                    logs.write().push("🟩 Surfpool started".into());
-                    surfpool_status.set("Running".into());
+                // Start the surfpool
+                match surfpool.write().start().await {
+                    Ok(_) => {
+                        logs.write().insert(0, "🟩 Surfpool started".to_string());
+                        surfpool_status.set("Running".into());
+                    }
+                    Err(e) => {
+                        logs.write()
+                            .insert(0, format!("Error starting surfpool: {e}"));
+                        return;
+                    }
+                }
 
-                    // อ่าน log
+                // Monitor the surfpool with better signal management
+                let mut last_output = String::new();
+                loop {
+                    // Check if surfpool is still running
+                    let is_running = {
+                        let surfpool_guard = surfpool.read();
+                        surfpool_guard.is_running().await
+                    };
 
-                    // spawn(async move {
-                    //     loop {
-                    //         let output = surfpool.write().read().await.unwrap_or_default();
-                    //         if !output.is_empty() {
-                    //             logs.write().push(output);
-                    //         }
-                    //         if surfpool.read().is_running().await == false {
-                    //             break;
-                    //         }
-                    //         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                    //     }
-                    // });
+                    if !is_running {
+                        logs.write().insert(0, "🏁 Surfpool finished".to_string());
+                        surfpool_status.set("Stopped".into());
+                        break;
+                    }
+
+                    // Try to read output
+                    match surfpool.write().read().await {
+                        Ok(output) => {
+                            if !output.is_empty() && output != last_output {
+                                logs.write().insert(0, output.clone());
+                                last_output = output;
+                            }
+                        }
+                        Err(_) => {
+                            // Just continue on read error, don't log every error to avoid spam
+                        }
+                    }
+
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 }
             }
         });

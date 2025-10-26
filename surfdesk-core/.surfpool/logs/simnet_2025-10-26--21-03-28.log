@@ -1,0 +1,11 @@
+[2025-10-26--21-03-28 INFO actix_server::builder] starting 5 workers
+[2025-10-26--21-03-28 INFO actix_server::server] Tokio runtime found; starting in existing Tokio runtime
+[2025-10-26--21-03-28 INFO actix_server::server] starting service: "actix-web-service-127.0.0.1:18488", workers: 5, listening on: 127.0.0.1:18488
+[2025-10-26--21-03-28 INFO parity_ws] Listening for new connections on 127.0.0.1:8900.
+[2025-10-26--21-03-29 INFO surfpool::cli::simnet] Clock ticking (epoch 870, slot 375935254)
+[2025-10-26--21-03-29 INFO surfpool::cli::simnet] Clock ticking (epoch 870, slot 375935255)
+[2025-10-26--21-03-29 INFO surfpool::cli::simnet] Clock ticking (epoch 870, slot 375935256)
+[2025-10-26--21-03-30 INFO surfpool::cli::simnet] Clock ticking (epoch 870, slot 375935257)
+[2025-10-26--21-03-30 INFO surfpool::cli::simnet] Clock ticking (epoch 870, slot 375935258)
+[2025-10-26--21-03-30 INFO surfpool::cli::simnet] Clock ticking (epoch 870, slot 375935259)
+[2025-10-26--21-03-31 INFO surfpool::cli::simnet] Clock ticking (epoch 870, slot 375935260)
